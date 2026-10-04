@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Jesus Mar Couto</title><meta name="apple-mobile-web-app-title" content="Jesus Mar Couto"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#F6F4EF"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-512.png">
 <style>
@@ -30,8 +30,8 @@
 #bar,.chatBtn,.chead{touch-action:none}.pi .bar .emb,.chead{cursor:grab}
 </style>
 <script src="vendor/supabase.umd.js"></script>
-<script src="config.js?v=2026.10.04-26" onerror="void 0"></script>
-<script src="js/data.js?v=2026.10.04-26"></script>
+<script src="config.js?v=2026.10.04-27" onerror="void 0"></script>
+<script src="js/data.js?v=2026.10.04-27"></script>
 <style id="wa">
 /* ---------- chat ao estilo WhatsApp ---------- */
 :root{--waBg:#EFEAE2;--waMe:#D9FDD3;--waThem:#FFFFFF;--waTx:#111B21;--waMeta:#667781;--waIc:#54656F;--waBar:#F0F2F5;--waGreen:#00A884;--waBlue:#53BDEB;--waQuote:#06CF9C}
@@ -153,6 +153,8 @@
   --shadow:0 10px 36px rgba(0,0,0,.5),0 0 0 .5px rgba(255,255,255,.08); color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font:400 14px/1.5 var(--fBody);-webkit-font-smoothing:antialiased}
+/* como uma app instalada: sem zoom com dois dedos, sem duplo toque, sem a página a 'esticar' */
+html,body{overscroll-behavior:none;touch-action:pan-x pan-y;-webkit-text-size-adjust:100%}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
@@ -1371,6 +1373,9 @@ if('serviceWorker' in navigator&&window.isSecureContext&&location.protocol!=='fi
   navigator.serviceWorker.register('sw.js').then(r=>{SWR=r;pushSync();setTimeout(pushPergunta,2500);}).catch(()=>{});
   navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.abrir)abrirDe(e.data.abrir);});}
 {const q=new URLSearchParams(location.search).get('abrir');if(q){history.replaceState(null,'',location.pathname+location.search.replace(/[?&]abrir=[^&]*/,'').replace(/^&/,'?'));setTimeout(()=>abrirDe(q),900);}}
+/* sem zoom (iPhone ignora user-scalable=no): bloqueia o gesto de pinça e o duplo toque */
+['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});
 const openSettings=()=>{pick=ME?(POSTO?ME+' | '+POSTO:ME):'Aveiro';DRAFT=null;PD=null;sheet();};
 const canHist=()=>OWN.includes(ME)||isDocDev();
 function openGear(anchor,ctx){if(!canHist()){openSettings();return;}const g=$('gmenu');
@@ -1504,7 +1509,7 @@ addEventListener('resize',fitPanels);
 dragY('#bar','top',()=>$('topR'));dragY('#chatBtn, .chead','chat',()=>$('chatW'));
 applyPos();setInterval(applyPos,60000);
 // atualização automática: se houver versão nova publicada, recarrega (sem perder nada: os dados estão no servidor)
-const BUILD='2026.10.04-26';
+const BUILD='2026.10.04-27';
 const chkUpd=()=>{if(location.protocol!=='https:')return;fetch('version.txt?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{v=v&&v.trim();
   if(v&&v!==BUILD&&$('sheet').hidden&&$('pin').hidden&&!document.querySelector('input:focus, textarea:focus')){
     let tried='';try{tried=sessionStorage.getItem('jmc_upd')||'';}catch(e){}if(tried===v)return;try{sessionStorage.setItem('jmc_upd',v);}catch(e){}

@@ -118,6 +118,13 @@
       status: () => status,
       collection: name => query(name, {}),
       doc: path => configDoc(path.split('/')[1]),
+      // notificações no telefone: regista/retira este aparelho (endereço push + de quem é)
+      async pushSave(sub, quem, aparelho) {
+        const j = sub.toJSON ? sub.toJSON() : sub;
+        const { error } = await sb.from('push_subs').upsert({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, quem, aparelho: aparelho || null, atualizado_em: new Date().toISOString() }, { onConflict: 'endpoint' });
+        if (error) throw error;
+      },
+      async pushDel(endpoint) { await sb.from('push_subs').delete().eq('endpoint', endpoint); },
       async upload(file) {
         const ext = ((file.name || '').match(/\.([A-Za-z0-9]{1,8})$/) || [, 'bin'])[1].toLowerCase();
         const d = new Date(), path = d.getFullYear() + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + uuid() + '.' + ext;
@@ -174,6 +181,7 @@
       doc: path => { const id = path.split('/')[1]; return {
         onSnapshot(cb) { const run = () => cb(snapDoc(id, cfg.get(id) || null)); subs.add(run); setTimeout(run, 0); return () => subs.delete(run); },
         async set(o) { cfg.set(id, o); emit(); } }; },
+      async pushSave() {}, async pushDel() {},
       async upload(file) { return { path: 'mem:' + URL.createObjectURL(file), nome: file.name, tipo: file.type, tam: file.size }; },
       async fileUrl(path) { return path.slice(4); },
       async verifyCode(code) { return ({ '1111': 'Ana', '2222': 'Beatriz', '3333': 'Joana', '4444': 'Mariana', '5555': 'Tânia' })[code] || null; }

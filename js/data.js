@@ -27,7 +27,7 @@
       feitoPor: ['feito_por', 's'], feitoEm: ['feito_em', 'ts'], criadoEm: ['criado_em', 'ts'] } },
     chat: { table: 'chat_messages', order: { em: 'enviado_em' }, f: {
       tid: ['tid', 's'], de: ['de', 's'], deTxt: ['de_txt', 's'], para: ['para', 's'], sala: ['sala', 's'],
-      t: ['texto', 's'], em: ['enviado_em', 'ts'] }, visto: true },
+      t: ['texto', 's'], em: ['enviado_em', 'ts'], editadoEm: ['editado_em', 'ts'], apagadoEm: ['apagado_em', 'ts'], anexo: ['anexo', 'j'] }, visto: true },
     salas: { table: 'room_assignments', textId: true, f: {
       medico: ['medico', 's'], clinica: ['clinica', 's'], sala: ['sala', 's'], dia: ['dia', 's'] } }
   };
@@ -117,6 +117,17 @@
       status: () => status,
       collection: name => query(name, {}),
       doc: path => configDoc(path.split('/')[1]),
+      async upload(file) {
+        const ext = ((file.name || '').match(/\.([A-Za-z0-9]{1,8})$/) || [, 'bin'])[1].toLowerCase();
+        const d = new Date(), path = d.getFullYear() + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + uuid() + '.' + ext;
+        const { error } = await sb.storage.from('anexos').upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+        if (error) throw error;
+        return { path, nome: file.name || ('ficheiro.' + ext), tipo: file.type || '', tam: file.size || 0 };
+      },
+      async fileUrl(path, download) {
+        const { data, error } = await sb.storage.from('anexos').createSignedUrl(path, 3600, download ? { download } : undefined);
+        if (error) throw error; return data.signedUrl;
+      },
       async verifyCode(code) { const { data, error } = await sb.rpc('verify_code', { p_code: String(code) }); if (error) throw error; return data || null; },
       async signIn(email, password) { const { error } = await sb.auth.signInWithPassword({ email, password }); if (error) throw error; }
     };
@@ -159,6 +170,8 @@
       doc: path => { const id = path.split('/')[1]; return {
         onSnapshot(cb) { const run = () => cb(snapDoc(id, cfg.get(id) || null)); subs.add(run); setTimeout(run, 0); return () => subs.delete(run); },
         async set(o) { cfg.set(id, o); emit(); } }; },
+      async upload(file) { return { path: 'mem:' + URL.createObjectURL(file), nome: file.name, tipo: file.type, tam: file.size }; },
+      async fileUrl(path) { return path.slice(4); },
       async verifyCode(code) { return ({ '1111': 'Ana', '2222': 'Beatriz', '3333': 'Joana', '4444': 'Mariana', '5555': 'Tânia' })[code] || null; }
     };
   }

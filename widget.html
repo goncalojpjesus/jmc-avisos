@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Widget · JMC Avisos</title><link rel="icon" href="icon-32.png">
+<style>
+@font-face{font-family:Cormorant;src:url(fonts/CormorantGaramond.ttf)}@font-face{font-family:Montserrat;src:url(fonts/Montserrat.ttf)}
+:root{--bg:#FBF8F1;--card:#fff;--tx:#2B2925;--mut:#8C877D;--gold:#C6A755;--line:#ECE5D6}
+@media (prefers-color-scheme:dark){:root{--bg:#1C1B19;--card:#262522;--tx:#F2EEE6;--mut:#A39E93;--line:#3A3833}}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 Montserrat,-apple-system,sans-serif}
+main{max-width:480px;margin:0 auto;padding:36px 16px 48px}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:22px}.top img{width:40px;height:40px;border-radius:50%}
+h1{font:400 30px/1.1 Cormorant,Georgia,serif;margin:0}.sub{color:var(--mut);font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+ol{list-style:none;padding:0;margin:0;counter-reset:s}
+li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 16px 16px 54px;margin-bottom:12px;position:relative}
+li:before{content:counter(s);position:absolute;left:16px;top:15px;width:26px;height:26px;border-radius:50%;border:1px solid var(--gold);color:var(--gold);display:grid;place-items:center;font-size:13px;font-weight:600}
+b{font-weight:600}.btn{display:inline-block;margin-top:10px;background:var(--gold);color:#fff;border:0;border-radius:12px;padding:11px 18px;font:600 14px Montserrat,sans-serif;text-decoration:none;cursor:pointer}
+.btn.sec{background:none;color:var(--gold);border:1px solid var(--gold)}.ok{color:#2E7D4F;font-size:13px;margin-left:8px}
+small{color:var(--mut)}
+</style></head><body><main>
+<div class="top"><img src="icon-256.png" alt=""><div><div class="sub">Jesus Mar Couto</div><h1>Widget de avisos</h1></div></div>
+<ol>
+<li>Instale a app gratuita <b>Scriptable</b>.<br><a class="btn sec" href="https://apps.apple.com/app/scriptable/id1405459188">Abrir na App Store</a></li>
+<li>Copie o widget.<br><button class="btn" id="cp">Copiar widget</button><span class="ok" id="ok" hidden>Copiado ✓</span></li>
+<li>Abra o Scriptable, toque em <b>＋</b>, cole (toque no ecrã → <b>Colar</b>) e dê-lhe o nome <b>JMC Avisos</b> (no título, em cima). Toque em <b>Done</b>.</li>
+<li>Toque no script <b>JMC Avisos</b>: inicie sessão com a conta da clínica e escolha de quem é o telemóvel. É só uma vez.</li>
+<li>No ecrã principal, mantenha o dedo num espaço vazio → <b>Editar</b> → <b>Adicionar widget</b> → <b>Scriptable</b> → tamanho médio. Toque no widget → <b>Script</b>: <b>JMC Avisos</b>.<br><small>Ecrã bloqueado: mantenha o dedo no ecrã bloqueado → Personalizar → widgets → Scriptable.</small></li>
+</ol>
+<p><small>O widget atualiza-se sozinho quando houver versões novas. Tocar nele abre os avisos.</small></p>
+</main>
+<script>
+let code='';fetch('widget.js?'+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>code=t);
+document.getElementById('cp').onclick=async()=>{
+  try{if(!code)code=await (await fetch('widget.js')).text();await navigator.clipboard.writeText(code);}
+  catch(e){const ta=document.createElement('textarea');ta.value=code;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
+  document.getElementById('ok').hidden=false;};
+</script></body></html>

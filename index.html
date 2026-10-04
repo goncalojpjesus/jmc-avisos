@@ -7,10 +7,31 @@
 @font-face{font-family:"Cormorant Garamond";src:url(fonts/CormorantGaramond.ttf) format("truetype");font-weight:300 700;font-display:swap}
 @font-face{font-family:"Cormorant Garamond";src:url(fonts/CormorantGaramond-Italic.ttf) format("truetype");font-weight:300 700;font-style:italic;font-display:swap}
 [hidden]{display:none!important}html,body{margin:0}
+/* feitos: grupos e desfazer */
+.grp{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--goldText);font-weight:600;margin:10px 2px 6px}
+.acts .undo{color:var(--info)}
+/* chat: editar, apagar, anexos */
+.bub{position:relative}
+.bub .bact{display:none;gap:4px;margin-top:5px}
+.bub.me:hover .bact,.bub.me.sel .bact{display:flex}
+.bub .bact button{border:0;background:rgba(255,255,255,.22);color:#fff;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer}
+.bub .bact button.warn{background:#fff;color:var(--bad)}
+.bub.gone{background:transparent!important;color:var(--muted)!important;border:1px dashed var(--line)!important;font-style:italic}
+.bub .ed{font-style:italic;opacity:.8}
+.bub .anx{display:block;margin:2px 0 4px;color:inherit;text-decoration:none}
+.bub .anx img{display:block;max-width:220px;max-height:180px;border-radius:10px;background:rgba(0,0,0,.06);min-width:60px;min-height:40px}
+.bub .anx.file{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.08);border-radius:10px;padding:7px 10px;font-size:12.5px}
+.bub.me .anx.file{background:rgba(255,255,255,.18)}
+.bub .anx.file i{font-style:normal;font-size:18px}.bub .anx.file small{display:inline;margin:0 0 0 4px}
+.cin .clip{background:transparent;color:var(--muted);border:1px solid var(--line);font-size:16px}
+.cin.editing input{border-color:var(--info);box-shadow:0 0 0 2px var(--infoSoft)}
+.cedit{display:flex;align-items:center;gap:8px;padding:6px 14px 0;font-size:12px;color:var(--info)}
+.cedit button{border:0;background:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline}
+#bar,.chatBtn,.chead{touch-action:none}.pi .bar .emb,.chead{cursor:grab}
 </style>
 <script src="vendor/supabase.umd.js"></script>
-<script src="config.js?v=2026.10.04-2" onerror="void 0"></script>
-<script src="js/data.js?v=2026.10.04-2"></script>
+<script src="config.js?v=2026.10.04-3" onerror="void 0"></script>
+<script src="js/data.js?v=2026.10.04-3"></script>
 </head><body>
 
 <style>
@@ -101,7 +122,7 @@ button{cursor:pointer}
 .stageWrap{position:relative;overflow:hidden;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.1);max-width:100%}
 .stage{position:absolute;left:0;top:0;width:1511px;height:950px;transform-origin:0 0}
 .stage img{width:1511px;height:950px;max-width:none;display:block}
-.topR{position:absolute;top:8px;right:8px;display:flex;flex-direction:row-reverse;align-items:flex-start;gap:8px}
+.topR{position:absolute;top:8px;left:8px;display:flex;flex-direction:row;align-items:flex-start;gap:8px}
 .pi{position:relative;width:400px;background:var(--surface);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
 .pi .bar{display:flex;align-items:center;gap:9px;padding:9px 12px;user-select:none;cursor:pointer;border-bottom:1px solid var(--line)}
 .pi .bar .emb{width:24px;height:24px}
@@ -261,7 +282,7 @@ button.chk:hover{opacity:1;border-color:var(--ok)}button.chk:hover svg{opacity:1
 .pi.open .mini{display:none}
 .pi .bt{display:none}.pi.open .bt{display:block;flex:1;min-width:0}
 .pi.open .bt .tabs{padding:0;gap:2px}.pi.open .bt .tabs button{padding:5px 8px;font-size:12px}
-.pi.open .nm{display:none}.pi.open .bar{gap:6px;padding:8px 10px}
+.pi.open .nm{display:none}.pi.open .bar{gap:6px;padding:8px 10px}.pi.open{width:480px}.pi.open .cnt{display:none}
 .pi.open .body{padding-top:4px}
 .empty{padding:14px 10px}
 .pi.lv-zero .cnt{display:none}.pi.lv-zero .mini{color:var(--muted)}
@@ -272,7 +293,7 @@ button.chk:hover{opacity:1;border-color:var(--ok)}button.chk:hover svg{opacity:1
 @keyframes alert{0%,100%{box-shadow:var(--shadow),0 0 0 0 rgba(210,67,58,0)}50%{box-shadow:var(--shadow),0 0 0 5px rgba(210,67,58,.35)}}
 @media (prefers-reduced-motion:reduce){.it{transition:none}}
 .lcirc.hot{background:rgba(210,67,58,.55)}
-.chatW{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.chatW{position:absolute;left:16px;bottom:16px;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
 .chatBtn{height:36px;border-radius:999px;border:0;background:var(--surface);box-shadow:var(--shadow);display:inline-flex;align-items:center;gap:8px;padding:0 18px;position:relative;color:var(--fg);font-weight:600;font-size:13px;letter-spacing:.02em}
 .chatBtn .emb{width:32px;height:32px}
 .chatBtn.ping{animation:cping 1.4s ease-in-out infinite}
@@ -414,7 +435,10 @@ const isPend=r=>r.estado==='pend'||r.estado==='nao'||(r.estado==='adiado'&&r.ate
 const pend=()=>mine().filter(isPend).sort((a,b)=>W[a.p]-W[b.p]||b.criadoEm-a.criadoEm);
 const adi=()=>mine().filter(r=>r.estado==='adiado'&&r.ate>Date.now()).sort((a,b)=>a.ate-b.ate);
 const sent=()=>ROWS.filter(r=>r.de===ME);
-const done=()=>mine().filter(r=>r.estado==='feito').sort((a,b)=>(b.feitoEm||0)-(a.feitoEm||0)).slice(0,30);
+const byFeito=(a,b)=>(b.feitoEm||0)-(a.feitoEm||0);
+const doneMine=()=>mine().filter(r=>r.estado==='feito').sort(byFeito).slice(0,30);
+const doneAsked=()=>ROWS.filter(r=>r.de===ME&&r.estado==='feito'&&!doneMine().includes(r)).sort(byFeito).slice(0,30);
+const done=()=>doneMine().concat(doneAsked());
 
 function pill(r){
   if(r.estado==='feito')return `<span class="pill feito">✓ Feito por ${esc(r.feitoPor)} · ${fmtW(r.feitoEm)}</span>`;
@@ -439,6 +463,7 @@ function item(r){
    ${o==='mot'?`<div class="pop nao"><span style="font-size:12px;color:var(--muted);flex-basis:100%">Mais de 48 horas (${fmtAte(PEND[r.id])}): indique o motivo.</span>${["Paciente só pode mais tarde","Aguarda material","Aguarda laboratório","Médico ausente"].map(m=>`<button data-mq="${m}">${m}</button>`).join("")}<input type="text" id="mt-${r.id}" placeholder="ou escreva outro motivo"><button data-mot="1">Adiar</button></div>`:''}
    ${o==='no'?`<div class="pop nao"><input type="text" id="nt-${r.id}" placeholder="Porquê? (ex.: não atende)"><button data-nao="1">Guardar</button></div>`:''}`:''}
   ${env?`<div class="acts"><button class="del" data-a="del">Apagar</button></div>`:''}
+  ${TAB==='fei'?`<div class="acts"><button class="undo" data-a="undo">↺ Desfazer</button></div>`:''}
   </div>${acts?`<div class="side"><button class="ib ${o==='ad'||o==='mot'?'on':''}" data-a="ad" aria-label="Adiar" title="Adiar"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M9 3.5h6"/></svg></button><button class="ib ${o==='no'?'on':''}" data-a="no" aria-label="Não feito" title="Não feito"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></button></div>`:''}</div>`;
 }
 function listHTML(noTabs){
@@ -450,13 +475,15 @@ function listHTML(noTabs){
   const hasU=P.some(r=>r.p==='u');
   const tabsH=`<div class="tabs" role="tablist">${tabs.map(([k,l,n])=>`<button data-t="${k}" class="${TAB===k?'on':''}">${l}${n!==''?`<span class="n ${k==='rec'&&hasU?'u':''}">${n}</span>`:''}</button>`).join('')}</div>`;
   window.__tabsH=tabsH;
+  if(TAB==='fei'&&src.length){const M=doneMine(),K=doneAsked();
+    return (noTabs?'':tabsH)+`<div class="list">${M.length?`<div class="grp">${isClinic(ME)?'Feitos aqui':'Feitos por mim'}</div>`+M.map(item).join(''):''}${K.length?`<div class="grp">Que eu pedi</div>`+K.map(item).join(''):''}</div>`;}
   return (noTabs?'':tabsH)+`<div class="list">${src.length?src.map(item).join(''):`<div class="empty">${emptyTxt}</div>`}</div>`;
 }
 function compHTML(id){
-  const def=isClinic(ME)?['Dr. Gonçalo']:['Aveiro'];
+  const def=[]; // ninguém por defeito: escolhe-se sempre (pode ser mais do que um)
   return `<div class="comp" data-comp="${id}"><div class="row"><input type="text" id="tx-${id}" placeholder="Novo recado… ex.: Ligar ao Sr. X" autocomplete="off"><button class="go" data-go="1" aria-label="Enviar">＋</button></div>
   <div class="more"><div class="lbl">Para</div><div class="chips" data-para>${CX.map(c=>`<button data-v="${c}" class="${def.includes(c)?'on':''}">${c}</button>`).join('')}</div>
-  <div class="lbl">Para uma assistente (opcional)</div><div class="chips" data-pess>${(CFG.assistentes||ASSIST).map(n=>`<button data-v="${n}">${n}</button>`).join('')}</div>
+  <div class="lbl">Para assistentes (opcional, pode escolher várias)</div><div class="chips" data-pess>${(CFG.assistentes||ASSIST).map(n=>`<button data-v="${n}">${n}</button>`).join('')}</div>
   <div class="lbl">Prioridade</div><div class="chips pri" data-pri><button data-v="n" class="on">Normal</button><button data-v="h">Importante</button><button data-v="u">Urgente</button></div>
   <div class="lbl">Se não estiver feito, passa a urgente</div><div class="chips" data-esc><button data-v="" class="on">Não</button><button data-v="17">Hoje às 17h</button><button data-v="am12">Amanhã às 12h</button><button data-v="48">Daqui a 2 dias</button><button data-v="dt">Escolher…</button></div>
   <input type="datetime-local" data-escdt hidden aria-label="Passa a urgente em" style="border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 10px;max-width:240px"></div></div>`;
@@ -479,6 +506,7 @@ function bind(root){
     el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{
       const a=b.dataset.a;
       if(a==='ok'){askPin('Marcar como feito: '+r.t,who=>{OPEN[id]='';write(id,{estado:'feito',feitoPor:who,feitoEm:Date.now()});toast('Feito por '+who+'. '+r.de+' fica a saber.');});}
+      else if(a==='undo'){askPin('Voltar a pôr por fazer: '+r.t,who=>{OPEN[id]='';TAB='rec';write(id,{estado:'pend',feitoPor:null,feitoEm:null});toast('Voltou para por fazer.');});}
       else if(a==='del'){if(OPEN[id]!=='del'){OPEN[id]='del';b.textContent='Confirmar apagar';return;}ROWS=ROWS.filter(x=>x.id!==id);render();if(DB)COL.doc(id).delete().catch(()=>{});toast('Recado apagado');}
       else{OPEN[id]=OPEN[id]===a?'':a;render();if(a==='no'){const i=$('nt-'+id);i&&i.focus();}}
     });
@@ -495,14 +523,14 @@ function bind(root){
   });
   root.querySelectorAll('[data-comp]').forEach(c=>{
     c.querySelectorAll('[data-para] button').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
-    c.querySelectorAll('[data-pess] button').forEach(b=>b.onclick=()=>c.querySelectorAll('[data-pess] button').forEach(x=>x.classList.toggle('on',x===b&&!x.classList.contains('on'))));
+    c.querySelectorAll('[data-pess] button').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
     c.querySelectorAll('[data-esc] button').forEach(b=>b.onclick=()=>{c.querySelectorAll('[data-esc] button').forEach(x=>x.classList.toggle('on',x===b));c.querySelector('[data-escdt]').hidden=b.dataset.v!=='dt';});
     c.querySelectorAll('[data-pri] button').forEach(b=>b.onclick=()=>c.querySelectorAll('[data-pri] button').forEach(x=>x.classList.toggle('on',x===b)));
     const inp=c.querySelector('input[type=text]');inp.addEventListener('focus',()=>{c.classList.add('open');COMPOPEN[c.dataset.comp]=1;});if(COMPOPEN[c.dataset.comp])c.classList.add('open');
     const go=()=>{const t=inp.value.trim();if(!t){inp.focus();return;}
       const para=[...c.querySelectorAll('[data-para] button.on')].map(b=>b.dataset.v);if(!para.length&&!c.querySelector('[data-pess] button.on')){toast('Escolha para quem é o recado');return;}
       const p=c.querySelector('[data-pri] button.on').dataset.v;
-      const pb=c.querySelector('[data-pess] button.on');const pess=pb?pb.dataset.v:'';
+      const pess=[...c.querySelectorAll('[data-pess] button.on')].map(b=>b.dataset.v).join(', ');
       const ev=(c.querySelector('[data-esc] button.on')||{dataset:{v:''}}).dataset.v;let esc0=0;const n0=new Date();
       if(ev==='17'){n0.setHours(17,0,0,0);esc0=+n0;if(esc0<Date.now())esc0+=864e5;}
       else if(ev==='am12'){n0.setDate(n0.getDate()+1);n0.setHours(12,0,0,0);esc0=+n0;}
@@ -515,7 +543,7 @@ function bind(root){
       inp.value='';TAB='env';COMPOPEN={};
       if(DB){try{const ref=COL.doc();ROWS.unshift(Object.assign({id:ref.id},data));render();await ref.set(data);}catch(e){toast('Não foi possível enviar. Tente outra vez.');return;}}
       else{ROWS.unshift(Object.assign({id:'l'+Date.now()},data));render();}
-      toast('Enviado para '+para.join(', '));};
+      toast('Enviado para '+[data.pessoa,...para.filter(x=>!(data.pessoa&&isClinic(x)))].filter(Boolean).join(', '));};
     c.querySelector('[data-go]').onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go();};
   });
 }
@@ -565,7 +593,7 @@ const lr=t=>+ls.get('memo_lr_'+ME+'_'+(t.room?'room':tkey(t)),'0');
 const unread=t=>CHAT.filter(m=>inThread(m,t)&&!isMine(m,t)&&m.em>lr(t)).length;
 const unreadAll=()=>threads().reduce((a,t)=>a+unread(t),0);
 const curT=()=>{const T=threads();let t=T.find(x=>tkey(x)===THREAD);if(!t){t=T.find(x=>unread(x))||(isClinic(ME)&&T.find(x=>x.other===DEFDOC[ME]))||T[0];THREAD=t?tkey(t):null;}return t;};
-const QUICK=()=>isClinic(ME)?['Ok ✓','Feito','Já vou']:['Fazer 10% de desconto','Agendar com a Dra. Catarina','Pode chamar o próximo'];
+const QUICK=()=>isClinic(ME)?[]:['Pode chamar o próximo'];
 const meLabel=()=>isRoom(ME)?rName(ME):ME;
 function chatHTML(k){
   const T=threads(),t=curT();
@@ -581,8 +609,9 @@ function chatHTML(k){
   }
   const para=isClinic(ME)?t.other+(salaDe(t.other,ME)?' · '+salaDe(t.other,ME):''):isRoom(ME)?'a receção':(isClinic(t.other)?'a receção de '+t.other:t.other);
   return `<div class="cv">${top}<div class="cmsgs" id="cm-${k}"></div>
-  <div class="cquick">${QUICK().map(q=>`<button data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>
-  <div class="cin"><input type="text" id="ci-${k}" placeholder="Mensagem para ${esc(para)}" autocomplete="off"><button data-cs="1" aria-label="Enviar">↑</button></div></div>`;
+  ${QUICK().length?`<div class="cquick">${QUICK().map(q=>`<button data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>`:''}
+  <div class="cedit" id="ce-${k}" ${EDITING?'':'hidden'}><span>A editar mensagem</span><button data-ce="1">cancelar</button></div>
+  <div class="cin${EDITING?' editing':''}" id="cinw-${k}"><button class="clip" data-clip="1" aria-label="Anexar ficheiro" title="Anexar ficheiro">📎</button><input type="file" id="cf-${k}" hidden multiple><input type="text" id="ci-${k}" placeholder="Mensagem para ${esc(para)}" autocomplete="off"><button data-cs="1" aria-label="Enviar">↑</button></div></div>`;
 }
 function msgsHTML(t){
   const M=CHAT.filter(m=>inThread(m,t)).sort((a,b)=>a.em-b.em);
@@ -592,15 +621,37 @@ function msgsHTML(t){
     const mine=isMine(m,t);
     const to=t.room&&!mine&&m.para!==speaker()?' · para '+esc(m.para):(!t.room&&mine&&m.sala?' · '+esc(m.sala):'');
     const seen=mine&&m===lastMine?`<div class="cseen">${m.visto?'Visto'+(m.visto.por?(/^Consultório/.test(m.visto.por)?' no ':' por ')+esc(m.visto.por):'')+' · '+fmtT(m.visto.em):'Enviado'}</div>`:'';
-    return sep+`<div class="bub ${mine?'me':'them'}">${esc(m.t)}<small>${esc(m.deTxt||m.de)} · ${fmtT(m.em)}${to}</small></div>${seen}`;}).join('');
+    if(m.apagadoEm)return sep+`<div class="bub ${mine?'me':'them'} gone">Mensagem apagada<small>${esc(m.deTxt||m.de)} · ${fmtT(m.em)}</small></div>${seen}`;
+    const ax=m.anexo,isImg=ax&&/^image\//.test(ax.tipo||'');
+    const axH=ax?(isImg?`<a class="anx" data-anx="${esc(ax.path)}" target="_blank" rel="noopener"><img alt="${esc(ax.nome)}" data-anximg="${esc(ax.path)}"></a>`
+      :`<a class="anx file" data-anx="${esc(ax.path)}" data-dl="${esc(ax.nome)}" target="_blank" rel="noopener"><i>📄</i><span>${esc(ax.nome)}<small>${fmtSize(ax.tam)}</small></span></a>`):'';
+    const txt=ax&&m.t==='📎 '+ax.nome?'':esc(m.t);
+    const act=mine&&!String(m.id).startsWith('tmp')?`<div class="bact">${ax?'':`<button data-me="${m.id}">Editar</button>`}<button data-md="${m.id}" class="${DELASK===m.id?'warn':''}">${DELASK===m.id?'Apagar mesmo?':'Apagar'}</button></div>`:'';
+    return sep+`<div class="bub ${mine?'me':'them'}" data-bid="${m.id}">${axH}${txt}<small>${esc(m.deTxt||m.de)} · ${fmtT(m.em)}${m.editadoEm?' · <span class="ed">editada</span>':''}${to}</small>${act}</div>${seen}`;}).join('');
 }
+function fmtSize(n){if(!n)return '';return n<1024*1024?Math.max(1,Math.round(n/1024))+' KB':(n/1048576).toFixed(1).replace('.',',')+' MB';}
+let DELASK=null,EDITING=null;const AXURL={};
+function fillAnexos(el){el.querySelectorAll('[data-anx]').forEach(a=>{const p=a.dataset.anx,dl=a.dataset.dl||'';const key=p+'|'+dl;
+  const set=u=>{a.href=u;const im=a.querySelector('img');if(im)im.src=u;};
+  if(AXURL[key]&&AXURL[key].ex>Date.now()){set(AXURL[key].u);return;}
+  if(!STORE||!STORE.fileUrl)return;STORE.fileUrl(p,dl).then(u=>{AXURL[key]={u,ex:Date.now()+50*60000};set(u);}).catch(()=>{});});}
 function markSeen(t){
   CHAT.filter(m=>inThread(m,t)&&!isMine(m,t)&&!m.visto&&!SEENW.has(m.id)).forEach(m=>{
     SEENW.add(m.id);const v={por:meLabel(),em:Date.now()};m.visto=v;
     if(CCOL)CCOL.doc(m.id).update({visto:v}).catch(()=>{});});
 }
 let AUTOOPEN=false;
-function fillMsgs(k){const t=curT();const el=$('cm-'+k);if(!el||!t)return;if(!AUTOOPEN)markSeen(t);el.innerHTML=msgsHTML(t);el.scrollTop=el.scrollHeight;if(!AUTOOPEN)ls.set('memo_lr_'+ME+'_'+(t.room?'room':tkey(t)),String(Date.now()));}
+function fillMsgs(k){const t=curT();const el=$('cm-'+k);if(!el||!t)return;if(!AUTOOPEN)markSeen(t);el.innerHTML=msgsHTML(t);fillAnexos(el);bindBubs(el,k);el.querySelectorAll('img').forEach(i=>i.onload=()=>{el.scrollTop=el.scrollHeight;});el.scrollTop=el.scrollHeight;if(!AUTOOPEN)ls.set('memo_lr_'+ME+'_'+(t.room?'room':tkey(t)),String(Date.now()));}
+function bindBubs(el,k){
+  el.querySelectorAll('.bub.me[data-bid]').forEach(b=>b.onclick=e=>{if(e.target.closest('a,button'))return;const on=!b.classList.contains('sel');el.querySelectorAll('.bub.sel').forEach(x=>x.classList.remove('sel'));b.classList.toggle('sel',on);});
+  el.querySelectorAll('[data-me]').forEach(b=>b.onclick=e=>{e.stopPropagation();const m=CHAT.find(x=>x.id===b.dataset.me);if(!m)return;EDITING=m.id;DELASK=null;
+    const inp=$('ci-'+k);inp.value=m.t;$('ce-'+k).hidden=false;$('cinw-'+k).classList.add('editing');inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);});
+  el.querySelectorAll('[data-md]').forEach(b=>b.onclick=e=>{e.stopPropagation();const id=b.dataset.md;
+    if(DELASK!==id){DELASK=id;fillMsgs(k);const bb=$('cm-'+k).querySelector(`[data-bid="${id}"]`);bb&&bb.classList.add('sel');clearTimeout(window.__dk);window.__dk=setTimeout(()=>{if(DELASK===id){DELASK=null;fillMsgs(k);}},5000);return;}
+    DELASK=null;const m=CHAT.find(x=>x.id===id);if(!m)return;const patch={apagadoEm:Date.now()};Object.assign(m,patch);fillMsgs(k);armChat();
+    if(CCOL)CCOL.doc(id).update(patch).catch(()=>toast('Não foi possível apagar.'));});
+}
+function stopEdit(k){EDITING=null;const ce=$('ce-'+k);if(ce)ce.hidden=true;const w=$('cinw-'+k);if(w)w.classList.remove('editing');}
 function bindChat(root,k){
   root.querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{THREAD=b.dataset.th;render();});
   root.querySelectorAll('[data-quem]').forEach(b=>b.onclick=()=>{ls.set('memo_quem_'+ME,b.dataset.quem);THREAD=null;render();toast(b.dataset.quem+' neste computador');});
@@ -610,15 +661,28 @@ function bindChat(root,k){
     if(SCOL){try{await SCOL.doc('d'+id).set(data);}catch(e){toast('Não foi possível guardar o consultório.');}}
     toast(t.other+' hoje no '+sala);});
   const inp=$('ci-'+k);if(!inp)return;
-  const go=async(txt)=>{txt=(txt||'').trim();if(!txt)return;const t=curT();
+  const go=async(txt,anexo)=>{txt=(txt||'').trim();if(!txt)return;const t=curT();
     const sala=isClinic(ME)?salaDe(t.other,ME):isRoom(ME)?rName(ME):'';
     if(isClinic(ME)&&!sala){toast('Escolha o consultório');return;}
-    const data={tid:tid(t.as,t.other),de:t.as,deTxt:isRoom(ME)?t.as+' · '+rName(ME):isClinic(ME)?quem():t.as+' · '+(VIEW==='ph'?'telemóvel':'computador'),para:t.other,sala,t:txt,em:Date.now()};
+    const data={tid:tid(t.as,t.other),de:t.as,deTxt:isRoom(ME)?t.as+' · '+rName(ME):isClinic(ME)?quem():t.as+' · '+(VIEW==='ph'?'telemóvel':'computador'),para:t.other,sala,t:txt,em:Date.now()};if(anexo)data.anexo=anexo;
     armChat();
     if(CCOL){try{const ref=CCOL.doc();CHAT.push(Object.assign({id:ref.id},data));fillMsgs(k);await ref.set(data);}catch(e){toast('Não foi possível enviar a mensagem.');}}
     else{CHAT.push(Object.assign({id:'c'+Date.now()},data));fillMsgs(k);}};
-  root.querySelector('[data-cs]').onclick=()=>{const v=inp.value;inp.value='';go(v);inp.focus();};
-  inp.onkeydown=e=>{if(e.key==='Enter'){const v=inp.value;inp.value='';go(v);}};
+  const edit=async(txt)=>{txt=(txt||'').trim();const id=EDITING;stopEdit(k);if(!txt||!id)return;const m=CHAT.find(x=>x.id===id);if(!m||m.t===txt)return;
+    const patch={t:txt,editadoEm:Date.now()};Object.assign(m,patch);fillMsgs(k);armChat();if(CCOL)CCOL.doc(id).update(patch).catch(()=>toast('Não foi possível editar.'));};
+  const submit=()=>{const v=inp.value;inp.value='';if(EDITING)edit(v);else go(v);};
+  root.querySelector('[data-cs]').onclick=()=>{submit();inp.focus();};
+  inp.onkeydown=e=>{if(e.key==='Enter')submit();else if(e.key==='Escape'&&EDITING){inp.value='';stopEdit(k);}};
+  const ce=root.querySelector('[data-ce]');if(ce)ce.onclick=()=>{inp.value='';stopEdit(k);};
+  const fileIn=$('cf-'+k);
+  const sendFiles=async files=>{for(const f of files){if(f.size>25*1048576){toast(f.name+': máximo 25 MB.');continue;}
+    const t=curT();const sala=isClinic(ME)?salaDe(t.other,ME):isRoom(ME)?rName(ME):'';if(isClinic(ME)&&!sala){toast('Escolha o consultório');return;}
+    toast('A enviar '+f.name+'…');let ax;try{ax=await STORE.upload(f);}catch(e){toast('Não foi possível anexar '+f.name+'.');continue;}
+    const cap=inp.value.trim();inp.value='';go(cap||('📎 '+ax.nome),ax);}};
+  root.querySelector('[data-clip]').onclick=()=>fileIn.click();
+  fileIn.onchange=()=>{const fs=[...fileIn.files];fileIn.value='';sendFiles(fs);};
+  inp.addEventListener('paste',e=>{const fs=[...(e.clipboardData&&e.clipboardData.files||[])];if(fs.length){e.preventDefault();sendFiles(fs);}});
+  const cv=root.querySelector('.cv');if(cv){cv.addEventListener('dragover',e=>{e.preventDefault();});cv.addEventListener('drop',e=>{e.preventDefault();const fs=[...(e.dataTransfer&&e.dataTransfer.files||[])];if(fs.length)sendFiles(fs);});}
   root.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{if(isClinic(ME))go(b.dataset.q);else{inp.value=b.dataset.q+(b.dataset.q.endsWith('Catarina')?' ':'');inp.focus();}});
 }
 function renderChat(){
@@ -652,7 +716,7 @@ function chatArrived(m){
   $('chatBtn').classList.add('ping'); /* restantes: só a bolinha com o número */
 }
 function effP(){const now=Date.now();ROWS.forEach(r=>{if(r.pOrig===undefined)r.pOrig=r.p;r.p=(r.escalaEm&&r.estado!=='feito'&&now>=r.escalaEm)?'u':r.pOrig;});}
-function render(){effP();try{renderChat();}catch(e){}
+function render(){effP();try{renderChat();}catch(e){}try{fitPanels();}catch(e){}
   $('nmMe').textContent='';$('phMe').textContent=ME;
   $('meLbl').textContent=ME?quem():'escolher';
   ['pc','ph'].forEach(v=>$('v-'+v).hidden=VIEW!==v);
@@ -746,8 +810,30 @@ if(window.jmcDesktop){let last=null;const hot=t=>!!(t&&t.closest&&t.closest('#pi
   const upd=v=>{if(v!==last){last=v;window.jmcDesktop.setInteractive(v);}};
   addEventListener('mousemove',e=>upd(hot(e.target)),{passive:true});setInterval(()=>{if(!$('sheet').hidden||!$('pin').hidden)upd(true);},500);upd(false);}
 setInterval(()=>render(),60000);
+// arrastar para cima/baixo (recados e chat); passada 1 hora voltam ao sítio
+const POS=(()=>{try{return JSON.parse(ls.get('memo_pos','null'))||{top:0,chat:0,t:0};}catch(e){return {top:0,chat:0,t:0};}})();
+function applyPos(){if((POS.top||POS.chat)&&Date.now()-POS.t>36e5){POS.top=0;POS.chat=0;ls.set('memo_pos',JSON.stringify(POS));}
+  const tr=$('topR'),cw=$('chatW');if(tr)tr.style.transform=POS.top?`translateY(${POS.top}px)`:'';if(cw)cw.style.transform=POS.chat?`translateY(${POS.chat}px)`:'';fitPanels();}
+function dragY(handleSel,key,el){
+  document.addEventListener('pointerdown',e=>{const h=e.target.closest&&e.target.closest(handleSel);if(!h||e.button)return;
+    if(e.target.closest('input,textarea,select'))return;
+    const y0=e.clientY,base=POS[key]||0,box=el().getBoundingClientRect();let moved=false;
+    const mv=ev=>{const dy=ev.clientY-y0;if(!moved&&Math.abs(dy)<6)return;moved=true;POS.t=Date.now();
+      let v=base+dy;const top0=box.top-base,H=innerHeight;
+      v=Math.max(-top0+4,Math.min(H-top0-box.height-4,v));POS[key]=Math.round(v);applyPos();};
+    const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);
+      if(moved){POS.t=Date.now();ls.set('memo_pos',JSON.stringify(POS));
+        const stop=ev=>{ev.stopPropagation();ev.preventDefault();removeEventListener('click',stop,true);};addEventListener('click',stop,true);setTimeout(()=>removeEventListener('click',stop,true),50);}};
+    addEventListener('pointermove',mv);addEventListener('pointerup',up);},true);}
+function fitPanels(){try{const cb=$('chatBtn').getBoundingClientRect(),cw=$('chatW'),pn=$('chatPanel');
+    const up=cb.top-26,down=innerHeight-cb.bottom-26;const goDown=up<300&&down>up;
+    cw.style.flexDirection=goDown?'column-reverse':'';pn.style.height=Math.max(240,Math.min(600,goDown?down:up))+'px';
+    const tr=$('topR').getBoundingClientRect(),bd=$('pi').querySelector('.body');if(bd)bd.style.maxHeight=Math.max(200,Math.min(600,innerHeight-tr.top-90))+'px';}catch(e){}}
+addEventListener('resize',fitPanels);
+dragY('#bar','top',()=>$('topR'));dragY('#chatBtn, .chead','chat',()=>$('chatW'));
+applyPos();setInterval(applyPos,60000);
 // atualização automática: se houver versão nova publicada, recarrega (sem perder nada: os dados estão no servidor)
-const BUILD='2026.10.04-2';
+const BUILD='2026.10.04-3';
 const chkUpd=()=>{if(location.protocol!=='https:')return;fetch('version.txt?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{v=v&&v.trim();
   if(v&&v!==BUILD&&$('sheet').hidden&&$('pin').hidden&&!document.querySelector('input:focus, textarea:focus')){
     let tried='';try{tried=sessionStorage.getItem('jmc_upd')||'';}catch(e){}if(tried===v)return;try{sessionStorage.setItem('jmc_upd',v);}catch(e){}

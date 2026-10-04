@@ -30,8 +30,8 @@
 #bar,.chatBtn,.chead{touch-action:none}.pi .bar .emb,.chead{cursor:grab}
 </style>
 <script src="vendor/supabase.umd.js"></script>
-<script src="config.js?v=2026.10.04-29" onerror="void 0"></script>
-<script src="js/data.js?v=2026.10.04-29"></script>
+<script src="config.js?v=2026.10.04-30" onerror="void 0"></script>
+<script src="js/data.js?v=2026.10.04-30"></script>
 <style id="wa">
 /* ---------- chat ao estilo WhatsApp ---------- */
 :root{--waBg:#EFEAE2;--waMe:#D9FDD3;--waThem:#FFFFFF;--waTx:#111B21;--waMeta:#667781;--waIc:#54656F;--waBar:#F0F2F5;--waGreen:#00A884;--waBlue:#53BDEB;--waQuote:#06CF9C}
@@ -770,11 +770,11 @@ const comQuem=n=>/^Dra\./.test(n)?'com a '+n:/^Dr\./.test(n)?'com o '+n:'com '+n
 function cxHTML(){
   const own=OWN.includes(ME),cls=own?['Aveiro','Faíscas']:isClinic(ME)?[ME]:['Aveiro','Faíscas'];
   const L=sysAll().filter(r=>r.tipo==='caixa'&&r.criadoEm>Date.now()-15*864e5);
-  const dk=ms=>new Date(ms).toDateString(),hojeK=dk(Date.now());
-  const days=[...new Set([hojeK,...L.map(r=>dk(r.criadoEm))])].map(d=>({d,ms:+new Date(d)})).sort((a,b)=>b.ms-a.ms);
+  const dk=ms=>new Date(ms).toDateString(),hojeK=dk(Date.now()),rk=r=>r.valores&&r.valores.dia?new Date(r.valores.dia+'T12:00').toDateString():dk(r.criadoEm);
+  const days=[...new Set([hojeK,...L.map(r=>rk(r))])].map(d=>({d,ms:+new Date(d)})).sort((a,b)=>b.ms-a.ms);
   const chip={ver:'<b class="cxc ok">✓ Enviado</b>',ok:own?'<b class="cxc ok">✓ Confere</b>':'<b class="cxc ok">✓ Enviado</b>',ko:'<b class="cxc ko">✗ Não confere</b>',inc:'<b class="cxc inc">⏳ Rascunho</b>',falta:'<b class="cxc falta">Por enviar</b>'};
   let out='';
-  days.forEach(D=>{const rows=cls.map(cl=>({cl,r:L.filter(r=>r.clinica===cl&&dk(r.criadoEm)===D.d).sort((a,b)=>b.criadoEm-a.criadoEm)[0]})).filter(x=>x.r||D.d===hojeK);
+  days.forEach(D=>{const rows=cls.map(cl=>({cl,r:L.filter(r=>r.clinica===cl&&rk(r)===D.d).sort((a,b)=>b.criadoEm-a.criadoEm)[0]})).filter(x=>x.r||D.d===hojeK);
     if(!rows.length)return;
     const n={ok:0,ko:0,inc:0};rows.forEach(x=>{let e=cxEstado(x.r);if(e==='ver')e='ok';if(n[e]!=null)n[e]++;});
     out+=`<div class="grp cxday"><span>${esc(histDay(D.ms))}</span><span class="cxs">${n.ok?`<b class="ok">✓ ${n.ok}</b>`:''}${n.ko?`<b class="ko">✗ ${n.ko}</b>`:''}${n.inc?`<b class="inc">⏳ ${n.inc}</b>`:''}</span></div>`;
@@ -782,7 +782,7 @@ function cxHTML(){
       const v=r&&r.valores||{};
       let det='';
       if(open){
-        if(own){det=`<div class="cxdet"><div><span>Total</span><b>${eur(v.total)}</b></div><div><span>Numerário</span><b>${eur(v.num)}</b></div><div><span>Multibanco</span><b>${eur(v.mb)}</b></div>${e==='ko'&&v.esperado!=null?`<div class="neg"><span>Esperado</span><b>${eur(v.esperado)}</b></div><div class="neg"><span>Diferença</span><b>${eur(v.dif)}</b></div>`:''}<div class="cxwho"><span>Submetido por</span><b>${esc(r.por||'—')}${r.hora?' · '+esc(r.hora):''}</b></div></div>${!r.valores?`<p class="cxtx">${esc(r.t)}</p>`:''}`;}
+        if(own){det=`<div class="cxdet"><div><span>Total</span><b>${eur(v.total)}</b></div><div><span>Numerário</span><b>${eur(v.num)}</b></div><div><span>Multibanco</span><b>${eur(v.mb)}</b></div>${e==='ko'&&v.esperado!=null?`<div class="neg"><span>Esperado</span><b>${eur(v.esperado)}</b></div><div class="neg"><span>Diferença</span><b>${eur(v.dif)}</b></div>`:''}${e==='ko'&&v.itens&&v.itens.length?`<div class="neg" style="grid-column:1/-1"><span>Não bate certo</span><b>${v.itens.map(esc).join(' · ')}</b></div>`:''}<div class="cxwho"><span>Submetido por</span><b>${esc(r.por||'—')}${r.hora?' · '+esc(r.hora):''}</b></div></div>${!r.valores?`<p class="cxtx">${esc(r.t)}</p>`:''}`;}
         else det=`<p class="cxtx">${e==='ver'?'Fecho de caixa enviado · '+fmtW(r.criadoEm)+'.':e==='ok'?'Fecho de caixa enviado com sucesso · '+fmtW(r.criadoEm)+'.':e==='ko'?'O fecho de caixa não confere. Fale com o Dr. Gonçalo ou a Dra. Catarina.':r.concluidoEm?'Enviado mais tarde, com sucesso.':'O fecho de caixa deste dia não foi concluído. Abra o fecho de caixa, indique a justificação e envie.'}</p>`;
         det+=`<div class="cxact">${r.link&&(own||(e==='inc'&&pend))?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">Abrir o fecho de caixa ›</a>`:''}${own&&pend?`<button class="cxver" data-cxv="${r.id}">Marcar como verificado</button>`:''}${!own&&pend&&e==='ko'?'<span class="cxwait">Por verificar pela gerência</span>':''}</div>`;}
       out+=`<div class="cxrow ${e}${pend?' pend':''}${open?' open':''}${own?'':' staff'}" ${r?`data-cx="${r.id}"`:''}><div class="cxl">${PIGI}<span class="cxn"><span class="cxpre">Fecho de caixa · </span>${esc(cl)}</span>${chip[e]}${r?'<i class="cxchev">›</i>':''}</div>${e==='ver'?`<div class="cxvsub">Verificado ${esc(comQuem(r.feitoPor))} · ${fmtW(r.feitoEm)}</div>`:''}${det}</div>`;});});
@@ -1514,7 +1514,7 @@ addEventListener('resize',fitPanels);
 dragY('#bar','top',()=>$('topR'));dragY('#chatBtn, .chead','chat',()=>$('chatW'));
 applyPos();setInterval(applyPos,60000);
 // atualização automática: se houver versão nova publicada, recarrega (sem perder nada: os dados estão no servidor)
-const BUILD='2026.10.04-29';
+const BUILD='2026.10.04-30';
 const chkUpd=()=>{if(location.protocol!=='https:')return;fetch('version.txt?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{v=v&&v.trim();
   if(v&&v!==BUILD&&$('sheet').hidden&&$('pin').hidden&&!document.querySelector('input:focus, textarea:focus')){
     let tried='';try{tried=sessionStorage.getItem('jmc_upd')||'';}catch(e){}if(tried===v)return;try{sessionStorage.setItem('jmc_upd',v);}catch(e){}

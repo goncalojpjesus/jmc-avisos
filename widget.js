@@ -1,7 +1,7 @@
 // JMC Avisos · widget para iPhone e iPad (app gratuita "Scriptable")
 // Mostra os recados pendentes e as mensagens do chat por ler. Atualiza-se sozinho a partir do site.
 // Parâmetro do widget (opcional): de quem é o aparelho. Ex.: Dr. Gonçalo · Dra. Catarina · Aveiro · Faíscas
-const VERSAO = '2026.10.04-1';
+const VERSAO = '2026.10.04-2';
 const SITE = 'https://goncalojpjesus.github.io/jmc-avisos/';
 const URL_SB = 'https://piudosbhockofrtiieig.supabase.co';
 const KEY = 'sb_publishable_POCYHRzMTQDQPXf8ESnJ_w_I6QDMctw';
@@ -36,7 +36,7 @@ async function configurar() {
   if (status !== 200) { const e = new Alert(); e.title = 'Não foi possível ligar'; e.message = j.msg === 'Invalid login credentials' ? 'Email ou palavra-passe errados.' : (j.msg || 'Sem internet.'); e.addAction('OK'); await e.present(); return false; }
   Keychain.set(KC, JSON.stringify(j));
   const q = new Alert(); q.title = 'De quem é este aparelho?';
-  const ops = ['Dr. Gonçalo', 'Dra. Catarina', 'Aveiro', 'Faíscas']; ops.forEach(o => q.addAction(o));
+  const ops = ['Dr. Gonçalo', 'Dra. Catarina', 'Aveiro', 'Faíscas', 'Dr. Diogo', 'Dra. Mara']; ops.forEach(o => q.addAction(o));
   Keychain.set('jmc_avisos_quem', ops[await q.present()] || 'Dr. Gonçalo');
   return true;
 }

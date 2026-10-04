@@ -24,10 +24,11 @@
       de: ['de', 's'], deTxt: ['de_txt', 's'], escalaEm: ['escala_em', 'ts'], estado: ['estado', 's'],
       ate: ['ate', 'ts'], adiPor: ['adi_por', 's'], nAdi: ['n_adi', 'n'], adiMot: ['adi_mot', 's'],
       nota: ['nota', 's'], naoPor: ['nao_por', 's'], naoEm: ['nao_em', 'ts'],
-      feitoPor: ['feito_por', 's'], feitoEm: ['feito_em', 'ts'], criadoEm: ['criado_em', 'ts'] } },
+      feitoPor: ['feito_por', 's'], feitoEm: ['feito_em', 'ts'], criadoEm: ['criado_em', 'ts'],
+      tipo: ['tipo', 's'], link: ['link', 's'], clinica: ['clinica', 's'], ok: ['ok', 'b'], inc: ['incompleto', 'b'], concluidoEm: ['concluido_em', 'ts'], valores: ['valores', 'j'], por: ['por', 's'], hora: ['hora', 's'] } },
     chat: { table: 'chat_messages', order: { em: 'enviado_em' }, f: {
       tid: ['tid', 's'], de: ['de', 's'], deTxt: ['de_txt', 's'], para: ['para', 's'], sala: ['sala', 's'],
-      t: ['texto', 's'], em: ['enviado_em', 'ts'], editadoEm: ['editado_em', 'ts'], apagadoEm: ['apagado_em', 'ts'], anexo: ['anexo', 'j'] }, visto: true },
+      t: ['texto', 's'], em: ['enviado_em', 'ts'], editadoEm: ['editado_em', 'ts'], apagadoEm: ['apagado_em', 'ts'], anexo: ['anexo', 'j'], resposta: ['resposta', 'j'], reacoes: ['reacoes', 'j'], reenc: ['reencaminhada', 'b'] }, visto: true },
     salas: { table: 'room_assignments', textId: true, f: {
       medico: ['medico', 's'], clinica: ['clinica', 's'], sala: ['sala', 's'], dia: ['dia', 's'] } }
   };
@@ -135,10 +136,13 @@
 
   // ================= Memória (demonstração e testes, sem servidor) =================
   function MemoryStore(seed) {
-    const data = { memos: new Map(), chat: new Map(), salas: new Map() }, cfg = new Map();
-    const subs = new Set();
-    (seed && seed(data, uuid)) || 0;
-    const emit = () => subs.forEach(fn => fn());
+    // JMC_SHARED (opcional): vários ecrãs da maquete partilham os mesmos dados em memória
+    const sh = global.JMC_SHARED;
+    const data = sh ? (sh.data = sh.data || { memos: new Map(), chat: new Map(), salas: new Map() }) : { memos: new Map(), chat: new Map(), salas: new Map() };
+    const cfg = sh ? (sh.cfg = sh.cfg || new Map()) : new Map();
+    const subs = sh ? (sh.subs = sh.subs || new Set()) : new Set();
+    if (!sh || !sh.seeded) { (seed && seed(data, uuid)) || 0; if (sh) { sh.seeded = true; if (sh.extra) sh.extra(data, uuid); } }
+    const emit = () => subs.forEach(fn => { try { fn(); } catch (e) { subs.delete(fn); } });
     function query(name, spec) {
       return {
         where: (f, op, v) => query(name, Object.assign({}, spec, { where: (spec.where || []).concat([[f, op, v]]) })),

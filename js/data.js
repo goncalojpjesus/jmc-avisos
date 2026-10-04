@@ -176,14 +176,36 @@
     localStorage.setItem('jmc_install', JSON.stringify(cfg));
     return cfg;
   }
+  function msgErro(e) {
+    const c = (e && (e.code || e.error_code)) || '', m = (e && e.message) || '';
+    if (c === 'invalid_credentials' || /Invalid login/i.test(m)) return 'Email ou palavra-passe errados.';
+    if (c === 'email_not_confirmed' || /not confirmed/i.test(m)) return 'A conta ainda não está confirmada no Supabase (Authentication → Users).';
+    if (c === 'login') return 'falta iniciar sessão neste aparelho. Abra ⚙︎ Definições → Ligação ao servidor.';
+    if (/fetch|network|Failed/i.test(m)) return 'Sem internet ou servidor indisponível.';
+    return m || 'Erro desconhecido.';
+  }
+  // Inicia sessão com email + palavra-passe. Guarda só o endereço e o email; a palavra-passe não fica no aparelho
+  // (a sessão renova-se sozinha).
+  async function login(email, password) {
+    const base = (global.JMC_CONFIG && global.JMC_CONFIG.url) ? global.JMC_CONFIG : readInstall();
+    if (!base || !base.url || !base.key) throw new Error('Falta a configuração do servidor (config.js).');
+    const sb = global.supabase.createClient(base.url, base.key, { auth: { persistSession: true, autoRefreshToken: true } });
+    const { error } = await sb.auth.signInWithPassword({ email: String(email).trim(), password: String(password) });
+    if (error) throw error;
+    localStorage.setItem('jmc_install', JSON.stringify({ url: base.url, key: base.key, email: String(email).trim() }));
+    return true;
+  }
   async function connect(opts) {
     const cfg = readInstall();
     if (!cfg || !global.supabase) return MemoryStore(opts && opts.seed);
     const store = SupabaseStore(cfg);
     const { data } = await store.client.auth.getSession();
-    if (!data.session && cfg.email) await store.signIn(cfg.email, cfg.password);
+    if (!data.session) {
+      if (cfg.email && cfg.password) await store.signIn(cfg.email, cfg.password);
+      else { const e = new Error('login'); e.code = 'login'; throw e; }
+    }
     return store;
   }
 
-  global.JMCData = { connect, saveInstall, readInstall, MAP, toRow, fromRow };
+  global.JMCData = { connect, login, msgErro, memory: seed => MemoryStore(seed), saveInstall, readInstall, MAP, toRow, fromRow };
 })(window);

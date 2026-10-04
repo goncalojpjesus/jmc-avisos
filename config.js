@@ -1,3 +1,6 @@
-// Configuração opcional do servidor para este alojamento.
-// Normalmente fica vazio: cada aparelho liga-se com o "código de instalação" (Definições → Ligação ao servidor).
-window.JMC_CONFIG = window.JMC_CONFIG || {};
+// Servidor da clínica (endereço e chave pública: não são segredos; os dados estão protegidos por sessão + RLS).
+// Cada aparelho só precisa de iniciar sessão uma vez: Definições → Ligação ao servidor.
+window.JMC_CONFIG = window.JMC_CONFIG || {
+  url: 'https://piudosbhockofrtiieig.supabase.co',
+  key: 'sb_publishable_POCYHRzMTQDQPXf8ESnJ_w_I6QDMctw'
+};

@@ -83,7 +83,7 @@ button{cursor:pointer}
 /* compor */
 .comp{border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
 .comp .row{display:flex;gap:8px}
-.comp input[type=text]{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;font-size:14px}
+.comp input[type=text],input[type=email],input[type=password]{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;font-size:14px}
 .comp .go{border:0;background:var(--gold);color:#fff;border-radius:12px;padding:0 16px;font-weight:600;font-size:18px}
 .more{margin-top:10px;display:none;flex-direction:column;gap:8px}.comp.open .more{display:flex}
 .lbl{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--goldText);font-weight:600}
@@ -368,7 +368,11 @@ body.desktop .stage.desk>*{pointer-events:auto}
   <section id="cPostos"></section>
   <section id="cSalas"></section>
   <section><div class="lbl">Ligação ao servidor</div><p id="srvState">—</p>
-    <div class="addrow"><input type="text" id="instCode" placeholder="Colar aqui o código de instalação" autocomplete="off"><button id="instBtn">Ligar</button></div></section>
+    <div class="addrow"><input type="email" id="lgEmail" value="geral@jesusmarcouto.pt" autocomplete="username" autocapitalize="off" aria-label="Email da conta da clínica"></div>
+    <div class="addrow"><input type="password" id="lgPass" placeholder="Palavra-passe da conta da clínica" autocomplete="current-password"><button id="lgBtn">Ligar</button></div>
+    <p id="lgErr" style="color:#b3261e;margin-top:6px" hidden></p>
+    <details style="margin-top:8px"><summary style="cursor:pointer;color:#8a7a55;font-size:12px">Tenho um código de instalação</summary>
+    <div class="addrow"><input type="text" id="instCode" placeholder="Colar aqui o código de instalação" autocomplete="off"><button id="instBtn">Ligar</button></div></details></section>
   <button class="done" id="sheetOk">Guardar</button>
 </div></div>
 <div class="pin" id="pin" hidden><div class="card">
@@ -712,6 +716,9 @@ function sheet(){
   $('cSalas').querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{const [cl,i]=b.dataset.rs.split('|');DRAFT.salas[cl].splice(+i,1);sheet();});
   $('cSalas').querySelectorAll('[data-as]').forEach(b=>b.onclick=()=>{const cl=b.dataset.as;DRAFT.salas[cl]=DRAFT.salas[cl]||[];DRAFT.salas[cl].push('Consultório '+(DRAFT.salas[cl].length+1));sheet();});
   $('srvState').textContent=STORE&&STORE.kind==='supabase'?'Ligado ao servidor da clínica ('+(STORE.status()==='SUBSCRIBED'?'tempo real ativo':'a ligar…')+').':'Sem servidor: modo de demonstração neste aparelho.';
+  $('lgBtn').onclick=async()=>{const b=$('lgBtn'),er=$('lgErr');er.hidden=true;b.disabled=true;b.textContent='A ligar…';
+    try{await JMCData.login($('lgEmail').value,$('lgPass').value);toast('Ligado. A reiniciar…');setTimeout(()=>location.reload(),600);}
+    catch(e){er.textContent=JMCData.msgErro(e);er.hidden=false;b.disabled=false;b.textContent='Ligar';}};
   $('instBtn').onclick=()=>{try{JMCData.saveInstall($('instCode').value);toast('Ligado. A reiniciar…');setTimeout(()=>location.reload(),600);}catch(e){toast('Código de instalação inválido.');}};
   $('sheetX').hidden=!ME;$('sheetX').onclick=()=>{DRAFT=null;PD=null;$('sheet').hidden=true;};
 }
@@ -747,8 +754,8 @@ render();
      {t:'(exemplo) Ligar ao Sr. João Pires: dúvida sobre a medicação após a cirurgia',p:'u',para:['Dr. Gonçalo'],de:'Aveiro',deTxt:'Ana · Aveiro',criadoEm:now-36e5*2,estado:'pend'},
      {t:'(exemplo) Verificar se chegaram os componentes do laboratório (prova na terça)',p:'h',para:['Aveiro','Faíscas'],de:'Dra. Catarina',deTxt:'Dra. Catarina',criadoEm:now-36e5*20,estado:'pend'}]
      .forEach(o=>data.memos.set(uuid(),o));};
-  let db;try{db=await JMCData.connect({seed});}catch(e){toast('Sem ligação ao servidor. A trabalhar em modo local.');db=await JMCData.connect({seed:null});}
-  STORE=db;$('demo').hidden=db.kind!=='memoria';
+  let db,errLig=null;try{db=await JMCData.connect({seed});}catch(e){errLig=JMCData.msgErro(e);db=JMCData.memory(null);}
+  STORE=db;$('demo').hidden=db.kind!=='memoria';if(errLig){$('demo').textContent='Sem ligação ao servidor: '+errLig;}
   DB=db;COL=db.collection('memos');CCOL=db.collection('chat');SCOL=db.collection('salas');
   db.doc('config/geral').onSnapshot(d=>{if(d.exists){applyCfg(d.data());render();}},()=>{});
   SCOL.where('dia','==',hoje()).onSnapshot(s=>{SALAS=s.docs.map(d=>d.data());render();},()=>{});

@@ -30,8 +30,8 @@
 #bar,.chatBtn,.chead{touch-action:none}.pi .bar .emb,.chead{cursor:grab}
 </style>
 <script src="vendor/supabase.umd.js"></script>
-<script src="config.js?v=2026.10.04-25" onerror="void 0"></script>
-<script src="js/data.js?v=2026.10.04-25"></script>
+<script src="config.js?v=2026.10.04-26" onerror="void 0"></script>
+<script src="js/data.js?v=2026.10.04-26"></script>
 <style id="wa">
 /* ---------- chat ao estilo WhatsApp ---------- */
 :root{--waBg:#EFEAE2;--waMe:#D9FDD3;--waThem:#FFFFFF;--waTx:#111B21;--waMeta:#667781;--waIc:#54656F;--waBar:#F0F2F5;--waGreen:#00A884;--waBlue:#53BDEB;--waQuote:#06CF9C}
@@ -305,7 +305,7 @@ button{cursor:pointer}
 .card.set section{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
 .card.set section p{margin:2px 0 8px}
 .row2{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:8px 0;font-size:13px}
-.row2 .seg button{padding:5px 9px;font-size:12px}
+.row2[hidden]{display:none}.row2 .seg button{padding:5px 9px;font-size:12px}
 .chips .rm{margin-left:6px;opacity:.6}
 .addrow{display:flex;gap:8px;margin-top:8px}.addrow input{flex:1;min-width:0;margin:0!important}
 .addrow button,.salrow button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:0 12px;font-weight:600;font-size:12.5px}
@@ -443,6 +443,11 @@ body.desktop .stage.desk>*{pointer-events:auto}
 .pi.open .gear{display:block}.pi .gear:hover{background:var(--line)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,8px);background:var(--fg);color:var(--bg);border-radius:12px;padding:9px 14px;font-size:13px;opacity:0;transition:.25s;z-index:70;pointer-events:none;max-width:calc(100% - 32px)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
+.pask{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:65;background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:14px 14px 12px;display:grid;grid-template-columns:40px 1fr;gap:4px 12px;align-items:center;max-width:460px;margin:0 auto;animation:pin .35s ease}
+.pask[hidden]{display:none}.pask img{width:40px;height:40px;border-radius:10px;grid-row:span 2}.pask b{font-size:14px;font-weight:600}.pask span{font-size:12.5px;color:var(--muted);line-height:1.35}
+.pask .pb{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;margin-top:8px}.pask button{border:0;border-radius:10px;padding:8px 14px;font:600 13px var(--fBody);cursor:pointer;background:none;color:var(--muted)}.pask button.y{background:var(--gold);color:#fff}
+@keyframes pin{from{opacity:0;transform:translateY(12px)}}
+#pushInfo{font-size:12px;color:var(--muted);margin:2px 0 0}#pushInfo:empty{display:none}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
 
@@ -669,6 +674,7 @@ body:not(.ph) .cxdet{grid-template-columns:1fr 1fr 1fr}
   <div class="sethd"><svg class="emb" aria-hidden="true"><use href="#jmc"/></svg><h2>Definições</h2><button class="x" id="sheetX" aria-label="Fechar">✕</button></div>
   <section><div class="lbl">Este aparelho</div><p>Escolhe-se uma vez em cada computador ou telefone. Podem existir vários computadores iguais (por exemplo, dois na receção): todos recebem os mesmos avisos. Os outros computadores da receção, como o PC Rx, funcionam como a receção. Os consultórios só têm o chat.</p><div class="opts" id="opts"></div></section>
   <section><div class="lbl">Avisos neste aparelho</div>
+    <div class="row2" id="pushRow" hidden><span>Notificações com o telefone bloqueado</span><div class="seg" id="pPush"><button data-v="1">Ligadas</button><button data-v="0">Desligadas</button></div></div><p id="pushInfo"></p>
     <div class="row2"><span>Som ao chegar mensagem</span><div class="seg" id="pSom"><button data-v="1">Ligado</button><button data-v="0">Desligado</button></div></div>
     <div class="row2"><span>Não repetir o som durante</span><div class="seg" id="pSil"><button data-v="30">30 s</button><button data-v="60">1 min</button><button data-v="120">2 min</button></div></div>
     <div class="row2"><span>O chat fecha sozinho após</span><div class="seg" id="pFec"><button data-v="15">15 s</button><button data-v="30">30 s</button><button data-v="60">1 min</button><button data-v="75">1 min 15</button><button data-v="120">2 min</button><button data-v="300">5 min</button><button data-v="600">10 min</button></div></div>
@@ -693,6 +699,7 @@ body:not(.ph) .cxdet{grid-template-columns:1fr 1fr 1fr}
   <p class="what" style="margin-top:12px" id="pinHint"></p>
 </div></div>
 <div class="toast" id="toast" role="status"></div>
+<div class="pask" id="pask" hidden role="dialog" aria-label="Ativar notificações"><img src="icon-256.png" alt=""><b>Receber avisos no ecrã bloqueado?</b><span>Como no WhatsApp: recados e mensagens aparecem mesmo com o telefone bloqueado. O texto só se vê depois de desbloquear (Face ID).</span><div class="pb"><button id="paskNo">Agora não</button><button class="y" id="paskYes">Ativar</button></div></div>
 
 <script>
 (function(){
@@ -1308,7 +1315,7 @@ function sheet(){
    +['Aveiro','Faíscas'].map(cl=>`<div class="lbl" style="grid-column:1/-1;margin-top:6px">Consultórios ${cl}</div>`+(DRAFT.salas[cl]||[]).map(r=>`<button data-v="${cl} · ${esc(r)}" class="${pick===cl+' · '+r?'on':''}" style="padding:10px 6px;font-size:12.5px">${esc(r)}</button>`).join('')).join('');
   $('opts').querySelectorAll('button').forEach(b=>b.onclick=()=>{pick=b.dataset.v;sheet();});
   const segSet=(id,val,cb)=>{[...$(id).children].forEach(b=>{b.classList.toggle('on',String(b.dataset.v)===String(val));b.onclick=()=>{cb(b.dataset.v);PD.t=1;sheet();};});};
-  segSet('pSom',PD.som?1:0,v=>PD.som=v==='1');segSet('pSil',PD.silencio,v=>PD.silencio=+v);segSet('pFec',PD.fecho,v=>PD.fecho=+v);
+  pushUI();segSet('pSom',PD.som?1:0,v=>PD.som=v==='1');segSet('pSil',PD.silencio,v=>PD.silencio=+v);segSet('pFec',PD.fecho,v=>PD.fecho=+v);
   $('cMed').innerHTML=DRAFT.medicos.map((m,i)=>`<button data-mi="${i}" title="Retirar">${esc(m)}<span class="rm">✕</span></button>`).join('');
   $('cMed').querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>{const i=+b.dataset.mi;if(b.dataset.c!=='1'){b.dataset.c='1';b.innerHTML='Retirar '+esc(DRAFT.medicos[i])+'?';return;}DRAFT.medicos.splice(i,1);sheet();});
   $('addMed').onclick=()=>{const v=$('newMed').value.trim();if(!v)return;if(!DRAFT.medicos.includes(v))DRAFT.medicos.push(v);$('newMed').value='';sheet();};
@@ -1336,6 +1343,34 @@ function sheet(){
   $('instBtn').onclick=()=>{try{JMCData.saveInstall($('instCode').value);toast('Ligado. A reiniciar…');setTimeout(()=>location.reload(),600);}catch(e){toast('Código de instalação inválido.');}};
   $('sheetX').hidden=!ME;$('sheetX').onclick=()=>{DRAFT=null;PD=null;$('sheet').hidden=true;};
 }
+/* ---------- notificações no telefone (push): ecrã bloqueado, som, número no ícone ---------- */
+const VAPID=(window.JMC_CONFIG||{}).vapid||'';let SWR=null;
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const standalone=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
+const unb64=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0));};
+const aparelhoNome=()=>isIOS?(/iPad/.test(navigator.userAgent)||navigator.maxTouchPoints>1&&!/iPhone/.test(navigator.userAgent)?'iPad':'iPhone'):/Android/.test(navigator.userAgent)?'Android':'Computador';
+async function pushEstado(){if(VIEW!=='ph'||!VAPID)return 'na';if(isIOS&&!standalone())return 'ecra';if(!SWR||!('PushManager' in window)||!('Notification' in window))return 'na';
+  if(Notification.permission==='denied')return 'bloq';const s=await SWR.pushManager.getSubscription();return s&&Notification.permission==='granted'?'on':'off';}
+async function pushAtivar(){try{const p=await Notification.requestPermission();if(p!=='granted'){toast('As notificações não foram autorizadas.');return false;}
+  const s=await SWR.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:unb64(VAPID)});await STORE.pushSave(s,ME,aparelhoNome());ls.set('memo_push_nao','');toast('Notificações ativas ✓');return true;}
+  catch(e){toast('Não foi possível ativar as notificações.');return false;}}
+async function pushDesativar(){try{const s=await SWR.pushManager.getSubscription();if(s){try{await STORE.pushDel(s.endpoint);}catch(e){}await s.unsubscribe();}toast('Notificações desligadas');}catch(e){}}
+async function pushSync(){try{if(!SWR||!ME||!STORE||!('Notification' in window)||Notification.permission!=='granted')return;const s=await SWR.pushManager.getSubscription();if(s)await STORE.pushSave(s,ME,aparelhoNome());}catch(e){}}
+async function pushUI(){const st=await pushEstado();$('pushRow').hidden=st==='na';
+  $('pushInfo').textContent=st==='ecra'?'No iPhone, as notificações só funcionam com a app aberta pelo ícone do ecrã principal (Safari → Partilhar → Adicionar ao ecrã principal).':st==='bloq'?'Estão bloqueadas neste telefone. Para ligar: Definições do telefone → Notificações → Jesus Mar Couto → Permitir.':st==='on'?'O texto só aparece depois de desbloquear o telefone (Face ID), tal como no WhatsApp.':'';
+  [...$('pPush').children].forEach(b=>{b.classList.toggle('on',(b.dataset.v==='1')===(st==='on'));b.disabled=st==='ecra'||st==='bloq';
+    b.onclick=async()=>{if(b.dataset.v==='1'&&st!=='on')await pushAtivar();else if(b.dataset.v==='0'&&st==='on')await pushDesativar();pushUI();};});}
+async function pushPergunta(){if(ls.get('memo_push_nao','')||!ME)return;const st=await pushEstado();if(st!=='off')return;$('pask').hidden=false;}
+$('paskYes').onclick=async()=>{$('pask').hidden=true;await pushAtivar();};
+$('paskNo').onclick=()=>{$('pask').hidden=true;ls.set('memo_push_nao',String(Date.now()));};
+function abrirDe(x){if(!x)return;$('pask').hidden=true;
+  if(x==='rec'){PHMODE='rec';PHCONV=false;TAB='rec';}
+  else{const t=threads().find(t=>t.other===x);if(t){PHMODE='chat';THREAD=tkey(t);PHCONV=true;if(VIEW==='pc')CHATOPEN=true;}}
+  FORCE=true;try{render();}finally{FORCE=false;}}
+if('serviceWorker' in navigator&&window.isSecureContext&&location.protocol!=='file:'&&!window.JMC_SHARED){
+  navigator.serviceWorker.register('sw.js').then(r=>{SWR=r;pushSync();setTimeout(pushPergunta,2500);}).catch(()=>{});
+  navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.abrir)abrirDe(e.data.abrir);});}
+{const q=new URLSearchParams(location.search).get('abrir');if(q){history.replaceState(null,'',location.pathname+location.search.replace(/[?&]abrir=[^&]*/,'').replace(/^&/,'?'));setTimeout(()=>abrirDe(q),900);}}
 const openSettings=()=>{pick=ME?(POSTO?ME+' | '+POSTO:ME):'Aveiro';DRAFT=null;PD=null;sheet();};
 const canHist=()=>OWN.includes(ME)||isDocDev();
 function openGear(anchor,ctx){if(!canHist()){openSettings();return;}const g=$('gmenu');
@@ -1350,7 +1385,7 @@ $('sheetOk').onclick=async()=>{if(!pick){toast('Escolha de quem é este aparelho
   if(devChanged&&!PD.t){PREF={};ls.set('memo_pref','{}');}else{PREF={som:PD.som,silencio:PD.silencio,fecho:PD.fecho};ls.set('memo_pref',JSON.stringify(PREF));}
   const cfgChanged=JSON.stringify(DRAFT)!==JSON.stringify(CFG);applyCfg(DRAFT);
   if(cfgChanged&&DB){try{await DB.doc('config/geral').set(CFG);}catch(e){toast('Não foi possível guardar as definições gerais.');}}
-  DRAFT=null;PD=null;$('sheet').hidden=true;TAB='rec';THREAD=null;render();toast('Definições guardadas');};
+  DRAFT=null;PD=null;$('sheet').hidden=true;TAB='rec';THREAD=null;render();toast('Definições guardadas');pushSync();};
 if(!ME){pick='';sheet();}
 $('keys').innerHTML=['1','2','3','4','5','6','7','8','9','','0','⌫'].map(k=>k?`<button data-k="${k}" class="${k==='⌫'?'x':''}" aria-label="${k==='⌫'?'Apagar':k}">${k}</button>`:'<span></span>').join('');
 $('keys').querySelectorAll('button').forEach(b=>b.onclick=()=>{const k=b.dataset.k;
@@ -1469,7 +1504,7 @@ addEventListener('resize',fitPanels);
 dragY('#bar','top',()=>$('topR'));dragY('#chatBtn, .chead','chat',()=>$('chatW'));
 applyPos();setInterval(applyPos,60000);
 // atualização automática: se houver versão nova publicada, recarrega (sem perder nada: os dados estão no servidor)
-const BUILD='2026.10.04-25';
+const BUILD='2026.10.04-26';
 const chkUpd=()=>{if(location.protocol!=='https:')return;fetch('version.txt?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{v=v&&v.trim();
   if(v&&v!==BUILD&&$('sheet').hidden&&$('pin').hidden&&!document.querySelector('input:focus, textarea:focus')){
     let tried='';try{tried=sessionStorage.getItem('jmc_upd')||'';}catch(e){}if(tried===v)return;try{sessionStorage.setItem('jmc_upd',v);}catch(e){}
@@ -1484,7 +1519,7 @@ render();
      {t:'(exemplo) Verificar se chegaram os componentes do laboratório (prova na terça)',p:'h',para:['Aveiro','Faíscas'],de:'Dra. Catarina',deTxt:'Dra. Catarina',criadoEm:now-36e5*20,estado:'pend'}]
      .forEach(o=>data.memos.set(uuid(),o));};
   let db,errLig=null;try{db=await JMCData.connect({seed});}catch(e){errLig=JMCData.msgErro(e);db=JMCData.memory(null);}
-  STORE=db;$('demo').hidden=db.kind!=='memoria';if(errLig){$('demo').textContent='Sem ligação ao servidor: '+errLig;}
+  STORE=db;pushSync();$('demo').hidden=db.kind!=='memoria';if(errLig){$('demo').textContent='Sem ligação ao servidor: '+errLig;}
   DB=db;COL=db.collection('memos');CCOL=db.collection('chat');SCOL=db.collection('salas');
   db.doc('config/geral').onSnapshot(d=>{if(d.exists){applyCfg(d.data());render();}},()=>{});
   SCOL.where('dia','==',hoje()).onSnapshot(s=>{SALAS=s.docs.map(d=>d.data());render();},()=>{});

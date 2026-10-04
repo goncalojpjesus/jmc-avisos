@@ -1,7 +1,7 @@
 // JMC Avisos · widget para iPhone e iPad (app gratuita "Scriptable")
 // Mostra os recados pendentes e as mensagens do chat por ler. Atualiza-se sozinho a partir do site.
 // Parâmetro do widget (opcional): de quem é o aparelho. Ex.: Dr. Gonçalo · Dra. Catarina · Aveiro · Faíscas
-const VERSAO = '2026.10.04-2';
+const VERSAO = '2026.10.04-3';
 const SITE = 'https://goncalojpjesus.github.io/jmc-avisos/';
 const URL_SB = 'https://piudosbhockofrtiieig.supabase.co';
 const KEY = 'sb_publishable_POCYHRzMTQDQPXf8ESnJ_w_I6QDMctw';
@@ -76,16 +76,19 @@ async function construir(info, erro) {
   const img = await emblema();
 
   // ecrã bloqueado
+  const ch = info ? info.chat : 0;
+  const resumo = [n ? `${n} recado${n > 1 ? 's' : ''}` : '', ch ? `${ch} mensage${ch > 1 ? 'ns' : 'm'}` : ''].filter(Boolean).join(' · ');
   if (fam === 'accessoryCircular') {
     w.addAccessoryWidgetBackground = true;
-    const t = w.addText(n ? String(n) : '✓'); t.font = Font.semiboldRoundedSystemFont(n ? 22 : 18); t.centerAlignText();
-    const s = w.addText('avisos'); s.font = Font.systemFont(9); s.centerAlignText(); return w;
+    const t = w.addText(n + ch ? String(n + ch) : '✓'); t.font = Font.semiboldRoundedSystemFont(n + ch ? 22 : 18); t.centerAlignText();
+    const s = w.addText('JMC'); s.font = Font.systemFont(9); s.centerAlignText(); return w;
   }
-  if (fam === 'accessoryRectangular' || fam === 'accessoryInline') {
-    if (fam === 'accessoryInline') { w.addText(erro ? 'JMC · abrir para ligar' : n ? `JMC · ${n} aviso${n > 1 ? 's' : ''}` : 'JMC · tudo em dia'); return w; }
-    const h = w.addText(n ? `${n} aviso${n > 1 ? 's' : ''}${info.chat ? ' · ' + info.chat + ' msg' : ''}` : 'Tudo em dia'); h.font = Font.semiboldSystemFont(13);
-    if (top) { const t = w.addText(top.texto); t.font = Font.systemFont(12); t.lineLimit = 2; }
-    else if (erro) { const t = w.addText(erro); t.font = Font.systemFont(11); }
+  if (fam === 'accessoryInline') { w.addText(erro ? 'JMC · abrir para ligar' : 'JMC · ' + (resumo || 'tudo em dia')); return w; }
+  if (fam === 'accessoryRectangular') {
+    const cab = w.addText('JESUS MAR COUTO'); cab.font = Font.semiboldSystemFont(10); cab.textOpacity = 0.7;
+    const h = w.addText(erro ? 'Abrir o Scriptable para ligar' : resumo || 'Tudo em dia ✓'); h.font = Font.semiboldSystemFont(14);
+    const linha = top ? top.texto : erro ? '' : ch ? 'Mensagens por ler no chat' : 'Sem recados por fazer';
+    if (linha) { const t = w.addText(linha); t.font = Font.systemFont(12); t.lineLimit = 2; t.textOpacity = 0.85; }
     return w;
   }
 

@@ -9,8 +9,8 @@
 [hidden]{display:none!important}html,body{margin:0}
 </style>
 <script src="vendor/supabase.umd.js"></script>
-<script src="config.js" onerror="void 0"></script>
-<script src="js/data.js"></script>
+<script src="config.js?v=2026.10.04-2" onerror="void 0"></script>
+<script src="js/data.js?v=2026.10.04-2"></script>
 </head><body>
 
 <style>
@@ -745,7 +745,14 @@ window.jmcOpenSettings=()=>$('meBtn').click();
 if(window.jmcDesktop){let last=null;const hot=t=>!!(t&&t.closest&&t.closest('#pi,#chatW,.sheet,.pin,.toast.show'))||!$('sheet').hidden||!$('pin').hidden;
   const upd=v=>{if(v!==last){last=v;window.jmcDesktop.setInteractive(v);}};
   addEventListener('mousemove',e=>upd(hot(e.target)),{passive:true});setInterval(()=>{if(!$('sheet').hidden||!$('pin').hidden)upd(true);},500);upd(false);}
-setInterval(()=>render(),60000); // adiados voltam a aparecer à hora certa
+setInterval(()=>render(),60000);
+// atualização automática: se houver versão nova publicada, recarrega (sem perder nada: os dados estão no servidor)
+const BUILD='2026.10.04-2';
+const chkUpd=()=>{if(location.protocol!=='https:')return;fetch('version.txt?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{v=v&&v.trim();
+  if(v&&v!==BUILD&&$('sheet').hidden&&$('pin').hidden&&!document.querySelector('input:focus, textarea:focus')){
+    let tried='';try{tried=sessionStorage.getItem('jmc_upd')||'';}catch(e){}if(tried===v)return;try{sessionStorage.setItem('jmc_upd',v);}catch(e){}
+    const u=new URL(location.href);u.searchParams.set('v',v);location.replace(u.toString());}}).catch(()=>{});};
+setTimeout(chkUpd,3000);setInterval(chkUpd,10*60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)chkUpd();}); // adiados voltam a aparecer à hora certa
 render();
 // base de dados partilhada (camada única: js/data.js)
 (async()=>{

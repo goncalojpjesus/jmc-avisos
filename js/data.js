@@ -25,7 +25,7 @@
       ate: ['ate', 'ts'], adiPor: ['adi_por', 's'], nAdi: ['n_adi', 'n'], adiMot: ['adi_mot', 's'],
       nota: ['nota', 's'], naoPor: ['nao_por', 's'], naoEm: ['nao_em', 'ts'],
       feitoPor: ['feito_por', 's'], feitoEm: ['feito_em', 'ts'], criadoEm: ['criado_em', 'ts'],
-      tipo: ['tipo', 's'], link: ['link', 's'], clinica: ['clinica', 's'], ok: ['ok', 'b'], inc: ['incompleto', 'b'], concluidoEm: ['concluido_em', 'ts'], valores: ['valores', 'j'], por: ['por', 's'], hora: ['hora', 's'] } },
+      tipo: ['tipo', 's'], link: ['link', 's'], clinica: ['clinica', 's'], ok: ['ok', 'b'], inc: ['incompleto', 'b'], concluidoEm: ['concluido_em', 'ts'], valores: ['valores', 'j'], por: ['por', 's'], hora: ['hora', 's'], anexos: ['anexos', 'j'] } },
     chat: { table: 'chat_messages', order: { em: 'enviado_em' }, f: {
       tid: ['tid', 's'], de: ['de', 's'], deTxt: ['de_txt', 's'], para: ['para', 's'], sala: ['sala', 's'],
       t: ['texto', 's'], em: ['enviado_em', 'ts'], editadoEm: ['editado_em', 'ts'], apagadoEm: ['apagado_em', 'ts'], anexo: ['anexo', 'j'], resposta: ['resposta', 'j'], reacoes: ['reacoes', 'j'], reenc: ['reencaminhada', 'b'] }, visto: true },
@@ -136,7 +136,18 @@
         const { data, error } = await sb.storage.from('anexos').createSignedUrl(path, 3600, download ? { download } : undefined);
         if (error) throw error; return data.signedUrl;
       },
-      async verifyCode(code) { const { data, error } = await sb.rpc('verify_code', { p_code: String(code) }); if (error) throw error; return data || null; },
+      // código pessoal: primeiro a lista própria (staff); se não existir, os códigos do fecho de caixa / Executive Lab (os mesmos de sempre)
+      async verifyCode(code) {
+        try { const { data } = await sb.rpc('verify_code', { p_code: String(code) }); if (data) return data; } catch (e) {}
+        const lab = (global.JMC_CONFIG && global.JMC_CONFIG.lab) || cfg.lab; if (!lab) return null;
+        try {
+          const r = await fetch(lab, { method: 'POST', body: JSON.stringify({ fn: 'login', args: [String(code)] }), redirect: 'follow' });
+          const o = await r.json(), u = o && o.ok && o.r && o.r.ok && o.r.user;
+          if (!u || !u.n) return null;
+          const p = String(u.n).trim().split(/\s+/);
+          return /^Dra?\.$/.test(p[0]) ? p[0] + ' ' + (p[1] || '') : p[0];
+        } catch (e) { return null; }
+      },
       async signIn(email, password) { const { error } = await sb.auth.signInWithPassword({ email, password }); if (error) throw error; }
     };
   }

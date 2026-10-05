@@ -3,6 +3,8 @@
 window.JMC_CONFIG = window.JMC_CONFIG || {
   url: 'https://piudosbhockofrtiieig.supabase.co',
   key: 'sb_publishable_POCYHRzMTQDQPXf8ESnJ_w_I6QDMctw',
+  // códigos pessoais: os mesmos do fecho de caixa, verificados através do Executive Lab
+  lab: 'https://script.google.com/macros/s/AKfycbzUW36ofn8AVZ8rtA3K7eX3gBo5Th1MATJmUqMd3RWzCNSQrputj48YSdIeT69IBl7u/exec',
   // notificações push (chave pública VAPID; a privada está só no servidor)
   vapid: 'BK-hHGZQ2CwJFDf91ZFDdTWomATirAYK5M2azjFAQnIH1KL5gzUSKq5b2_9oTmZuYpTJP3f6JoEY-_DQxXagNyo'
 };

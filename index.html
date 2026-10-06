@@ -1483,7 +1483,7 @@ function sheet(){
    +['Aveiro','Faíscas'].map(cl=>`<div class="lbl" style="grid-column:1/-1;margin-top:6px">Consultórios ${cl}</div>`+(DRAFT.salas[cl]||[]).map(r=>`<button data-v="${cl} · ${esc(r)}" class="${pick===cl+' · '+r?'on':''}" style="padding:10px 6px;font-size:12.5px">${esc(r)}</button>`).join('')).join('');
   $('opts').querySelectorAll('button').forEach(b=>b.onclick=()=>{pick=b.dataset.v;sheet();});
   const segSet=(id,val,cb)=>{[...$(id).children].forEach(b=>{b.classList.toggle('on',String(b.dataset.v)===String(val));b.onclick=()=>{cb(b.dataset.v);PD.t=1;sheet();};});};
-  pushUI();segSet('pSom',PD.som?1:0,v=>PD.som=v==='1');segSet('pSil',PD.silencio,v=>PD.silencio=+v);segSet('pFec',PD.fecho,v=>PD.fecho=+v);$('pontoRow').hidden=!(VIEW==='pc'&&isClinic(pick));segSet('pPonto',PD.ponto?1:0,v=>PD.ponto=v==='1');
+  pushUI();segSet('pSom',PD.som?1:0,v=>PD.som=v==='1');segSet('pSil',PD.silencio,v=>PD.silencio=+v);segSet('pFec',PD.fecho,v=>PD.fecho=+v);$('pontoRow').hidden=!(VIEW==='pc'&&isClinic(pick.split(' | ')[0]));segSet('pPonto',PD.ponto?1:0,v=>PD.ponto=v==='1');
   $('cMed').innerHTML=DRAFT.medicos.map((m,i)=>`<button data-mi="${i}" title="Retirar">${esc(m)}<span class="rm">✕</span></button>`).join('');
   $('cMed').querySelectorAll('[data-mi]').forEach(b=>b.onclick=()=>{const i=+b.dataset.mi;if(b.dataset.c!=='1'){b.dataset.c='1';b.innerHTML='Retirar '+esc(DRAFT.medicos[i])+'?';return;}DRAFT.medicos.splice(i,1);sheet();});
   $('addMed').onclick=()=>{const v=$('newMed').value.trim();if(!v)return;if(!DRAFT.medicos.includes(v))DRAFT.medicos.push(v);$('newMed').value='';sheet();};

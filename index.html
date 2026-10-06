@@ -28,10 +28,11 @@
 .cedit{display:flex;align-items:center;gap:8px;padding:6px 14px 0;font-size:12px;color:var(--info)}
 .cedit button{border:0;background:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline}
 #bar,.chatBtn,.chead{touch-action:none}.pi .bar .emb,.chead{cursor:grab}
+.rhlink{color:inherit;text-decoration:none;display:block;cursor:pointer}.rhlink:active{opacity:.6}
 </style>
 <script src="vendor/supabase.umd.js"></script>
-<script src="config.js?v=2026.10.06-3" onerror="void 0"></script>
-<script src="js/data.js?v=2026.10.06-3"></script>
+<script src="config.js?v=2026.10.06-5" onerror="void 0"></script>
+<script src="js/data.js?v=2026.10.06-5"></script>
 <style id="wa">
 /* ---------- chat ao estilo WhatsApp ---------- */
 :root{--waBg:#EFEAE2;--waMe:#D9FDD3;--waThem:#FFFFFF;--waTx:#111B21;--waMeta:#667781;--waIc:#54656F;--waBar:#F0F2F5;--waGreen:#00A884;--waBlue:#53BDEB;--waQuote:#06CF9C}
@@ -786,7 +787,7 @@ body:not(.ph) .cxdet{grid-template-columns:1fr 1fr 1fr}
     <div class="row2"><span>Som ao chegar mensagem</span><div class="seg" id="pSom"><button data-v="1">Ligado</button><button data-v="0">Desligado</button></div></div>
     <div class="row2"><span>Não repetir o som durante</span><div class="seg" id="pSil"><button data-v="30">30 s</button><button data-v="60">1 min</button><button data-v="120">2 min</button></div></div>
     <div class="row2"><span>O chat fecha sozinho após</span><div class="seg" id="pFec"><button data-v="15">15 s</button><button data-v="30">30 s</button><button data-v="60">1 min</button><button data-v="75">1 min 15</button><button data-v="120">2 min</button><button data-v="300">5 min</button><button data-v="600">10 min</button></div></div>
-    <div class="row2" id="pontoRow" hidden><span>Pica-ponto neste computador</span><div class="seg" id="pPonto"><button data-v="1">Sim</button><button data-v="0">Não</button></div></div>
+    <div class="row2" id="pontoRow" hidden><span>Área RH neste computador</span><div class="seg" id="pPonto"><button data-v="1">Sim</button><button data-v="0">Não</button></div></div>
   </section>
   <section><div class="lbl">Médicos</div><p>Para todos os aparelhos.</p><div class="chips" id="cMed"></div>
     <div class="addrow"><input type="text" id="newMed" placeholder="ex.: Dra. Rafaela" autocomplete="off"><button id="addMed">Adicionar</button></div></section>
@@ -928,10 +929,10 @@ function item(r){
   const cxTxt=!cxStaff?r.t:r.inc?(r.concluidoEm?'Fecho de caixa enviado mais tarde, com sucesso.':'O fecho de caixa deste dia não foi concluído. Abra o fecho de caixa, indique a justificação e envie.'):r.ok?'Fecho de caixa enviado com sucesso.':'O fecho de caixa não confere. Fale com o Dr. Gonçalo ou a Dra. Catarina.';
   const sysBtn=r.tipo==='caixa'&&r.link&&(!cxStaff||(r.inc&&isPend(r)))?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">Abrir o fecho de caixa ›</a>`:'';
   const labBtn=r.tipo==='lab'&&r.link?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">Abrir no Executive Lab ›</a>`:'';
-  const pontoBtn=r.tipo==='ponto'&&r.link&&/^https:\/\/goncalojpjesus\.github\.io\/jmc-avisos\/ponto\//.test(r.link)?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">${/[?&]ir=/.test(r.link)?'Tratar no Ponto ›':'Abrir o Ponto ›'}</a>`:'';
+  const pontoBtn=r.tipo==='ponto'&&r.link&&/^https:\/\/goncalojpjesus\.github\.io\/jmc-avisos\/ponto\//.test(r.link)?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">${/[?&]ir=/.test(r.link)?'Tratar na Área RH ›':'Abrir a Área RH ›'}</a>`:'';
   const isNew=NEWIDS.has(r.id)?' new':'';
   return `<div class="it ${r.p}${r.tipo==='caixa'?' sys':''}${r.ok?' okc':''}${r.inc&&isPend(r)?' incx':''}${r.tipo==='caixa'&&!OWN.includes(ME)&&!r.ok&&!r.inc&&isPend(r)?' kox':''}${isNew}${r.estado==='feito'?' fd':''}" data-id="${r.id}">${acts?`<button class="chk" data-a="ok" aria-label="Marcar como feito" title="Marcar como feito"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>`:`<span class="chk st" aria-hidden="true">${r.estado==='feito'?'<svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg>':''}</span>`}<div class="tx">
-${sys}<p>${mark}${esc(r.tipo==='caixa'?cxTxt:r.t)}</p>${axHTML(r)}${sysBtn}${labBtn}${pontoBtn}
+${sys}${pontoBtn?`<a class="rhlink" href="${esc(r.link)}" target="_blank" rel="noopener"><p>${mark}${esc(r.t)}</p></a>`:`<p>${mark}${esc(r.tipo==='caixa'?cxTxt:r.t)}</p>`}${axHTML(r)}${sysBtn}${labBtn}${pontoBtn}
   <div class="meta"><b>${esc(nomeDe(r))}</b> → <b>${esc(paraTxt(r))}</b> · ${fmtW(r.criadoEm)}${r.escalaEm&&r.estado!=='feito'?(r.p==='u'&&r.pOrig!=='u'?` · <span class="esc on">ficou urgente ${fmtAte(r.escalaEm).replace('às ','às ')}</span>`:r.pOrig!=='u'?` · <span class="esc">passa a urgente ${fmtAte(r.escalaEm)}</span>`:''):''}</div>
   ${(env||TAB==='fei'||r.estado!=='pend'||(r.tipo==='caixa'&&!OWN.includes(ME)))?pill(r):''}
   ${acts?`
@@ -1554,7 +1555,7 @@ const UNI=()=>{const A=(window.JMC_CONFIG||{}).apps||{};const im=k=>`<img src="$
   return [inChat?{k:'chat',t:'Notificações',s:'Recados e avisos',cur:1,go:'rec'}:{k:'chat',t:'Chat',s:'Conversas da equipa',cur:1,go:'chat'},
     {k:'lab',t:'Executive Lab',s:'Trabalhos do laboratório',u:A.lab||'https://goncalojpjesus.github.io/executive-lab/'},
     {k:'cx',t:'Fecho de caixa',s:'Fechos e faturação',u:A.caixa||''},
-    {k:'ponto',t:'Pica-ponto',s:'Registo de ponto da equipa',u:A.ponto||''},
+    {k:'ponto',t:'Área RH',s:'Recursos humanos · ponto, férias e recibos',u:A.ponto||''},
     {k:'doc',t:'Documentos',s:'Consentimentos e documentos',u:A.documentos||''},
     {k:'tal',t:'Digitalizar talões',s:'Talões do TPA para o fecho',u:A.taloes||(A.caixa?A.caixa+'?talao=1':'')},
     {k:'gest',t:'Gestão de topo',s:'Objetivos e faturação',u:A.gestao||(A.caixa?A.caixa+'?gestao=1':''),own:1}]
@@ -1637,6 +1638,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('uni').classList.
 /* fechar o menu das apps ao tocar/clicar fora dele (no próprio app, no chat, ou noutro programa do computador) */
 document.addEventListener('pointerdown',e=>{if(!$('uni').classList.contains('on'))return;const t=e.target;if(t.closest&&(t.closest('#uni .up')||t.closest('#bar .emb,.chead .emb,.head .brand,#uniBtn')))return;if(VIEW==='pc'||!t.closest('#uni'))uniClose();},true);
 addEventListener('blur',()=>{if(VIEW==='pc'&&$('uni').classList.contains('on'))setTimeout(()=>{if(!document.hasFocus())uniClose();},120);});
+/* PC: clicar fora da app (noutro programa ou no ambiente de trabalho) também minimiza: o chat fecha e as notificações voltam ao modo intermédio (a setinha continua a recolher tudo). Não fecha enquanto se escolhe um ficheiro ou se grava voz. */
+let PICKF=0;document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('input[type=file],label[for],[data-clip],[data-talin]'))PICKF=Date.now();},true);
+addEventListener('focus',()=>{PICKF=0;});
+addEventListener('blur',()=>{if(VIEW!=='pc')return;setTimeout(()=>{if(document.hasFocus()||REC||(PICKF&&Date.now()-PICKF<120000))return;let mud=false;if(CHATOPEN){CHATOPEN=false;mud=true;}if(PIOPEN)setPi(false);if(mud)render();},150);});
 function uniClose(){$('uni').classList.remove('on');$('uni').setAttribute('aria-hidden','true');}
 document.addEventListener('click',e=>{const ch=e.target.closest&&e.target.closest('.chead .emb');if(ch&&uniOK()){e.preventDefault();e.stopPropagation();if($('uni').classList.contains('on'))uniClose();else{UNIANCH=ch;uniOpen('chat',ch);}return;}const b=e.target.closest&&e.target.closest('#uniBtn,.head .brand');if(b&&uniOK()){e.preventDefault();uniOpen();return;}
   if(e.target.closest&&e.target.closest('#uni [data-ux]')){uniClose();const uc=e.target.closest('[data-uchat]');if(uc){const g=uc.dataset.uchat;if(VIEW==='ph'){PHMODE=g;PHCONV=false;if(g==='rec')TAB='rec';}else if(g==='chat'){CHATOPEN=true;AUTOOPEN=false;$('chatPeek').hidden=true;armChat();}else{CHATOPEN=false;setPi(true);}render();}}
@@ -1777,7 +1782,7 @@ addEventListener('resize',fitPanels);
 dragY('#bar','top',()=>$('topR'));dragY('#chatBtn, .chead','chat',()=>$('chatW'));
 applyPos();setInterval(applyPos,60000);
 // atualização automática: se houver versão nova publicada, recarrega (sem perder nada: os dados estão no servidor)
-const BUILD='2026.10.06-3';
+const BUILD='2026.10.06-5';
 const chkUpd=()=>{if(location.protocol!=='https:')return;fetch('version.txt?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{v=v&&v.trim();
   if(v&&v!==BUILD&&$('sheet').hidden&&$('pin').hidden&&!document.querySelector('input:focus, textarea:focus')){
     let tried='';try{tried=sessionStorage.getItem('jmc_upd')||'';}catch(e){}if(tried===v)return;try{sessionStorage.setItem('jmc_upd',v);}catch(e){}

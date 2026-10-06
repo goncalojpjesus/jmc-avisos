@@ -30,8 +30,8 @@
 #bar,.chatBtn,.chead{touch-action:none}.pi .bar .emb,.chead{cursor:grab}
 </style>
 <script src="vendor/supabase.umd.js"></script>
-<script src="config.js?v=2026.10.05-11" onerror="void 0"></script>
-<script src="js/data.js?v=2026.10.05-11"></script>
+<script src="config.js?v=2026.10.06-2" onerror="void 0"></script>
+<script src="js/data.js?v=2026.10.06-2"></script>
 <style id="wa">
 /* ---------- chat ao estilo WhatsApp ---------- */
 :root{--waBg:#EFEAE2;--waMe:#D9FDD3;--waThem:#FFFFFF;--waTx:#111B21;--waMeta:#667781;--waIc:#54656F;--waBar:#F0F2F5;--waGreen:#00A884;--waBlue:#53BDEB;--waQuote:#06CF9C}
@@ -246,7 +246,23 @@ body.win .chatW{left:auto;right:16px;align-items:flex-end}
 body.win .uni .up{left:auto;right:0;transform:translateX(102%);box-shadow:-8px 0 40px rgba(0,0,0,.18)}
 body.win .uni.on .up{transform:none}
 body.win .pi.peek .tk svg{transform:scaleX(-1)}
-.uni .uh{display:flex;align-items:center;gap:12px;padding:4px 6px 18px}.uni .uh .emb{width:46px;height:46px}
+.uni .uh{display:flex;align-items:center;gap:12px;padding:4px 6px 18px}
+.uni .uh>div{flex:1;min-width:0}
+.uni .ux{border:0;background:var(--surface2);color:var(--fg);width:30px;height:30px;border-radius:50%;font-size:13px;cursor:pointer;flex:none;display:grid;place-items:center}
+.uni .ux:hover{background:var(--line)}
+/* computador: menu pequeno junto ao emblema (não ocupa o lado esquerdo) */
+body.desktop .uni.on{pointer-events:none}
+body.desktop .uni .ub{display:none}
+body.desktop .uni .up,body.desktop.win .uni .up{position:fixed;top:var(--uy,56px);left:var(--ux,8px);right:auto;bottom:auto;width:290px;height:auto;max-height:calc(100vh - 24px);overflow:auto;border-radius:16px;padding:10px 8px 8px;box-shadow:0 2px 6px rgba(0,0,0,.12),0 18px 44px rgba(0,0,0,.22);border:1px solid var(--line);transform:translateY(-6px) scale(.98);transform-origin:top left;opacity:0;transition:opacity .16s,transform .2s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+body.desktop.win .uni .up{transform-origin:top right}
+body.desktop .uni.on .up{transform:none;opacity:1;pointer-events:auto}
+body.desktop .uni .uh{padding:2px 4px 8px;gap:9px}body.desktop .uni .uh .emb{width:30px;height:30px}body.desktop .uni .uh b{font-size:17px}body.desktop .uni .uh small{font-size:9.5px}
+body.desktop .uni .ul{padding:2px 6px 4px;font-size:9.5px}
+body.desktop .uni a,body.desktop .uni button.ua,body.desktop .uni label.ua{padding:6px 6px;gap:10px;font-size:13.5px;border-radius:10px}
+body.desktop .uni a:hover,body.desktop .uni button.ua:hover,body.desktop .uni label.ua:hover{background:var(--surface2)}
+body.desktop .uni .ui{width:32px;height:32px;border-radius:9px}body.desktop .uni .ui.bare svg{width:26px;height:26px}body.desktop .uni .ui.cr .emb{width:22px;height:22px}
+body.desktop .uni .ut small{font-size:10.5px}
+body.desktop .uni .uf{margin-top:6px;padding-top:6px}.uni .uh .emb{width:46px;height:46px}
 .uni .uh b{display:block;font:600 22px/1.05 var(--fDisplay)}.uni .uh small{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--goldText);font-weight:600}
 .uni .ul{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:6px 8px 8px}
 .uni a,.uni button.ua,.uni label.ua{display:flex;align-items:center;gap:13px;padding:9px 8px;border-radius:14px;color:var(--fg);text-decoration:none;font:500 15px var(--fBody);border:0;background:none;width:100%;text-align:left;cursor:pointer}
@@ -807,7 +823,7 @@ body:not(.ph) .cxdet{grid-template-columns:1fr 1fr 1fr}
     <p class="terr" id="talErr"></p></div>
 </div></div>
 <div class="uni" id="uni" aria-hidden="true"><div class="ub" data-ux></div><nav class="up" aria-label="Aplicações Jesus Mar Couto">
-<div class="uh"><svg class="emb" aria-hidden="true"><use href="#jmc"/></svg><div><b>Jesus Mar Couto</b><small id="uniMe"></small></div></div>
+<div class="uh"><svg class="emb" aria-hidden="true"><use href="#jmc"/></svg><div><b>Jesus Mar Couto</b><small id="uniMe"></small></div><button class="ux" data-ux aria-label="Fechar" title="Fechar">✕</button></div>
 <div class="ul">Aplicações</div><div id="uniL"></div>
 <div class="uf"><button class="ua" data-uset><span class="ui cr"><svg viewBox="0 0 24 24" style="stroke:#A88A3C"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2 2 2 0 1 1-2.8-2.8A1.7 1.7 0 0 0 3.1 13a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9 2 2 0 1 1 2.8-2.8A1.7 1.7 0 0 0 10 3.1a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2 2 2 0 1 1 2.8 2.8A1.7 1.7 0 0 0 20.9 10a2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.5 1z"/></svg></span><span class="ut">Definições</span></button></div>
 </nav></div>
@@ -1442,7 +1458,7 @@ function render(){setTimeout(fillAx,0);effP();try{renderChat();}catch(e){}try{fi
   }
 }
 $('tk').onclick=e=>{e.stopPropagation();TUCK=true;TUCKN=-1;applyPi();};
-$('bar').onclick=e=>{if($('pi').classList.contains('tuck')){TUCK=false;applyPi();return;}if(e.target.closest&&e.target.closest('.emb')&&uniOK()){e.stopPropagation();uniOpen();return;}setPi(!PIOPEN);};
+$('bar').onclick=e=>{if($('pi').classList.contains('tuck')){TUCK=false;applyPi();return;}const em=e.target.closest&&e.target.closest('.emb');if(em&&uniOK()&&PIOPEN){e.stopPropagation();if($('uni').classList.contains('on'))uniClose();else{UNIANCH=em;uniOpen('',em);}return;}setPi(!PIOPEN);};
 $('pi').addEventListener('pointerdown',()=>{if(PIOPEN)armIdle();});
 document.addEventListener('pointerdown',e=>{if(!$('pi').contains(e.target)&&!e.target.closest('.sheet,.pin,#gmenu')&&PIOPEN)setPi(false);});
 $('chatBtn').onclick=()=>{AUTOOPEN=false;CHATOPEN=!CHATOPEN;$('chatPeek').hidden=true;$('chatBtn').classList.remove('ping');render();armChat();if(CHATOPEN){const i=$('ci-pc');i&&i.focus();}};
@@ -1614,10 +1630,16 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 function uniOK(){return OWN.includes(ME)||isClinic(ME)||!!PERFIL[ME];}
 function uniPonto(){return VIEW==="pc"&&isClinic(ME)&&ls.get("memo_ponto","0")==="1";}
 let UNICTX='';
-function uniOpen(ctx){if(!uniOK())return;UNICTX=ctx||'';$('uniL').innerHTML=UNI();talRefresh();$('uniMe').textContent=isClinic(ME)?'Receção '+ME:ME;$('uni').classList.add('on');$('uni').setAttribute('aria-hidden','false');}
+function uniOpen(ctx,anchor){if(!uniOK())return;UNICTX=ctx||'';if(VIEW==='pc'){const r=(anchor||$('bar')).getBoundingClientRect(),st=$('uni').style;st.setProperty('--ux',Math.max(8,r.left)+'px');st.setProperty('--uy',(r.bottom+8)+'px');}$('uniL').innerHTML=UNI();talRefresh();$('uniMe').textContent=isClinic(ME)?'Receção '+ME:ME;$('uni').classList.add('on');$('uni').setAttribute('aria-hidden','false');if(VIEW==='pc')requestAnimationFrame(()=>{const up=$('uni').querySelector('.up'),r=up.getBoundingClientRect(),st=$('uni').style;if(IS_WIN||window.JMC_WIN){const a=(UNIANCH||$('bar')).getBoundingClientRect();st.setProperty('--ux',Math.max(8,a.right-r.width)+'px');}if(r.bottom>innerHeight-8)st.setProperty('--uy',Math.max(8,innerHeight-8-r.height)+'px');});}
+let UNIANCH=null;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('uni').classList.contains('on'))uniClose();});
+/* fechar o menu das apps ao tocar/clicar fora dele (no próprio app, no chat, ou noutro programa do computador) */
+document.addEventListener('pointerdown',e=>{if(!$('uni').classList.contains('on'))return;const t=e.target;if(t.closest&&(t.closest('#uni .up')||t.closest('#bar .emb,.chead .emb,.head .brand,#uniBtn')))return;if(VIEW==='pc'||!t.closest('#uni'))uniClose();},true);
+addEventListener('blur',()=>{if(VIEW==='pc'&&$('uni').classList.contains('on'))setTimeout(()=>{if(!document.hasFocus())uniClose();},120);});
 function uniClose(){$('uni').classList.remove('on');$('uni').setAttribute('aria-hidden','true');}
-document.addEventListener('click',e=>{const ch=e.target.closest&&e.target.closest('.chead .emb');if(ch&&uniOK()){e.preventDefault();e.stopPropagation();uniOpen('chat');return;}const b=e.target.closest&&e.target.closest('#uniBtn,.head .brand');if(b&&uniOK()){e.preventDefault();uniOpen();return;}
+document.addEventListener('click',e=>{const ch=e.target.closest&&e.target.closest('.chead .emb');if(ch&&uniOK()){e.preventDefault();e.stopPropagation();if($('uni').classList.contains('on'))uniClose();else{UNIANCH=ch;uniOpen('chat',ch);}return;}const b=e.target.closest&&e.target.closest('#uniBtn,.head .brand');if(b&&uniOK()){e.preventDefault();uniOpen();return;}
   if(e.target.closest&&e.target.closest('#uni [data-ux]')){uniClose();const uc=e.target.closest('[data-uchat]');if(uc){const g=uc.dataset.uchat;if(VIEW==='ph'){PHMODE=g;PHCONV=false;if(g==='rec')TAB='rec';}else if(g==='chat'){CHATOPEN=true;AUTOOPEN=false;$('chatPeek').hidden=true;armChat();}else{CHATOPEN=false;setPi(true);}render();}}
+  if(e.target.closest&&e.target.closest('#uni a[href]:not([data-soon])'))setTimeout(uniClose,150);
   if(e.target.closest&&e.target.closest('#uni [data-soon]')){e.preventDefault();toast('Ainda não está ligado: falta o endereço desta app.');}
   if(e.target.closest&&e.target.closest('#uni [data-uset]')){uniClose();openSettings();}});
 {let x0=null;document.addEventListener('touchstart',e=>{if($('uni').classList.contains('on'))x0=e.touches[0].clientX;},{passive:true});document.addEventListener('touchend',e=>{if(x0!=null&&e.changedTouches[0].clientX<x0-60)uniClose();x0=null;},{passive:true});}
@@ -1649,9 +1671,9 @@ $('pinC').onclick=()=>{$('pin').hidden=true;pinCb=null;};
 if(SURFACE==='desktop')document.body.classList.add('desktop');
 $('piCfg').onclick=e=>{e.stopPropagation();openGear($('piCfg'),'rec');};
 window.jmcOpenSettings=()=>openSettings();
-if(window.jmcDesktop){let last=null;const hot=t=>!!(t&&t.closest&&t.closest('#pi,#chatW,.sheet,.pin,.toast.show,#cmenu,#epick,#gmenu'))||!$('sheet').hidden||!$('pin').hidden;
+if(window.jmcDesktop){let last=null;const hot=t=>!!(t&&t.closest&&t.closest('#pi,#chatW,.sheet,.pin,.toast.show,#cmenu,#epick,#gmenu,#uni.on .up,.tals'))||!$('sheet').hidden||!$('pin').hidden;
   const upd=v=>{if(v!==last){last=v;window.jmcDesktop.setInteractive(v);}};
-  addEventListener('mousemove',e=>upd(hot(e.target)),{passive:true});setInterval(()=>{if(!$('sheet').hidden||!$('pin').hidden)upd(true);},500);upd(false);}
+  addEventListener('mousemove',e=>upd(hot(e.target)),{passive:true});setInterval(()=>{if(!$('sheet').hidden||!$('pin').hidden||!$('tals').hidden)upd(true);},500);upd(false);}
 setInterval(()=>render(),60000);
 $('phPig').addEventListener('click',e=>{e.stopPropagation();TAB='cx';PHMODE='rec';PHCONV=false;FORCE=true;render();FORCE=false;});
 $('pigB').addEventListener('click',e=>{e.stopPropagation();TAB='cx';setPi(true);FORCE=true;render();FORCE=false;});
@@ -1754,7 +1776,7 @@ addEventListener('resize',fitPanels);
 dragY('#bar','top',()=>$('topR'));dragY('#chatBtn, .chead','chat',()=>$('chatW'));
 applyPos();setInterval(applyPos,60000);
 // atualização automática: se houver versão nova publicada, recarrega (sem perder nada: os dados estão no servidor)
-const BUILD='2026.10.05-11';
+const BUILD='2026.10.06-2';
 const chkUpd=()=>{if(location.protocol!=='https:')return;fetch('version.txt?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{v=v&&v.trim();
   if(v&&v!==BUILD&&$('sheet').hidden&&$('pin').hidden&&!document.querySelector('input:focus, textarea:focus')){
     let tried='';try{tried=sessionStorage.getItem('jmc_upd')||'';}catch(e){}if(tried===v)return;try{sessionStorage.setItem('jmc_upd',v);}catch(e){}

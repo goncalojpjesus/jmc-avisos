@@ -9,7 +9,7 @@ window.JMC_CONFIG = window.JMC_CONFIG || {
   apps: {
     lab: 'https://goncalojpjesus.github.io/executive-lab/',
     caixa:'https://script.google.com/macros/s/AKfycbzhQD8Nej5px3qXbVHAP2aIGmggizq8uE5l0SColrxhXNml5du1-T-MQhIrgmCKd1c/exec',
-    ponto: '',
+    ponto:'https://goncalojpjesus.github.io/jmc-avisos/ponto/',
     documentos: 'https://script.google.com/macros/s/AKfycbyxCRjnQfkhpXnSbyR-03XprUi5NH61TBr0GfMxlhI3K9wvzpntALlaJjXmdLsz8jBcDg/exec?doc=menu',
     gestao:'https://script.google.com/macros/s/AKfycbzhQD8Nej5px3qXbVHAP2aIGmggizq8uE5l0SColrxhXNml5du1-T-MQhIrgmCKd1c/exec?gestao=1'
   },

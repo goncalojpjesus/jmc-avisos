@@ -65,6 +65,10 @@
     });
     let status = 'a ligar';
     channel.subscribe(s => { status = s; if (s === 'SUBSCRIBED') Object.values(listeners).forEach(set => set.forEach(fn => fn())); });
+    // ao voltar à app (telefone tirado do bolso, outra app, rede de volta): atualiza logo, sem esperar pelo tempo real
+    const refrescar = () => Object.values(listeners).forEach(set => set.forEach(fn => fn()));
+    if (global.document) { document.addEventListener('visibilitychange', () => { if (!document.hidden) refrescar(); }); }
+    if (global.addEventListener) { global.addEventListener('focus', refrescar); global.addEventListener('online', refrescar); global.addEventListener('pageshow', refrescar); }
 
     function query(name, spec) {
       const m = MAP[name];

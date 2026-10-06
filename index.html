@@ -31,8 +31,8 @@
 .rhlink{color:inherit;text-decoration:none;display:block;cursor:pointer}.rhlink:active{opacity:.6}
 </style>
 <script src="vendor/supabase.umd.js"></script>
-<script src="config.js?v=2026.10.06-5" onerror="void 0"></script>
-<script src="js/data.js?v=2026.10.06-5"></script>
+<script src="config.js?v=2026.10.06-6" onerror="void 0"></script>
+<script src="js/data.js?v=2026.10.06-6"></script>
 <style id="wa">
 /* ---------- chat ao estilo WhatsApp ---------- */
 :root{--waBg:#EFEAE2;--waMe:#D9FDD3;--waThem:#FFFFFF;--waTx:#111B21;--waMeta:#667781;--waIc:#54656F;--waBar:#F0F2F5;--waGreen:#00A884;--waBlue:#53BDEB;--waQuote:#06CF9C}
@@ -1531,14 +1531,14 @@ async function pushUI(){const st=await pushEstado();$('pushRow').hidden=st==='na
 async function pushPergunta(){if(ls.get('memo_push_nao','')||!ME)return;const st=await pushEstado();if(st!=='off')return;$('pask').hidden=false;}
 $('paskYes').onclick=async()=>{$('pask').hidden=true;await pushAtivar();};
 $('paskNo').onclick=()=>{$('pask').hidden=true;ls.set('memo_push_nao',String(Date.now()));};
-function abrirDe(x){if(!x)return;$('pask').hidden=true;
+function abrirDe(x){if(!x)return;if(/^rh:https:\/\/goncalojpjesus\.github\.io\/jmc-avisos\/ponto\//.test(x)){location.href=x.slice(3);return;}/* aviso da Área RH: abre a Área RH */$('pask').hidden=true;
   if(x==='rec'){PHMODE='rec';PHCONV=false;TAB='rec';}
   else{const t=threads().find(t=>t.other===x);if(t){PHMODE='chat';THREAD=tkey(t);PHCONV=true;if(VIEW==='pc')CHATOPEN=true;}}
   FORCE=true;try{render();}finally{FORCE=false;}}
 if('serviceWorker' in navigator&&window.isSecureContext&&location.protocol!=='file:'&&!window.JMC_SHARED){
   navigator.serviceWorker.register('sw.js').then(r=>{SWR=r;pushSync();setTimeout(pushPergunta,2500);}).catch(()=>{});
   navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.abrir)abrirDe(e.data.abrir);});}
-{const q=new URLSearchParams(location.search).get('abrir');if(q){history.replaceState(null,'',location.pathname+location.search.replace(/[?&]abrir=[^&]*/,'').replace(/^&/,'?'));setTimeout(()=>abrirDe(q),900);}}
+{const q=new URLSearchParams(location.search).get('abrir');if(q){history.replaceState(null,'',location.pathname+location.search.replace(/[?&]abrir=[^&]*/,'').replace(/^&/,'?'));setTimeout(()=>abrirDe(q),/^rh:/.test(q)?0:900);}}
 /* sem zoom (iPhone ignora user-scalable=no): bloqueia o gesto de pinça e o duplo toque */
 ['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
 document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});
@@ -1782,7 +1782,7 @@ addEventListener('resize',fitPanels);
 dragY('#bar','top',()=>$('topR'));dragY('#chatBtn, .chead','chat',()=>$('chatW'));
 applyPos();setInterval(applyPos,60000);
 // atualização automática: se houver versão nova publicada, recarrega (sem perder nada: os dados estão no servidor)
-const BUILD='2026.10.06-5';
+const BUILD='2026.10.06-6';
 const chkUpd=()=>{if(location.protocol!=='https:')return;fetch('version.txt?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{v=v&&v.trim();
   if(v&&v!==BUILD&&$('sheet').hidden&&$('pin').hidden&&!document.querySelector('input:focus, textarea:focus')){
     let tried='';try{tried=sessionStorage.getItem('jmc_upd')||'';}catch(e){}if(tried===v)return;try{sessionStorage.setItem('jmc_upd',v);}catch(e){}

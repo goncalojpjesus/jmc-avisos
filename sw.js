@@ -21,6 +21,11 @@ self.addEventListener('notificationclick', (e) => {
   e.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const c = all.find((w) => w.url.startsWith(self.registration.scope));
+    // avisos do Ponto: abre o Ponto já no sítio onde se trata o assunto
+    if (url.startsWith(self.registration.scope + 'ponto/')) {
+      if (c && c.navigate) { try { const w = await c.navigate(url); if (w) return w.focus(); } catch (_) {} }
+      return self.clients.openWindow(url);
+    }
     if (c) { c.postMessage({ abrir: new URL(url).searchParams.get('abrir') }); return c.focus(); }
     return self.clients.openWindow(url);
   })());

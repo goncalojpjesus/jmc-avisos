@@ -30,8 +30,8 @@
 #bar,.chatBtn,.chead{touch-action:none}.pi .bar .emb,.chead{cursor:grab}
 </style>
 <script src="vendor/supabase.umd.js"></script>
-<script src="config.js?v=2026.10.06-2" onerror="void 0"></script>
-<script src="js/data.js?v=2026.10.06-2"></script>
+<script src="config.js?v=2026.10.06-3" onerror="void 0"></script>
+<script src="js/data.js?v=2026.10.06-3"></script>
 <style id="wa">
 /* ---------- chat ao estilo WhatsApp ---------- */
 :root{--waBg:#EFEAE2;--waMe:#D9FDD3;--waThem:#FFFFFF;--waTx:#111B21;--waMeta:#667781;--waIc:#54656F;--waBar:#F0F2F5;--waGreen:#00A884;--waBlue:#53BDEB;--waQuote:#06CF9C}
@@ -928,9 +928,10 @@ function item(r){
   const cxTxt=!cxStaff?r.t:r.inc?(r.concluidoEm?'Fecho de caixa enviado mais tarde, com sucesso.':'O fecho de caixa deste dia não foi concluído. Abra o fecho de caixa, indique a justificação e envie.'):r.ok?'Fecho de caixa enviado com sucesso.':'O fecho de caixa não confere. Fale com o Dr. Gonçalo ou a Dra. Catarina.';
   const sysBtn=r.tipo==='caixa'&&r.link&&(!cxStaff||(r.inc&&isPend(r)))?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">Abrir o fecho de caixa ›</a>`:'';
   const labBtn=r.tipo==='lab'&&r.link?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">Abrir no Executive Lab ›</a>`:'';
+  const pontoBtn=r.tipo==='ponto'&&r.link&&/^https:\/\/goncalojpjesus\.github\.io\/jmc-avisos\/ponto\//.test(r.link)?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">${/[?&]ir=/.test(r.link)?'Tratar no Ponto ›':'Abrir o Ponto ›'}</a>`:'';
   const isNew=NEWIDS.has(r.id)?' new':'';
   return `<div class="it ${r.p}${r.tipo==='caixa'?' sys':''}${r.ok?' okc':''}${r.inc&&isPend(r)?' incx':''}${r.tipo==='caixa'&&!OWN.includes(ME)&&!r.ok&&!r.inc&&isPend(r)?' kox':''}${isNew}${r.estado==='feito'?' fd':''}" data-id="${r.id}">${acts?`<button class="chk" data-a="ok" aria-label="Marcar como feito" title="Marcar como feito"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>`:`<span class="chk st" aria-hidden="true">${r.estado==='feito'?'<svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg>':''}</span>`}<div class="tx">
-${sys}<p>${mark}${esc(r.tipo==='caixa'?cxTxt:r.t)}</p>${axHTML(r)}${sysBtn}${labBtn}
+${sys}<p>${mark}${esc(r.tipo==='caixa'?cxTxt:r.t)}</p>${axHTML(r)}${sysBtn}${labBtn}${pontoBtn}
   <div class="meta"><b>${esc(nomeDe(r))}</b> → <b>${esc(paraTxt(r))}</b> · ${fmtW(r.criadoEm)}${r.escalaEm&&r.estado!=='feito'?(r.p==='u'&&r.pOrig!=='u'?` · <span class="esc on">ficou urgente ${fmtAte(r.escalaEm).replace('às ','às ')}</span>`:r.pOrig!=='u'?` · <span class="esc">passa a urgente ${fmtAte(r.escalaEm)}</span>`:''):''}</div>
   ${(env||TAB==='fei'||r.estado!=='pend'||(r.tipo==='caixa'&&!OWN.includes(ME)))?pill(r):''}
   ${acts?`
@@ -1776,7 +1777,7 @@ addEventListener('resize',fitPanels);
 dragY('#bar','top',()=>$('topR'));dragY('#chatBtn, .chead','chat',()=>$('chatW'));
 applyPos();setInterval(applyPos,60000);
 // atualização automática: se houver versão nova publicada, recarrega (sem perder nada: os dados estão no servidor)
-const BUILD='2026.10.06-2';
+const BUILD='2026.10.06-3';
 const chkUpd=()=>{if(location.protocol!=='https:')return;fetch('version.txt?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{v=v&&v.trim();
   if(v&&v!==BUILD&&$('sheet').hidden&&$('pin').hidden&&!document.querySelector('input:focus, textarea:focus')){
     let tried='';try{tried=sessionStorage.getItem('jmc_upd')||'';}catch(e){}if(tried===v)return;try{sessionStorage.setItem('jmc_upd',v);}catch(e){}

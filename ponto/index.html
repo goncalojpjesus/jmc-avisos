@@ -809,6 +809,8 @@ function folhaViagem() {
 function diaSemanaPT(d) { var x = new Date(d + 'T12:00:00'); var n = DIAS[x.getDay()]; return n.charAt(0).toUpperCase() + n.slice(1) + ', ' + x.getDate() + ' de ' + MESES[x.getMonth()]; }
 /* Horário da semana em grande, acima das férias (imagem ou PDF). Sem horário publicado, fica um aviso discreto. */
 function urlVerHorario(h) {
+  // ficheiros guardados no Supabase (função "ponto"): imagem mostrada em grande; PDF dentro da página
+  if (/\/functions\/v1\/ponto\?f=/.test(h.url)) return /pdf/i.test(h.mime || '') ? { tipo: 'pdf', src: h.url } : { tipo: 'img', src: h.url };
   if (/^data:image|\.(jpe?g|png|webp)(\?|$)/i.test(h.url)) return { tipo: 'img', src: h.url };
   if (h.ficheiroId && /^image\//.test(h.mime)) return { tipo: 'img', src: 'https://drive.google.com/thumbnail?id=' + h.ficheiroId + '&sz=w2400' };
   if (h.ficheiroId) return { tipo: 'pdf', src: 'https://drive.google.com/file/d/' + h.ficheiroId + '/preview' };
@@ -1924,7 +1926,8 @@ function supHorarios(abrirWa) {
         '<div id="hPrevia"></div>' +
         '<div class="campo" style="margin-top:10px"><label for="hNota">Nota para a equipa (opcional)</label><input id="hNota" type="text" placeholder="Ex.: atenção à troca de quinta-feira"></div>' +
         '<div class="msg-erro" id="hErro" style="text-align:left"></div><div class="botoes-folha"><button class="btn" id="hPub">Publicar</button></div></div>' +
-      '<div class="cartao"><h3>Horários publicados</h3><div class="lista">' + lista + '</div></div>' +
+      '<div class="cartao"><h3>Horários publicados</h3><div class="lista">' + lista + '</div>' +
+        (r.horarios[0] && urlVerHorario(r.horarios[0]).tipo === 'img' ? '<div class="eyebrow" style="margin:14px 0 8px">O mais recente · como as assistentes o veem</div><button class="horario-img" data-hver="' + esc(r.horarios[0].url) + '" title="Ver em ecrã inteiro"><img src="' + esc(r.horarios[0].url) + '" alt="' + esc(r.horarios[0].titulo) + '"></button>' : '') + '</div>' +
     '</div>');
     S.horarioPronto = null;
     document.getElementById('hFich').onchange = function () { var f = this.files[0]; if (f) abrirRecorte(f); };
@@ -2092,6 +2095,40 @@ function supAparelho() {
 document.getElementById('chipClinica').onclick = function () { toast(S.clinica ? 'Terminal de ' + S.clinica + '. Só a supervisão pode mudar.' : 'Este aparelho não é um terminal da clínica. A supervisão pode configurá-lo em “Este aparelho”.'); };
 mostrarClinica();
 ecraTeclado();
+</script>
+<script>
+/* Vindo de um aviso da app JMC Avisos (?ir=alertas): depois de entrar com o código da supervisão abre logo "Alertas e pedidos". */
+(function () {
+  var q = new URLSearchParams(location.search), ir = q.get('ir');
+  var SEPS = { hoje: 1, alertas: 1, registo: 1, viagens: 1, recibos: 1, calendario: 1, horarios: 1 };
+  if (!ir || !SEPS[ir]) return;
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  var orig = window.ecraSupervisao;
+  window.ecraSupervisao = function () { if (ir) { S.supSep = ir; ir = null; } return orig.apply(this, arguments); };
+  // dentro da app instalada (sem barra do browser): botão para voltar aos avisos
+  if (navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches)) {
+    var v = document.createElement('a'); v.href = '../'; v.textContent = '‹ Avisos';
+    v.style.cssText = 'position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:50;background:rgba(29,29,31,.82);color:#fff;font:600 14px -apple-system,system-ui,sans-serif;padding:9px 14px;border-radius:999px;text-decoration:none;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)';
+    document.body.appendChild(v);
+  }
+  if (S.token && S.eu && S.eu.papel === 'supervisor') { window.ecraSupervisao(); return; }
+  setTimeout(function () { toast('Introduza o código da supervisão para tratar o pedido.'); }, 400);
+})();
+</script>
+<script>
+/* Horários guardados no Supabase: "Ver"/"Abrir" mostram a imagem em ecrã inteiro, aqui mesmo (sem abrir outra página). */
+document.addEventListener('click', function (e) {
+  var a = e.target.closest && e.target.closest('[data-hver], .horario-item a[href*="/functions/v1/ponto?f="], .horario-grande a[href*="/functions/v1/ponto?f="]');
+  if (!a) return;
+  var url = a.getAttribute('data-hver') || a.getAttribute('href');
+  e.preventDefault(); e.stopPropagation();
+  var v = document.createElement('div'); v.className = 'horario-ecra';
+  var img = document.createElement('img'); img.alt = ''; img.src = url;
+  img.onerror = function () { v.remove(); window.open(url, '_blank', 'noopener'); }; // PDF ou outro: abre à parte
+  var b = document.createElement('button'); b.className = 'btn'; b.textContent = 'Fechar'; b.setAttribute('aria-label', 'Fechar');
+  v.appendChild(img); v.appendChild(b); v.onclick = function () { v.remove(); };
+  document.body.appendChild(v);
+}, true);
 </script>
 </body>
 </html>

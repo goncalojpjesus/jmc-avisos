@@ -191,6 +191,7 @@ input[type=range]{width:100%;accent-color:var(--gd)}
 .opt3 .m{font:400 10px Montserrat;color:#76766f;margin-top:8px}
 .dfine{margin-top:auto;padding-top:14px;font:300 9.5px/1.8 Montserrat;color:#a3a39c;text-align:center}
 .xopt{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:12.5px;color:var(--mut)}.xopt label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.dres{padding-top:16px}.dres>div{display:flex;justify-content:space-between;align-items:baseline;font:300 11px Montserrat;color:#8c8c85;padding:3px 0}.dres s{color:#b9b8b1;font-size:12px}.dres b{font-weight:500;color:#A88A3C}
 .ddesc{text-align:right;font:300 10.5px Montserrat;color:#8c8c85;margin-top:2px}.ddesc b{font-weight:500;color:#A88A3C}
 .dcer{margin-top:16px;border-top:1px solid #eee8d8;padding:12px 0 4px}.dcer .k{font:400 8px Montserrat;letter-spacing:.3em;text-transform:uppercase;color:#a3a39c;text-align:center;margin-bottom:10px}
 .dcer .cg{display:grid;grid-template-columns:repeat(4,1fr)}.dcer .ct{padding:0 12px}.dcer .ct+.ct{border-left:1px solid #f2eee3}
@@ -667,7 +668,7 @@ function abrirDoc(){
  let fim='';
  if(show3&&a4){ fim='<div class="opt3">'+Object.entries(OPT).map(([c,o])=>{ const t=totalCom(subtotal(c)); const e=t*ep/100; return `<div><div class="k">${o.n}</div><h6>${o.t}</h6><p>${o.s}</p><div class="v">${eu(t)}</div><div class="m">${modo=='pr'?'entrada '+eu(e)+' · '+prest+' × '+eu((t-e)/prest):''}</div></div>`; }).join('')+'</div>'; }
  else { fim=`<div class="dtotal"><div class="l">Total</div><div class="v">${sub-tot>0.5?'<s>'+eu(sub)+'</s>':''}${eu(tot)}</div></div>`;
-  if($('dtTot').checked){ const full=LS.reduce((a,l)=>a+l.q*l.u,0), dsc=full-tot; if(dsc>0.5) fim+=`<div class="ddesc">Desconto total aplicado <b>− ${eu(dsc)} (${Math.round(dsc/full*100)}%)</b></div>`; } }
+  if($('dtTot').checked){ const full=LS.reduce((a,l)=>a+l.q*l.u,0), dsc=full-tot; if(dsc>0.5) fim=`<div class="dres"><div class="r1"><span>Valor do tratamento</span><s>${eu(full)}</s></div><div class="r2"><span>Desconto total aplicado</span><b>− ${eu(dsc)} (${Math.round(dsc/full*100)}%)</b></div></div><div class="dtotal" style="padding-top:10px"><div class="l">Total</div><div class="v">${eu(tot)}</div></div>`; } }
  if(modo=='pr') fim+=`<div class="dpay2"><div><div class="k">Entrada</div><div class="v">${show3?'Por opção':eu(ent)}</div><div class="s">No ato de adjudicação do orçamento</div></div><div><div class="k">Mensalidade</div><div class="v">${show3?prest+' ×':eu(men)}</div><div class="s">${show3?'mensalidades':prest+' meses'}</div></div><div><div class="k">Juros</div><div class="v">0%</div><div class="s">sem juros</div></div><div><div class="k">Débito direto SEPA</div><div class="v">DD · dia 10</div><div class="s">de cada mês</div></div></div>`;
  else if(modo=='fa'){ const P=planoFa(), S=P.find(x=>x.k=='sinal'), C=P.find(x=>x.q=='No dia da cirurgia'), I=P.filter(x=>x.pc!=null);
   const l=[];

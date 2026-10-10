@@ -1,0 +1,559 @@
+<!doctype html><html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#FF5A4E"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Monstrinhos da Sala</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: one-screen phone app — header, a living-room stage, bottom tab bar (Apanhar · Coleção · Combate) */
+:root{
+  --bg:#EEF2F8; --surface:#FFFFFF; --ink:#172033; --muted:#5B6680; --line:rgba(23,32,51,.10);
+  --accent:#FF5A4E; --accent-ink:#FFFFFF; --teal:#17A99B; --gold:#F5B829; --good:#22A45D; --bad:#E5484D;
+  --wall:#F7E3C8; --wall2:#EFD3AF; --floor:#C99A6B; --floor2:#B98858; --sofa:#4D7CC7; --sofa2:#3E68AD;
+  --sky1:#9ED8FF; --sky2:#E3F5FF; --wood:#8B5E3C; --rug:#E07A5F; --rug2:#F2CC8F; --shade:#FFE7A3;
+  --display:"Fredoka","Nunito",ui-rounded,system-ui,sans-serif;
+  --body:"Nunito",ui-rounded,system-ui,-apple-system,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1320; --surface:#182033; --ink:#EEF2FA; --muted:#9AA6C0; --line:rgba(255,255,255,.10);
+  --wall:#2A3150; --wall2:#232946; --floor:#45363F; --floor2:#3A2D35; --sofa:#3B5A96; --sofa2:#2F4B80;
+  --sky1:#0B1640; --sky2:#26357A; --wood:#5E4130; --rug:#A9543F; --rug2:#B8925A; --shade:#FFD86B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1320; --surface:#182033; --ink:#EEF2FA; --muted:#9AA6C0; --line:rgba(255,255,255,.10);
+  --wall:#2A3150; --wall2:#232946; --floor:#45363F; --floor2:#3A2D35; --sofa:#3B5A96; --sofa2:#2F4B80;
+  --sky1:#0B1640; --sky2:#26357A; --wood:#5E4130; --rug:#A9543F; --rug2:#B8925A; --shade:#FFD86B; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;-webkit-tap-highlight-color:transparent;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.app{height:100%;display:flex;flex-direction:column;max-width:560px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px 8px}
+header h1{font-family:var(--display);font-weight:700;font-size:22px;margin:0;letter-spacing:-.01em}
+.trainer{font-size:13px;color:var(--muted);font-weight:700;text-align:right}
+.trainer b{color:var(--ink)}
+main{flex:1;overflow-y:auto;padding:0 16px 16px;min-height:0}
+.view[hidden]{display:none!important}
+nav.tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+nav.tabs button{background:none;border:0;padding:6px 4px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;font-weight:800;color:var(--muted)}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button[aria-selected="true"]{color:var(--accent)}
+.hint{font-size:14px;color:var(--muted);margin:2px 0 10px;font-weight:700}
+.stage{position:relative;border-radius:22px;overflow:hidden;box-shadow:0 10px 30px rgba(23,32,51,.12)}
+.stage svg{display:block;width:100%;height:auto}
+.spot{cursor:pointer}
+.spot:active{opacity:.85}
+.toast{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:rgba(23,32,51,.86);color:#fff;font-weight:800;padding:8px 14px;border-radius:999px;font-size:14px;white-space:nowrap;pointer-events:none;transition:opacity .3s}
+.counter{display:flex;gap:10px;margin-top:12px}
+.pill{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:800;font-size:13px;font-variant-numeric:tabular-nums}
+/* collection */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:8px 6px 10px;text-align:center;position:relative;display:flex;flex-direction:column;align-items:center;gap:2px}
+.card svg{width:72px;height:72px}
+.card .nm{font-family:var(--display);font-weight:600;font-size:14px;line-height:1.1}
+.card .lv{font-size:12px;color:var(--muted);font-weight:800;font-variant-numeric:tabular-nums}
+.card.unseen svg{filter:brightness(0);opacity:.18}
+.card.inteam{border:2px solid var(--accent);padding:7px 5px 9px}
+.card .badge{position:absolute;top:6px;right:6px;background:var(--accent);color:var(--accent-ink);font-size:10px;font-weight:800;border-radius:999px;padding:2px 6px}
+.chip{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;color:var(--ink)}
+.section-t{font-family:var(--display);font-weight:600;font-size:18px;margin:14px 0 8px}
+.sub{color:var(--muted);font-size:13.5px;margin:-4px 0 10px;font-weight:700}
+/* battle tab */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.teamrow{display:flex;gap:8px}
+.teamrow .slot{flex:1;min-width:0;background:var(--bg);border-radius:14px;padding:6px;text-align:center}
+.teamrow svg{width:56px;height:56px}
+.teamrow .slot div{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.code{font-family:var(--mono);font-size:34px;font-weight:700;letter-spacing:.12em;text-align:center;padding:10px;border-radius:14px;background:var(--bg);user-select:all;font-variant-numeric:tabular-nums}
+.btn{border:0;border-radius:14px;padding:13px 16px;font-weight:800;font-size:16px;background:var(--accent);color:var(--accent-ink)}
+.btn.sec{background:var(--bg);color:var(--ink)}
+.btn:disabled{opacity:.45}
+input.codein{font-family:var(--mono);font-size:26px;letter-spacing:.12em;text-align:center;text-transform:uppercase;padding:12px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);width:100%;box-sizing:border-box}
+input.namein{font-size:18px;padding:12px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);width:100%;box-sizing:border-box;font-family:var(--body);font-weight:700}
+.err{color:var(--bad);font-weight:800;font-size:13.5px;min-height:18px;margin:0}
+.steps{margin:0;padding-left:20px;color:var(--muted);font-weight:700;font-size:13.5px;display:grid;gap:4px}
+/* overlays */
+.overlay{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;background:var(--bg);padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.ov-top{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:560px;width:100%;margin:0 auto}
+.x{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:800}
+/* encounter */
+.enc{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;max-width:560px;width:100%;margin:0 auto;position:relative}
+.enc-msg{font-family:var(--display);font-weight:600;font-size:20px;text-align:center;text-wrap:balance;min-height:52px}
+.arena{position:relative;width:260px;height:260px;max-width:100%}
+.arena .mon{position:absolute;inset:30px;animation:hop 1.6s ease-in-out infinite}
+.arena .mon svg{width:100%;height:100%}
+.ring{position:absolute;inset:0;border-radius:50%;border:5px solid var(--teal);animation:shrink 1.4s linear infinite;transform-origin:center}
+@keyframes shrink{from{transform:scale(1);opacity:.4}to{transform:scale(.3);opacity:1}}
+@keyframes hop{0%,100%{transform:translate(-14px,0)}25%{transform:translate(0,-14px)}50%{transform:translate(14px,0)}75%{transform:translate(0,-8px)}}
+.orb{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%,#fff 0 9%,#7EF0E2 10% 30%,#17A99B 55%,#0B5F58 100%);
+  box-shadow:inset 0 -4px 8px rgba(0,0,0,.25),0 6px 14px rgba(0,0,0,.25)}
+.orb::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:4px solid #F5B829;clip-path:polygon(0 42%,100% 42%,100% 58%,0 58%)}
+.orb::before{content:"";position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;background:#F5B829;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.wobble{animation:wob .5s ease-in-out 3}
+@keyframes wob{0%,100%{transform:rotate(0)}30%{transform:rotate(-24deg)}70%{transform:rotate(24deg)}}
+.throwbtn{width:96px;height:96px;border-radius:50%;border:0;position:relative;background:none;padding:0}
+.throwbtn .orb{position:static;margin:0;width:96px;height:96px;display:block}
+.throwbtn:disabled{opacity:.4}
+.quality{font-family:var(--display);font-weight:700;font-size:22px;color:var(--teal);height:28px}
+/* battle */
+.bt{flex:1;display:flex;flex-direction:column;gap:12px;max-width:560px;width:100%;margin:0 auto;min-height:0}
+.field{flex:1;position:relative;border-radius:22px;overflow:hidden;background:linear-gradient(var(--sky2),var(--sky1) 55%,var(--floor) 55%,var(--floor2));min-height:300px}
+.side{position:absolute;width:52%;display:flex;flex-direction:column;gap:6px}
+.side.opp{right:4%;top:6%}
+.side.me{left:4%;bottom:6%}
+.side .sprite{width:min(150px,38vw);height:min(150px,38vw);transition:transform .25s}
+.side.opp .sprite{align-self:flex-end}
+.hpbox{background:var(--surface);border-radius:14px;padding:8px 10px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.hpbox .row{display:flex;justify-content:space-between;gap:6px;font-weight:800;font-size:13.5px}
+.hpbox .row span:first-child{font-family:var(--display);font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;width:100%;background:var(--good);border-radius:99px;transition:width .5s,background .5s}
+.dots{display:flex;gap:4px;margin-top:5px}
+.dots b{width:9px;height:9px;border-radius:50%;background:var(--gold)}
+.dots b.off{background:var(--line)}
+.lunge-me{transform:translate(26px,-22px)}
+.lunge-opp{transform:translate(-26px,22px)}
+.hit{animation:hit .45s}
+@keyframes hit{0%,100%{transform:translateX(0);filter:none}20%{transform:translateX(-8px);filter:brightness(2)}40%{transform:translateX(8px)}60%{transform:translateX(-5px);filter:brightness(2)}}
+.faint{transform:translateY(30px) scale(.6)!important;opacity:0;transition:all .6s}
+.log{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;font-weight:800;font-size:16px;min-height:52px;text-wrap:balance}
+.result{font-family:var(--display);font-weight:700;font-size:30px;text-align:center}
+.center{display:flex;flex-direction:column;gap:12px;align-items:stretch}
+.starters{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.starters button{background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.starters button[aria-pressed="true"]{border-color:var(--accent)}
+.starters svg{width:76px;height:76px}
+.cam{position:relative;border-radius:22px;overflow:hidden;aspect-ratio:3/4;max-width:100%;background:#0E1320;box-shadow:0 10px 30px rgba(23,32,51,.12)}
+.cam video,.bgcam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.bgcam{z-index:0}
+.overlay>*:not(.bgcam){position:relative;z-index:1}
+.overlay.withcam .enc-msg,.overlay.withcam .quality,.overlay.withcam .hint{background:var(--surface);border-radius:14px;padding:6px 12px}
+.overlay.withcam .field{background:transparent}
+.csp{position:absolute;width:72px;height:72px;margin:-36px 0 0 -36px;border:0;border-radius:50%;background:radial-gradient(circle,#FFF6C2 0 18%,rgba(255,212,59,.45) 40%,transparent 70%);animation:pulse 1.2s ease-in-out infinite;padding:0}
+.csp svg{width:34px;height:34px}
+@keyframes pulse{0%,100%{transform:scale(.8)}50%{transform:scale(1.15)}}
+.camtoggle{margin-top:12px;width:100%}
+.camnote{margin:8px 0 0;font-size:13px;color:var(--muted);font-weight:700}
+@media (prefers-reduced-motion: reduce){.arena .mon,.ring,.wobble,.hit{animation:none!important}}
+</style>
+
+<div class="app">
+  <header>
+    <h1>Monstrinhos da Sala</h1>
+    <div class="trainer" id="trainer"></div>
+  </header>
+  <main>
+    <section class="view" id="v-catch">
+      <p class="hint">Procura os brilhos na sala e toca nesse sítio. Há um monstrinho escondido lá.</p>
+      <div class="stage" id="stage"></div>
+      <div class="cam" id="cam" hidden><video id="camvid" playsinline muted autoplay></video><div id="camsparks"></div><div class="toast" id="camtoast" style="opacity:0"></div></div>
+      <button class="btn sec camtoggle" id="camtoggle">Ver pela câmara</button>
+      <p class="camnote" id="camnote" hidden></p>
+      <div class="counter"><span class="pill" id="cnt-seen"></span><span class="pill" id="cnt-orbs"></span></div>
+    </section>
+    <section class="view" id="v-col" hidden>
+      <h2 class="section-t">A tua coleção</h2>
+      <p class="sub">Toca num monstrinho para o pôr ou tirar da equipa de combate (máximo 3).</p>
+      <div class="grid" id="grid"></div>
+    </section>
+    <section class="view" id="v-fight" hidden>
+      <h2 class="section-t">Combate</h2>
+      <div class="panel">
+        <div class="teamrow" id="teamrow"></div>
+        <div>
+          <p class="sub" style="margin:0 0 6px">O teu código de combate</p>
+          <div class="code" id="mycode"></div>
+        </div>
+        <button class="btn sec" id="copy">Copiar código</button>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <label for="oppcode" class="sub" style="margin:0">Código do adversário</label>
+        <input id="oppcode" class="codein" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC-DEF">
+        <p class="err" id="err"></p>
+        <button class="btn" id="go">Combater!</button>
+      </div>
+      <h3 class="section-t" style="font-size:16px">Como se joga a dois</h3>
+      <ol class="steps">
+        <li>Cada um abre este link no seu telemóvel e apanha monstrinhos na sala.</li>
+        <li>Na Coleção, cada um escolhe até 3 para a equipa.</li>
+        <li>Digam o código um ao outro e escrevam o do adversário aqui.</li>
+        <li>Carreguem em Combater ao mesmo tempo: os dois telemóveis mostram a mesma batalha.</li>
+      </ol>
+    </section>
+  </main>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-v="v-catch" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h6m6 0h6"/><circle cx="12" cy="12" r="3"/></svg>Apanhar</button>
+    <button role="tab" data-v="v-col" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>Coleção</button>
+    <button role="tab" data-v="v-fight" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Combate</button>
+  </nav>
+</div>
+
+<div class="overlay" id="ov-start" hidden></div>
+<div class="overlay" id="ov-enc" hidden></div>
+<div class="overlay" id="ov-bt" hidden></div>
+
+<script>
+(function(){
+const INK="#1B1B2A";
+const TYPES={fogo:{n:"Fogo",c:"#FF8A3D"},agua:{n:"Água",c:"#3BA3FF"},planta:{n:"Planta",c:"#4CBF5E"},eletrico:{n:"Elétrico",c:"#F2C200"},
+  pedra:{n:"Pedra",c:"#9AA0A6"},vento:{n:"Vento",c:"#4FD1C5"},sombra:{n:"Sombra",c:"#8E7CC3"},gelo:{n:"Gelo",c:"#7FD3F5"},estrela:{n:"Estrela",c:"#FFC94D"}};
+const EFF={fogo:{planta:2,gelo:2,agua:.5,pedra:.5,fogo:.5},agua:{fogo:2,pedra:2,planta:.5,agua:.5},planta:{agua:2,pedra:2,fogo:.5,vento:.5,planta:.5},
+  eletrico:{agua:2,vento:2,pedra:.5,planta:.5,eletrico:.5},pedra:{fogo:2,vento:2,gelo:2,planta:.5},vento:{planta:2,eletrico:.5,pedra:.5},
+  sombra:{sombra:2,estrela:.5},gelo:{planta:2,vento:2,fogo:.5,gelo:.5},estrela:{sombra:2,estrela:.5}};
+const MOVES={fogo:["Brasa","Labareda"],agua:["Esguicho","Onda Gigante"],planta:["Folhada","Raiz Forte"],eletrico:["Faísca","Trovão"],
+  pedra:["Pedrada","Avalanche"],vento:["Rajada","Tornado"],sombra:["Sombra Rápida","Pesadelo"],gelo:["Granizo","Nevão"],estrela:["Brilho","Supernova"]};
+// name, type, hp,atk,def,spd, spawn weight, level range
+const SP=[
+ {n:"Faúlha",t:"fogo",s:[45,60,40,65],w:30,l:[3,9]},
+ {n:"Brasolho",t:"fogo",s:[78,84,70,80],w:4,l:[10,16]},
+ {n:"Gotim",t:"agua",s:[50,48,55,50],w:30,l:[3,9]},
+ {n:"Polvinho",t:"agua",s:[60,62,58,60],w:12,l:[5,12]},
+ {n:"Brotim",t:"planta",s:[50,50,50,45],w:30,l:[3,9]},
+ {n:"Cogumilho",t:"planta",s:[62,58,70,35],w:14,l:[5,12]},
+ {n:"Zapelim",t:"eletrico",s:[42,64,38,82],w:18,l:[4,10]},
+ {n:"Trovisco",t:"eletrico",s:[64,80,55,85],w:5,l:[10,16]},
+ {n:"Calhau",t:"pedra",s:[70,58,90,25],w:20,l:[4,10]},
+ {n:"Cristalo",t:"pedra",s:[66,78,82,48],w:6,l:[9,15]},
+ {n:"Penugem",t:"vento",s:[40,52,38,90],w:24,l:[3,9]},
+ {n:"Remoinho",t:"vento",s:[60,76,55,95],w:5,l:[10,16]},
+ {n:"Sombrinha",t:"sombra",s:[50,70,50,72],w:10,l:[6,12]},
+ {n:"Pantufo",t:"sombra",s:[55,55,60,60],w:14,l:[5,11]},
+ {n:"Geladinho",t:"gelo",s:[58,60,72,45],w:12,l:[5,12]},
+ {n:"Astralume",t:"estrela",s:[95,100,90,100],w:1,l:[16,22]}
+];
+const RAR=w=>w>=20?"comum":w>=10?"normal":w>=4?"raro":"lendário";
+const EVN=["Fogaréu","Vulcanão","Maremoto","Polvaréu","Florestão","Cogumeleiro","Relampo","Tempestor","Pedregulho","Diamantor","Ventania","Furacão","Sombrão","Pantufão","Glaciar",null];
+const EVL=sp=>SP[sp].w>=20?9:SP[sp].w>=10?13:18;
+const isEvo=(sp,lv)=>EVN[sp]&&lv>=EVL(sp);
+const nm=(sp,lv)=>isEvo(sp,lv)?EVN[sp]:SP[sp].n;
+let evoQ=[];
+function setLv(id,lv){const old=S.col[id];S.col[id]=Math.min(31,lv);if(old!=null&&!isEvo(id,old)&&isEvo(id,S.col[id]))evoQ.push(id);}
+
+/* ---------- sprites ---------- */
+function eyes(cx,cy,sp=10,r=5){let s="";for(const x of [cx-sp,cx+sp]){s+=`<ellipse cx="${x}" cy="${cy}" rx="${r*.8}" ry="${r}" fill="${INK}"/><circle cx="${x+r*.3}" cy="${cy-r*.4}" r="${r*.36}" fill="#fff"/>`;}return s;}
+function face(cx,cy,sp=10,r=5,ch="#FF7A8A"){return eyes(cx,cy,sp,r)+`<ellipse cx="${cx-sp-6}" cy="${cy+6}" rx="4.5" ry="2.8" fill="${ch}" opacity=".55"/><ellipse cx="${cx+sp+6}" cy="${cy+6}" rx="4.5" ry="2.8" fill="${ch}" opacity=".55"/><path d="M${cx-4.5} ${cy+7} Q${cx} ${cy+12} ${cx+4.5} ${cy+7}" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;}
+function star(cx,cy,R,r,n=5){let p=[];for(let i=0;i<n*2;i++){const a=-Math.PI/2+i*Math.PI/n,rr=i%2?r:R;p.push((cx+rr*Math.cos(a)).toFixed(1)+","+(cy+rr*Math.sin(a)).toFixed(1));}return p.join(" ");}
+const SH=`<ellipse cx="50" cy="93" rx="26" ry="4.5" fill="#000" opacity=".12"/>`;
+const OL=`stroke="rgba(0,0,0,.18)" stroke-width="2"`;
+const DRAW=[
+ ()=>`<path d="M66 72 C86 68 94 48 84 32 C82 44 76 46 74 38 C72 52 66 58 60 64Z" fill="#FFC93C"/><path d="M68 68 C80 64 84 54 80 46 C78 54 72 56 66 62Z" fill="#FF8A3D"/><path d="M30 44 L24 16 L46 34Z" fill="#FF8A3D" ${OL}/><path d="M70 44 L76 16 L54 34Z" fill="#FF8A3D" ${OL}/><path d="M31 38 L28 23 L40 33Z" fill="#7A2E12" opacity=".5"/><path d="M69 38 L72 23 L60 33Z" fill="#7A2E12" opacity=".5"/><circle cx="50" cy="60" r="27" fill="#FF8A3D" ${OL}/><ellipse cx="50" cy="70" rx="15" ry="12" fill="#FFE0BF"/><ellipse cx="38" cy="87" rx="7" ry="4" fill="#E06A22"/><ellipse cx="62" cy="87" rx="7" ry="4" fill="#E06A22"/>`+face(50,55,10,4.5),
+ ()=>`<path d="M32 36 L36 12 L44 28 L50 4 L56 28 L64 12 L68 36Z" fill="#FFB02E"/><path d="M40 34 L44 20 L50 30 L56 20 L60 34Z" fill="#FFE27A"/><path d="M18 84 C12 52 28 30 50 30 C72 30 88 52 82 84Z" fill="#D93B2B" ${OL}/><ellipse cx="50" cy="68" rx="18" ry="14" fill="#F7A07A"/><path d="M35 46 L45 50 M65 46 L55 50" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`+eyes(50,55,10,4.5)+`<path d="M44 66 L50 63 L56 66" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M14 70 L4 62 M86 70 L96 62" stroke="#D93B2B" stroke-width="6" stroke-linecap="round"/>`,
+ ()=>`<path d="M50 10 C68 36 80 52 79 66 A29 29 0 0 1 21 66 C20 52 32 36 50 10Z" fill="#3BA3FF" ${OL}/><ellipse cx="38" cy="50" rx="5" ry="9" fill="#fff" opacity=".55" transform="rotate(20 38 50)"/>`+face(50,64,10,5,"#FF9AB0"),
+ ()=>{let t="";for(const x of [30,43,57,70])t+=`<path d="M${x} 60 q-7 12 0 22 q6 8 -3 12" stroke="#5E50E0" stroke-width="8" fill="none" stroke-linecap="round"/>`;return t+`<ellipse cx="50" cy="46" rx="28" ry="26" fill="#7A6CFF" ${OL}/><circle cx="36" cy="30" r="4" fill="#A79DFF"/><circle cx="62" cy="26" r="5" fill="#A79DFF"/><circle cx="68" cy="38" r="3" fill="#A79DFF"/>`+face(50,50,10,5);},
+ ()=>`<path d="M50 44 L50 28" stroke="#3E8E4A" stroke-width="4" stroke-linecap="round"/><path d="M50 30 C36 14 22 22 26 30 C34 36 46 34 50 30Z" fill="#7ED957" ${OL}/><path d="M50 30 C64 14 78 22 74 30 C66 36 54 34 50 30Z" fill="#7ED957" ${OL}/><ellipse cx="50" cy="66" rx="26" ry="23" fill="#5CC56B" ${OL}/><ellipse cx="50" cy="74" rx="14" ry="9" fill="#BDF0A8"/><ellipse cx="38" cy="88" rx="7" ry="4" fill="#3E8E4A"/><ellipse cx="62" cy="88" rx="7" ry="4" fill="#3E8E4A"/>`+face(50,62,10,4.5),
+ ()=>`<rect x="30" y="46" width="40" height="44" rx="15" fill="#F6E7C8" ${OL}/><path d="M12 54 C12 18 88 18 88 54Z" fill="#E2643B" ${OL}/><circle cx="30" cy="40" r="5" fill="#FFF3DC"/><circle cx="52" cy="30" r="6" fill="#FFF3DC"/><circle cx="72" cy="42" r="4.5" fill="#FFF3DC"/>`+face(50,68,9,4.2),
+ ()=>`<circle cx="50" cy="46" r="34" fill="#FFE57A" opacity=".3"/><path d="M34 58 l-5 9 l7 6 l-5 9 M50 60 l4 9 l-6 6 l4 10 M66 58 l5 9 l-7 6 l5 9" stroke="#F2A900" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 58 C22 24 78 24 78 58 Q71 64 64 58 Q57 64 50 58 Q43 64 36 58 Q29 64 22 58Z" fill="#FFD43B" ${OL}/>`+face(50,44,10,4.5),
+ ()=>`<polygon points="54,62 40,82 50,82 44,98 64,74 54,74 60,62" fill="#FFD43B" stroke="#E0A800" stroke-width="2" stroke-linejoin="round"/><circle cx="34" cy="50" r="16" fill="#8FA3BF"/><circle cx="54" cy="40" r="21" fill="#8FA3BF"/><circle cx="70" cy="52" r="15" fill="#8FA3BF"/><rect x="20" y="50" width="62" height="18" rx="9" fill="#8FA3BF"/><path d="M38 40 L46 44 M66 40 L58 44" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`+eyes(52,50,9,4.2)+`<path d="M47 59 L52 56 L57 59" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`,
+ ()=>`<polygon points="18,84 22,52 38,32 64,30 82,48 84,84" fill="#9AA0A6" stroke="#9AA0A6" stroke-width="10" stroke-linejoin="round"/><polygon points="18,84 22,52 38,32 64,30 82,48 84,84" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="2" stroke-linejoin="round" transform="translate(0 0)"/><path d="M34 30 C40 22 58 20 66 28 C58 30 46 32 34 30Z" fill="#6DBF5E"/><path d="M26 74 L34 70 M70 78 L76 72" stroke="#7D838A" stroke-width="3" stroke-linecap="round"/>`+face(52,58,11,4.5),
+ ()=>`<polygon points="28,40 38,56 36,88 22,88 16,58" fill="#9B6CFF" ${OL}/><polygon points="72,40 62,56 64,88 78,88 84,58" fill="#9B6CFF" ${OL}/><polygon points="50,8 66,40 60,88 40,88 34,40" fill="#B38CFF" ${OL}/><polygon points="50,8 56,40 50,70 46,40" fill="#fff" opacity=".35"/>`+face(50,58,7,3.8),
+ ()=>`<path d="M44 34 C40 20 48 16 50 22 C52 14 60 18 56 34Z" fill="#2FA89D"/><path d="M28 60 C12 56 10 70 14 76 C22 74 28 70 32 66Z" fill="#2FA89D" ${OL}/><path d="M72 60 C88 56 90 70 86 76 C78 74 72 70 68 66Z" fill="#2FA89D" ${OL}/><circle cx="50" cy="58" r="25" fill="#4FD1C5" ${OL}/><ellipse cx="50" cy="68" rx="14" ry="11" fill="#D9FBF6"/><polygon points="45,60 55,60 50,68" fill="#FFB02E"/>`+eyes(50,51,9,4.5)+`<path d="M42 88 l-3 5 M58 88 l3 5" stroke="#FFB02E" stroke-width="3" stroke-linecap="round"/>`,
+ ()=>`<path d="M12 40 Q28 18 50 22 M88 62 Q76 86 52 84 M16 70 Q24 86 40 86" stroke="#6FC8FF" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M50 34 C42 16 66 12 62 28" stroke="#6FC8FF" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="58" rx="23" ry="25" fill="#CDEFFF" ${OL}/><path d="M36 50 Q50 40 64 50" stroke="#6FC8FF" stroke-width="3" fill="none" stroke-linecap="round"/>`+face(50,60,9,4.5),
+ ()=>`<path d="M74 46 L74 22" stroke="#7A5C3A" stroke-width="3"/><path d="M56 26 Q74 4 94 26Z" fill="#FF6B9A" ${OL}/><path d="M26 88 L26 52 C26 26 72 26 72 52 L72 88 L64 82 L56 88 L49 82 L42 88 L34 82Z" fill="#5B4B8A" ${OL}/><ellipse cx="38" cy="54" rx="7" ry="9" fill="#fff"/><ellipse cx="60" cy="54" rx="7" ry="9" fill="#fff"/><circle cx="39" cy="56" r="4" fill="${INK}"/><circle cx="61" cy="56" r="4" fill="${INK}"/><path d="M44 70 Q49 66 54 70" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>`,
+ ()=>`<path d="M12 76 C12 60 28 54 46 56 L80 60 C93 62 93 86 78 87 L22 87 C15 87 12 82 12 76Z" fill="#C98E7A" ${OL}/><ellipse cx="34" cy="60" rx="17" ry="6" fill="#5C3B33"/><path d="M16 60 C20 52 50 50 52 60" stroke="#F3DDD2" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="86" cy="62" r="7" fill="#F3DDD2"/>`+face(68,72,7,4),
+ ()=>`<rect x="22" y="34" width="56" height="54" rx="13" fill="#A8E6FF" stroke="#5CC2EA" stroke-width="2"/><path d="M28 36 L40 24 L82 24 L76 36Z" fill="#D7F5FF" stroke="#5CC2EA" stroke-width="2" stroke-linejoin="round"/><rect x="30" y="42" width="8" height="18" rx="4" fill="#fff" opacity=".6"/>`+face(52,60,10,4.5,"#7FB8FF"),
+ ()=>`<circle cx="50" cy="52" r="44" fill="#FFC94D" opacity=".18"/><circle cx="50" cy="52" r="36" fill="none" stroke="#FFC94D" stroke-width="2" stroke-dasharray="4 6"/><polygon points="${star(50,54,38,18)}" fill="#FFC94D" stroke="#E89B00" stroke-width="2.5" stroke-linejoin="round"/><polygon points="${star(14,20,7,3,4)}" fill="#FFE59A"/><polygon points="${star(86,24,6,2.5,4)}" fill="#FFE59A"/><polygon points="${star(84,86,5,2,4)}" fill="#FFE59A"/>`+face(50,58,8,4.2,"#FF8A5C")
+];
+const ACC={
+ fogo:[`<path d="M16 64 C8 42 22 32 22 18 C30 28 34 22 36 8 C42 22 46 16 50 2 C54 16 58 22 64 8 C66 22 70 28 78 18 C78 32 92 42 84 64Z" fill="#FFC93C"/><path d="M26 60 C22 46 30 40 32 30 C38 38 44 30 50 18 C56 30 62 38 68 30 C70 40 78 46 74 60Z" fill="#FF7A2E"/>`,``],
+ agua:[`<path d="M24 64 C2 56 2 30 16 22 C14 40 24 50 32 54Z" fill="#7CC4FF" stroke="#3B8FE0" stroke-width="2"/><path d="M76 64 C98 56 98 30 84 22 C86 40 76 50 68 54Z" fill="#7CC4FF" stroke="#3B8FE0" stroke-width="2"/>`,`<path d="M36 18 Q50 4 64 18 Q57 14 50 20 Q43 14 36 18Z" fill="#3B8FE0"/>`],
+ planta:[`<path d="M20 70 C2 66 2 46 14 40 C16 52 22 60 30 62Z" fill="#7ED957"/><path d="M80 70 C98 66 98 46 86 40 C84 52 78 60 70 62Z" fill="#7ED957"/>`,[0,72,144,216,288].map(a=>`<ellipse cx="50" cy="8" rx="5" ry="7" fill="#FF8FB8" transform="rotate(${a} 50 15)"/>`).join("")+`<circle cx="50" cy="15" r="4.5" fill="#FFD43B"/>`],
+ eletrico:[`<polygon points="14,20 24,40 18,40 26,60 8,36 15,36 8,20" fill="#FFD43B" stroke="#E0A800" stroke-width="1.5"/><polygon points="86,20 76,40 82,40 74,60 92,36 85,36 92,20" fill="#FFD43B" stroke="#E0A800" stroke-width="1.5"/>`,``],
+ pedra:[`<polygon points="26,38 32,8 40,36" fill="#B9A6E8"/><polygon points="42,32 50,0 58,32" fill="#CDBDF5"/><polygon points="60,36 68,8 74,38" fill="#B9A6E8"/>`,``],
+ vento:[`<path d="M28 58 C4 52 0 26 8 18 C14 34 22 42 34 46Z" fill="#9FE8DF" stroke="#2FA89D" stroke-width="2"/><path d="M72 58 C96 52 100 26 92 18 C86 34 78 42 66 46Z" fill="#9FE8DF" stroke="#2FA89D" stroke-width="2"/>`,``],
+ sombra:[``,`<path d="M34 30 C24 22 22 10 30 4 C30 14 34 20 40 26Z" fill="#3B2F63"/><path d="M66 30 C76 22 78 10 70 4 C70 14 66 20 60 26Z" fill="#3B2F63"/>`],
+ gelo:[``,`<polygon points="30,26 34,6 40,24" fill="#D7F5FF" stroke="#5CC2EA" stroke-width="1.5"/><polygon points="44,22 50,0 56,22" fill="#EAFBFF" stroke="#5CC2EA" stroke-width="1.5"/><polygon points="60,24 66,6 70,26" fill="#D7F5FF" stroke="#5CC2EA" stroke-width="1.5"/>`],
+ estrela:[``,``]
+};
+function sprite(id,lv){
+  if(!lv||!isEvo(id,lv))return `<svg viewBox="0 0 100 100" aria-hidden="true">${SH}${DRAW[id]()}</svg>`;
+  const t=SP[id].t,a=ACC[t];
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="54" r="46" fill="${TYPES[t].c}" opacity=".18"/>${SH}${a[0]}<g transform="translate(50 60) scale(1.06) translate(-50 -60)">${DRAW[id]()}</g>${a[1]}<polygon points="${star(88,84,6,2.4,4)}" fill="#F5B829"/><polygon points="${star(12,80,4.5,1.8,4)}" fill="#F5B829"/></svg>`;
+}
+
+/* ---------- state ---------- */
+const KEY="monstrinhos.v1";
+let S={name:"",col:{},team:[],seen:{},done:[],orbs:0};
+try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r));}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const chip=t=>`<span class="chip" style="background:color-mix(in srgb, ${TYPES[t].c} 30%, transparent)">${TYPES[t].n}</span>`;
+
+/* ---------- codes ---------- */
+const AL="23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+function chk(v){let c=0;while(v>0){c+=v%8;v=Math.floor(v/8);}return (c*5+3)%8;}
+function encode(team){let v=0;for(let i=0;i<3;i++){const id=team[i];const sp=id==null?0:id,lv=id==null?0:Math.min(31,S.col[id]||1);v=v*512+sp*32+lv;}
+  v=v*8+chk(v);let s="";for(let i=5;i>=0;i--)s+=AL[Math.floor(v/Math.pow(32,i))%32];return s.slice(0,3)+"-"+s.slice(3);}
+function decode(code){const s=code.toUpperCase().replace(/[^0-9A-Z]/g,"").replace(/O/g,"0").replace(/I/g,"1");if(s.length!==6)return null;
+  let v=0;for(const ch of s){const d=AL.indexOf(ch);if(d<0)return null;v=v*32+d;}const c=v%8,data=Math.floor(v/8);if(chk(data)!==c)return null;
+  let d=data,out=[];for(let i=0;i<3;i++){const lv=d%32,sp=Math.floor(d/32)%16;d=Math.floor(d/512);if(lv>0)out.unshift({sp,lv});}return out.length?out:null;}
+
+/* ---------- battle sim (deterministic) ---------- */
+function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function rng32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function mk(m){const b=SP[m.sp].s,L=m.lv,k=isEvo(m.sp,L)?1.15:1;const hp=Math.floor((Math.floor(b[0]*L/12)+L+15)*k);return{sp:m.sp,lv:L,max:hp,hp,atk:Math.floor((Math.floor(b[1]*L/25)+6)*k),def:Math.floor((Math.floor(b[2]*L/25)+6)*k),spd:Math.floor((Math.floor(b[3]*L/25)+5)*k)};}
+function eff(mt,dt){return (EFF[mt]&&EFF[mt][dt])||1;}
+function simulate(teamA,teamB,seed){
+  const R=rng32(seed),T=[teamA.map(mk),teamB.map(mk)],cur=[0,0],ev=[];
+  ev.push({k:"send",s:0,i:0},{k:"send",s:1,i:0});
+  for(let turn=0;turn<400;turn++){
+    const a=T[0][cur[0]],b=T[1][cur[1]];
+    const first=a.spd===b.spd?(R()<.5?0:1):(a.spd>b.spd?0:1);
+    for(const s of [first,1-first]){
+      const me=T[s][cur[s]],op=T[1-s][cur[1-s]];if(me.hp<=0||op.hp<=0)continue;
+      const tp=SP[me.sp].t;const mv=[{n:MOVES[tp][0],t:tp,p:50,a:1},{n:MOVES[tp][1],t:tp,p:tp==="estrela"?90:75,a:.85},{n:"Encontrão",t:"normal",p:40,a:1}];
+      let pick;const score=x=>x.p*x.a*eff(x.t,SP[op.sp].t)*(x.t===tp?1.2:1);
+      if(R()<.65){pick=mv.reduce((m,x)=>score(x)>score(m)?x:m);}else pick=mv[Math.floor(R()*3)];
+      if(R()>pick.a){ev.push({k:"miss",s,mv:pick.n});continue;}
+      const e=eff(pick.t,SP[op.sp].t),crit=R()<.08?1.5:1;
+      const base=((2*me.lv/5+2)*pick.p*me.atk/op.def)/40+2;
+      const dmg=Math.max(1,Math.floor(base*e*(pick.t===tp?1.2:1)*crit*(.85+R()*.15)));
+      op.hp=Math.max(0,op.hp-dmg);ev.push({k:"hit",s,mv:pick.n,e,crit:crit>1,hp:op.hp});
+      if(op.hp<=0){ev.push({k:"faint",s:1-s});
+        if(cur[1-s]+1<T[1-s].length){cur[1-s]++;ev.push({k:"send",s:1-s,i:cur[1-s]});}
+        else{ev.push({k:"end",w:s});return{ev,T};}}
+    }
+  }
+  const hpA=T[0].reduce((x,m)=>x+m.hp/m.max,0),hpB=T[1].reduce((x,m)=>x+m.hp/m.max,0);
+  ev.push({k:"end",w:hpA>=hpB?0:1});return{ev,T};
+}
+
+/* ---------- room ---------- */
+const SPOTS={
+ cortina:{x:164,y:150,p:"de trás da cortina"},estante:{x:295,y:150,p:"da estante dos livros"},candeeiro:{x:222,y:120,p:"de cima do candeeiro"},
+ sofa:{x:178,y:296,p:"de debaixo do sofá"},almofada:{x:84,y:236,p:"de trás da almofada"},planta:{x:316,y:296,p:"do vaso da planta"},tapete:{x:180,y:396,p:"de debaixo do tapete"}
+};
+function roomSVG(){
+ let books="";const bc=["#E85D75","#4D7CC7","#F5B829","#4CBF5E","#8E7CC3","#FF8A3D"];
+ [[72],[132],[192]].forEach(([y],r)=>{let x=258;for(let i=0;i<6;i++){const w=8+((i*7+r*3)%5)*2,h=34+((i*5+r)%4)*5;books+=`<rect x="${x}" y="${y+50-h}" width="${w}" height="${h}" rx="2" fill="${bc[(i+r)%6]}"/>`;x+=w+2;if(x>328)break;}});
+ return `<svg viewBox="0 0 360 440" role="img" aria-label="Sala de estar com sítios onde os monstrinhos se escondem">
+ <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sky1)"/><stop offset="1" stop-color="var(--sky2)"/></linearGradient>
+ <radialGradient id="glow"><stop offset="0" stop-color="var(--shade)" stop-opacity=".55"/><stop offset="1" stop-color="var(--shade)" stop-opacity="0"/></radialGradient></defs>
+ <rect width="360" height="310" fill="var(--wall)"/>
+ <g opacity=".5">${[0,1,2,3,4,5,6,7,8].map(i=>`<rect x="${i*40}" y="0" width="20" height="310" fill="var(--wall2)"/>`).join("")}</g>
+ <rect y="300" width="360" height="140" fill="var(--floor)"/>
+ ${[0,1,2,3,4,5].map(i=>`<line x1="0" y1="${318+i*22}" x2="360" y2="${318+i*22}" stroke="var(--floor2)" stroke-width="2"/>`).join("")}
+ <rect y="296" width="360" height="8" fill="var(--wood)"/>
+ <rect x="28" y="40" width="124" height="112" rx="6" fill="url(#sky)" stroke="var(--wood)" stroke-width="7"/>
+ <line x1="90" y1="40" x2="90" y2="152" stroke="var(--wood)" stroke-width="5"/><line x1="28" y1="96" x2="152" y2="96" stroke="var(--wood)" stroke-width="5"/>
+ <circle cx="56" cy="66" r="10" fill="var(--shade)" opacity=".9"/>
+ <rect x="18" y="30" width="146" height="8" rx="4" fill="var(--wood)"/>
+ <g class="spot" data-spot="cortina"><path d="M146 34 C154 90 140 150 156 216 L182 216 C170 150 184 90 176 34Z" fill="#E07A5F"/><path d="M158 40 C164 100 152 150 166 214" stroke="#C4614A" stroke-width="3" fill="none"/></g>
+ <g class="spot" data-spot="estante"><rect x="250" y="54" width="90" height="244" rx="4" fill="var(--wood)"/><rect x="256" y="60" width="78" height="232" fill="var(--wall2)"/>
+  ${[122,182,242].map(y=>`<rect x="252" y="${y}" width="86" height="6" fill="var(--wood)"/>`).join("")}${books}<circle cx="296" cy="270" r="14" fill="#4CBF5E"/><rect x="286" y="276" width="20" height="16" rx="3" fill="#C98E7A"/></g>
+ <g class="spot" data-spot="candeeiro"><circle cx="222" cy="128" r="46" fill="url(#glow)"/><rect x="219" y="130" width="6" height="168" fill="#5B6680"/><ellipse cx="222" cy="298" rx="22" ry="5" fill="#5B6680"/><path d="M196 132 L206 96 L238 96 L248 132Z" fill="var(--shade)" stroke="#D9A93A" stroke-width="2"/></g>
+ <g class="spot" data-spot="sofa"><rect x="24" y="214" width="208" height="62" rx="18" fill="var(--sofa2)"/><rect x="40" y="256" width="176" height="40" rx="10" fill="var(--sofa)"/><rect x="14" y="240" width="38" height="64" rx="16" fill="var(--sofa2)"/><rect x="204" y="240" width="38" height="64" rx="16" fill="var(--sofa2)"/><rect x="30" y="300" width="10" height="12" fill="var(--wood)"/><rect x="216" y="300" width="10" height="12" fill="var(--wood)"/><rect x="128" y="258" width="2" height="36" fill="var(--sofa2)"/></g>
+ <g class="spot" data-spot="almofada"><rect x="60" y="222" width="52" height="40" rx="14" fill="var(--rug2)" transform="rotate(-10 86 242)"/><circle cx="86" cy="242" r="5" fill="var(--rug)"/></g>
+ <g class="spot" data-spot="planta"><path d="M316 276 C296 240 290 216 300 206 C310 226 314 250 316 276Z" fill="#3E8E4A"/><path d="M316 276 C334 236 346 220 340 204 C328 224 320 250 316 276Z" fill="#4CBF5E"/><path d="M316 276 C306 248 318 222 326 214 C324 240 320 258 316 276Z" fill="#5CC56B"/><path d="M296 276 L336 276 L330 318 L302 318Z" fill="#E07A5F"/><rect x="292" y="272" width="48" height="8" rx="3" fill="#C4614A"/></g>
+ <g class="spot" data-spot="tapete"><ellipse cx="180" cy="392" rx="140" ry="32" fill="var(--rug)"/><ellipse cx="180" cy="392" rx="116" ry="24" fill="none" stroke="var(--rug2)" stroke-width="4" stroke-dasharray="10 8"/><ellipse cx="180" cy="392" rx="70" ry="13" fill="var(--rug2)" opacity=".7"/></g>
+ <g id="sparks" pointer-events="none"></g>
+ </svg><div class="toast" id="toast" style="opacity:0"></div>`;
+}
+let active={};
+function renderSparks(){
+  const g=document.getElementById("sparks");if(!g)return;let s="";
+  for(const k in active){const p=SPOTS[k];s+=`<g transform="translate(${p.x} ${p.y})"><circle r="18" fill="#FFF6C2" opacity=".55"><animate attributeName="r" values="10;22;10" dur="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".7;.15;.7" dur="1.2s" repeatCount="indefinite"/></circle>
+   <polygon points="${star(0,0,13,4,4)}" fill="#FFD43B" stroke="#fff" stroke-width="1.5"><animateTransform attributeName="transform" type="rotate" values="0;90" dur="1.2s" repeatCount="indefinite"/></polygon>
+   <polygon points="${star(14,-12,6,2,4)}" fill="#FFF"><animate attributeName="opacity" values="1;0;1" dur=".9s" repeatCount="indefinite"/></polygon></g>`;}
+  g.innerHTML=s;
+}
+/* ---------- camera ---------- */
+let camStream=null,camMode=false,camActive={};
+const CAMP=["de trás do sofá","de debaixo da mesa","do canto da sala","de trás da porta","de dentro de uma almofada","do pé da janela","de trás da televisão"];
+async function toggleCam(){
+  const note=$("camnote");
+  if(camMode){camMode=false;$("cam").hidden=true;$("stage").hidden=false;$("camtoggle").textContent="Ver pela câmara";
+    if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}return;}
+  try{
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("x");
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+    $("camvid").srcObject=camStream;$("camvid").play().catch(()=>{});
+    camMode=true;camActive={};$("cam").hidden=false;$("stage").hidden=true;note.hidden=true;$("camtoggle").textContent="Ver a sala desenhada";spawn();
+  }catch(e){note.hidden=false;note.textContent="A câmara não abriu aqui. Funciona quando o jogo está num site normal (https) e se carregar em Permitir quando o telemóvel perguntar. Entretanto, jogue com a sala desenhada.";}
+}
+function camBg(){if(!camMode||!camStream)return"";return `<video class="bgcam" playsinline muted autoplay></video>`;}
+function attachCam(ov){const v=ov.querySelector(".bgcam");if(v&&camStream){v.srcObject=camStream;v.play().catch(()=>{});ov.classList.add("withcam");}else ov.classList.remove("withcam");}
+function renderCamSparks(){
+  const box=$("camsparks");if(!box)return;const st=`<svg viewBox="-15 -15 30 30"><polygon points="${star(0,0,13,4,4)}" fill="#FFD43B" stroke="#fff" stroke-width="1.5"/></svg>`;
+  box.innerHTML=Object.entries(camActive).map(([k,a])=>`<button class="csp" data-k="${k}" style="left:${a.x}%;top:${a.y}%" aria-label="Algo escondido aqui">${st}</button>`).join("");
+}
+function pickSpecies(){const tot=SP.reduce((a,b)=>a+b.w,0);let r=Math.random()*tot;for(let i=0;i<SP.length;i++){r-=SP[i].w;if(r<=0)return i;}return 0;}
+function spawn(){
+  if(!$("ov-enc").hidden||!$("ov-start").hidden)return;
+  const now=Date.now();
+  if(camMode){for(const k in camActive)if(camActive[k].until<now)delete camActive[k];
+    if(Object.keys(camActive).length<2){const k="c"+now;camActive[k]={sp:pickSpecies(),until:now+10000,x:15+Math.random()*70,y:15+Math.random()*70,p:CAMP[Math.floor(Math.random()*CAMP.length)]};}
+    renderCamSparks();return;}
+  const free=Object.keys(SPOTS).filter(k=>!active[k]);for(const k in active)if(active[k].until<now)delete active[k];
+  if(Object.keys(active).length<2&&free.length){const k=free[Math.floor(Math.random()*free.length)];active[k]={sp:pickSpecies(),until:now+10000};}
+  renderSparks();
+}
+let toastT;function toast(msg){const t=$("toast");if(!t)return;t.textContent=msg;t.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>t.style.opacity=0,1800);}
+const NOTHING=["Aqui não há nada.","Só pó e migalhas.","Nada. Procura os brilhos!","Hmm, vazio."];
+
+/* ---------- encounter ---------- */
+let enc=null;
+function openEncounter(phrase,sp){
+  const lr=SP[sp].l,lv=lr[0]+Math.floor(Math.random()*(lr[1]-lr[0]+1));
+  enc={sp,lv,throws:0,busy:false,start:performance.now()};S.seen[sp]=1;save();
+  const ov=$("ov-enc");ov.hidden=false;
+  ov.innerHTML=camBg()+`<div class="ov-top"><span class="pill">${chip(SP[sp].t)} Nível ${lv}</span><button class="x" id="flee">Fugir</button></div>
+  <div class="enc"><div class="enc-msg" id="emsg">Um ${esc(nm(sp,lv))} saltou ${phrase}!</div>
+  <div class="arena" id="arena"><div class="ring" id="ring"></div><div class="mon" id="mon">${sprite(sp,lv)}</div></div>
+  <div class="quality" id="qual"></div>
+  <button class="throwbtn" id="throw" aria-label="Lançar orbe"><span class="orb"></span></button>
+  <p class="hint" style="text-align:center;margin:0">Lança quando o círculo estiver pequeno: apanhas mais fácil.</p></div>`;
+  attachCam(ov);$("flee").onclick=closeEncounter;$("throw").onclick=throwOrb;
+  const ring=$("ring");ring.style.animation="none";void ring.offsetWidth;ring.style.animation="";enc.start=performance.now();
+}
+function closeEncounter(){$("ov-enc").hidden=true;$("ov-enc").innerHTML="";$("ov-enc").classList.remove("withcam");enc=null;renderAll();playEvos();}
+function playEvos(){
+  if(!evoQ.length)return;const id=evoQ.shift(),lv=S.col[id];const ov=$("ov-enc");ov.hidden=false;
+  ov.innerHTML=`<div class="enc"><div class="enc-msg" id="evmsg">O quê? O ${esc(SP[id].n)} está a evoluir!</div>
+   <div class="arena"><div class="mon" style="animation:none" id="eva">${sprite(id)}</div><div class="mon" style="animation:none" id="evb" hidden>${sprite(id,lv)}</div></div>
+   <div id="evbtn" style="height:52px"></div></div>`;
+  const a=$("eva"),b=$("evb");a.style.filter=b.style.filter="brightness(0) invert(1) drop-shadow(0 0 12px #FFE27A)";
+  let gap=420,on=false;buzz([30,60,30,60,30]);
+  (function flick(){on=!on;a.hidden=on;b.hidden=!on;gap*=.84;
+    if(gap>45)setTimeout(flick,gap);
+    else{a.hidden=true;b.hidden=false;setTimeout(()=>{b.style.transition="filter .8s";b.style.filter="none";
+      $("evmsg").textContent=`Parabéns! O teu ${SP[id].n} evoluiu para ${EVN[id]}!`;buzz([80,40,160]);
+      $("evbtn").innerHTML=`<button class="btn" id="evok" style="min-width:200px">Fixe!</button>`;
+      $("evok").onclick=()=>{ov.hidden=true;ov.innerHTML="";renderAll();playEvos();};},250);}})();
+}
+function throwOrb(){
+  if(!enc||enc.busy)return;enc.busy=true;S.orbs++;save();
+  const t=((performance.now()-enc.start)%1400)/1400;const q=t>.72?["Excelente!",.3]:t>.45?["Boa!",.15]:["",0];
+  $("qual").textContent=q[0];$("throw").disabled=true;
+  const w=SP[enc.sp].w,base=w>=20?.62:w>=10?.48:w>=4?.3:.14;const ok=Math.random()<base+q[1];
+  const arena=$("arena");const orb=document.createElement("div");orb.className="orb";orb.style.transform="translateY(240px) scale(.6)";orb.style.transition="transform .55s cubic-bezier(.2,.8,.3,1)";arena.appendChild(orb);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{orb.style.transform="translateY(0) scale(1)";}));
+  setTimeout(()=>{const mon=$("mon");mon.style.transition="transform .3s, opacity .3s";mon.style.animation="none";mon.style.transform="scale(.1)";mon.style.opacity="0";$("ring").style.display="none";
+    setTimeout(()=>{orb.style.transition="none";orb.style.transform="none";orb.classList.add("wobble");
+      setTimeout(()=>{if(ok)caught();else escaped(orb);},ok?1600:1100+Math.random()*500);},350);},600);
+}
+function caught(){
+  const {sp,lv}=enc;let msg;
+  if(S.col[sp]){setLv(sp,Math.max(S.col[sp],lv)+2);msg=`Apanhaste! Já tinhas um, por isso o teu ${SP[sp].n} subiu para nível ${S.col[sp]}.`;}
+  else{S.col[sp]=lv;msg=`Apanhaste o ${SP[sp].n}! Está na tua coleção.`;if(S.team.length<3&&!S.team.includes(sp))S.team.push(sp);}
+  save();buzz([40,60,40]);
+  $("emsg").textContent=msg;$("qual").textContent=RAR(SP[sp].w)==="lendário"?"Um lendário!":"";
+  $("throw").outerHTML=`<button class="btn" id="cont" style="min-width:200px">Continuar</button>`;$("cont").onclick=closeEncounter;
+}
+function escaped(orb){
+  orb.remove();const mon=$("mon");mon.style.transform="";mon.style.opacity="1";setTimeout(()=>{mon.style.animation="";},300);
+  enc.throws++;const fleeP=SP[enc.sp].w<4?.3:.15;
+  if(Math.random()<fleeP*enc.throws){$("emsg").textContent=`O ${SP[enc.sp].n} fugiu! Fica para a próxima.`;mon.style.opacity="0";
+    $("throw").outerHTML=`<button class="btn sec" id="cont" style="min-width:200px">Voltar à sala</button>`;$("cont").onclick=closeEncounter;return;}
+  $("emsg").textContent=`Ups, saiu da orbe! Tenta outra vez.`;$("ring").style.display="";enc.start=performance.now();
+  const ring=$("ring");ring.style.animation="none";void ring.offsetWidth;ring.style.animation="";
+  $("throw").disabled=false;enc.busy=false;
+}
+function buzz(p){try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
+
+/* ---------- views ---------- */
+function renderAll(){
+  $("trainer").innerHTML=S.name?`Treinador<br><b>${esc(S.name)}</b>`:"";
+  const n=Object.keys(S.col).length;$("cnt-seen").textContent=`Coleção: ${n} de ${SP.length}`;$("cnt-orbs").textContent=`Orbes lançadas: ${S.orbs}`;
+  $("grid").innerHTML=SP.map((s,i)=>{const has=S.col[i]!=null,inT=S.team.includes(i);
+    if(!has)return `<div class="card unseen">${sprite(i)}<div class="nm">${S.seen[i]?esc(s.n):"???"}</div><div class="lv">${S.seen[i]?"Visto":"Por descobrir"}</div></div>`;
+    const L=S.col[i],ev=EVN[i]?(isEvo(i,L)?"Evoluído":`Evolui no nível ${EVL(i)}`):"Lendário";
+    return `<button class="card${inT?" inteam":""}" data-id="${i}">${inT?'<span class="badge">Equipa</span>':""}${sprite(i,L)}<div class="nm">${esc(nm(i,L))}</div>${chip(s.t)}<div class="lv">Nível ${L}</div><div class="lv" style="font-size:11px">${ev}</div></button>`;}).join("");
+  $("grid").querySelectorAll("button.card").forEach(b=>b.onclick=()=>{const id=+b.dataset.id;const k=S.team.indexOf(id);
+    if(k>=0){if(S.team.length>1)S.team.splice(k,1);}else{if(S.team.length>=3)S.team.shift();S.team.push(id);}save();renderAll();});
+  $("teamrow").innerHTML=[0,1,2].map(i=>{const id=S.team[i];return id==null?`<div class="slot" style="opacity:.5"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="currentColor" stroke-dasharray="6 6" stroke-width="3"/></svg><div>Vazio</div></div>`
+    :`<div class="slot">${sprite(id,S.col[id])}<div>${esc(nm(id,S.col[id]))} · ${S.col[id]}</div></div>`;}).join("");
+  $("mycode").textContent=S.team.length?encode(S.team):"—";
+}
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  document.querySelectorAll(".view").forEach(v=>v.hidden=v.id!==b.dataset.v);try{localStorage.setItem(KEY+".tab",b.dataset.v);}catch(e){}});
+$("copy").onclick=function(){const c=$("mycode").textContent;const done=()=>{this.textContent="Copiado";setTimeout(()=>this.textContent="Copiar código",1500);};
+  try{navigator.clipboard.writeText(c).then(done,()=>{selectCode();});}catch(e){selectCode();}};
+function selectCode(){const r=document.createRange();r.selectNodeContents($("mycode"));const s=getSelection();s.removeAllRanges();s.addRange(r);}
+$("oppcode").addEventListener("input",e=>{let v=e.target.value.toUpperCase().replace(/[^0-9A-Z]/g,"").slice(0,6);if(v.length>3)v=v.slice(0,3)+"-"+v.slice(3);e.target.value=v;$("err").textContent="";});
+$("go").onclick=()=>{
+  if(!S.team.length){$("err").textContent="Primeiro apanha um monstrinho e põe-no na equipa.";return;}
+  const opp=$("oppcode").value,o=decode(opp);if(!o){$("err").textContent="Esse código não existe. Confirma as 6 letras e números.";return;}
+  const mine=encode(S.team);if(opp.replace("-","")===mine.replace("-","")){$("err").textContent="Esse é o teu próprio código. Escreve o do adversário.";return;}
+  startBattle(mine,opp.replace(/[^0-9A-Z]/gi,"").toUpperCase());
+};
+
+/* ---------- battle playback ---------- */
+function startBattle(mine,oppRaw){
+  const opp=oppRaw.slice(0,3)+"-"+oppRaw.slice(3);
+  const codes=[mine,opp].sort();const meSide=codes[0]===mine?0:1;
+  const teams=codes.map(decode);const {ev,T}=simulate(teams[0],teams[1],hash(codes.join("|")));
+  const view=T.map(t=>t.map(m=>({sp:m.sp,lv:m.lv,max:m.max,hp:m.max})));const cur=[0,0];
+  const ov=$("ov-bt");ov.hidden=false;
+  ov.innerHTML=camBg()+`<div class="ov-top"><span class="pill">Combate</span><button class="x" id="skip">Saltar</button></div>
+  <div class="bt"><div class="field">
+   <div class="side opp" id="s1"><div class="hpbox"><div class="row"><span id="n1"></span><span id="l1"></span></div><div class="bar"><i id="h1"></i></div><div class="dots" id="d1"></div></div><div class="sprite" id="p1"></div></div>
+   <div class="side me" id="s0"><div class="sprite" id="p0"></div><div class="hpbox"><div class="row"><span id="n0"></span><span id="l0"></span></div><div class="bar"><i id="h0"></i></div><div class="dots" id="d0"></div></div></div>
+  </div><div class="log" id="log">O combate vai começar!</div><div id="after"></div></div>`;
+  attachCam(ov);
+  const vs=s=>s===meSide?0:1;
+  const name=(s)=>{const m=view[s][cur[s]];return (s===meSide?"O teu ":"O ")+nm(m.sp,m.lv)+(s===meSide?"":" rival");};
+  function paint(s){const v=vs(s),m=view[s][cur[s]];$("n"+v).textContent=nm(m.sp,m.lv);$("l"+v).textContent="Nv "+m.lv;
+    const pct=Math.max(0,m.hp/m.max*100);const h=$("h"+v);h.style.width=pct+"%";h.style.background=pct>50?"var(--good)":pct>20?"var(--gold)":"var(--bad)";
+    $("d"+v).innerHTML=view[s].map(x=>`<b class="${x.hp<=0?"off":""}"></b>`).join("");}
+  function sendIn(s){const v=vs(s);const p=$("p"+v);p.className="sprite";p.innerHTML=sprite(view[s][cur[s]].sp,view[s][cur[s]].lv);if(v===0)p.firstChild.style.transform="scaleX(-1)";paint(s);}
+  sendIn(0);sendIn(1);
+  let i=0,timer=null,fast=false;
+  function step(){
+    if(i>=ev.length)return;const e=ev[i++];let wait=fast?60:1300;
+    if(e.k==="send"){cur[e.s]=e.i;sendIn(e.s);if(i>2)$("log").textContent=`${name(e.s)} entra em campo!`;else wait=fast?60:500;}
+    else if(e.k==="miss"){$("log").textContent=`${name(e.s)} usou ${e.mv}… mas falhou!`;}
+    else if(e.k==="hit"){const att=$("p"+vs(e.s)),def=$("p"+vs(1-e.s));att.classList.add(vs(e.s)===0?"lunge-me":"lunge-opp");
+      setTimeout(()=>{att.classList.remove("lunge-me","lunge-opp");def.classList.remove("hit");void def.offsetWidth;def.classList.add("hit");view[1-e.s][cur[1-e.s]].hp=e.hp;paint(1-e.s);},fast?0:260);
+      let t=`${name(e.s)} usou ${e.mv}!`;if(e.e>1)t+=" É super eficaz!";else if(e.e<1)t+=" Não é muito eficaz…";if(e.crit)t+=" Golpe crítico!";$("log").textContent=t;}
+    else if(e.k==="faint"){view[e.s][cur[e.s]].hp=0;paint(e.s);$("p"+vs(e.s)).classList.add("faint");$("log").textContent=`${name(e.s)} desmaiou!`;}
+    else if(e.k==="end"){finish(e.w===meSide,codes.join("|"));return;}
+    timer=setTimeout(step,wait);
+  }
+  $("skip").onclick=()=>{fast=true;clearTimeout(timer);step();};
+  timer=setTimeout(step,700);
+}
+function finish(won,key){
+  let txt;const already=S.done.includes(key);
+  if(!already){S.done.push(key);if(S.done.length>200)S.done=S.done.slice(-200);
+    if(won)S.team.forEach(id=>setLv(id,S.col[id]+1));else if(S.team[0]!=null)setLv(S.team[0],S.col[S.team[0]]+1);save();
+    txt=won?"A tua equipa toda subiu 1 nível.":`O ${SP[S.team[0]].n} ganhou experiência e subiu 1 nível.`;}
+  else txt="Este combate já tinha sido jogado, por isso não dá níveis outra vez.";
+  buzz(won?[60,40,60,40,120]:[120]);
+  $("log").textContent=won?"Ganhaste o combate!":"Perdeste desta vez.";
+  $("skip").textContent="Fechar";$("skip").onclick=closeBattle;
+  $("after").innerHTML=`<div class="center"><div class="result" style="color:${won?"var(--good)":"var(--bad)"}">${won?"Vitória!":"Derrota"}</div>
+   <p class="sub" style="text-align:center;margin:0">${txt}${already?"":" O teu código mudou: "+encode(S.team)}</p>
+   <button class="btn" id="done">Voltar</button></div>`;$("done").onclick=closeBattle;renderAll();
+}
+function closeBattle(){$("ov-bt").hidden=true;$("ov-bt").innerHTML="";$("oppcode").value="";renderAll();playEvos();}
+
+/* ---------- start ---------- */
+function onboarding(){
+  const ov=$("ov-start");ov.hidden=false;let pick=null;
+  ov.innerHTML=`<div class="enc" style="justify-content:flex-start;gap:16px;padding-top:12px">
+   <div class="result" style="font-size:28px">Monstrinhos da Sala</div>
+   <p class="sub" style="text-align:center;margin:0">Há monstrinhos escondidos pela sala. Apanha-os e combate contra os teus primos.</p>
+   <div style="width:100%"><label for="nm" class="sub" style="display:block;margin:0 0 6px">Como te chamas, treinador?</label><input id="nm" class="namein" maxlength="16" autocomplete="off" placeholder="O teu nome"></div>
+   <p class="sub" style="margin:0;align-self:flex-start">Escolhe o teu monstrinho principal (recebes mais dois de oferta)</p>
+   <div class="starters" style="width:100%">${[0,2,4].map(i=>`<button data-id="${i}" aria-pressed="false">${sprite(i)}<span class="nm" style="font-family:var(--display);font-weight:600">${SP[i].n}</span>${chip(SP[i].t)}</button>`).join("")}</div>
+   <button class="btn" id="begin" style="width:100%" disabled>Começar</button></div>`;
+  const upd=()=>{$("begin").disabled=pick==null||!$("nm").value.trim();};
+  ov.querySelectorAll(".starters button").forEach(b=>b.onclick=()=>{pick=+b.dataset.id;ov.querySelectorAll(".starters button").forEach(x=>x.setAttribute("aria-pressed",x===b));upd();});
+  $("nm").oninput=upd;
+  $("begin").onclick=()=>{S.name=$("nm").value.trim();S.col[pick]=6;S.seen[pick]=1;S.team=[pick];
+    const extra=[6,8,10,13].sort(()=>Math.random()-.5).slice(0,2);extra.forEach(id=>{S.col[id]=5;S.seen[id]=1;S.team.push(id);});
+    save();ov.hidden=true;ov.innerHTML="";renderAll();toast(`Recebeste ${SP[pick].n}, ${SP[extra[0]].n} e ${SP[extra[1]].n}. Já podes combater!`);};
+}
+$("stage").innerHTML=roomSVG();
+$("camtoggle").onclick=toggleCam;
+$("camsparks").addEventListener("click",e=>{const b=e.target.closest(".csp");if(!b)return;const a=camActive[b.dataset.k];if(!a)return;delete camActive[b.dataset.k];renderCamSparks();openEncounter(a.p,a.sp);});
+$("stage").addEventListener("click",e=>{const g=e.target.closest(".spot");if(!g)return;const k=g.dataset.spot;
+  if(active[k]&&active[k].until>Date.now()){const sp=active[k].sp;delete active[k];renderSparks();openEncounter(SPOTS[k].p,sp);}
+  else toast(NOTHING[Math.floor(Math.random()*NOTHING.length)]);});
+try{const t=localStorage.getItem(KEY+".tab");if(t){const b=document.querySelector(`nav.tabs button[data-v="${t}"]`);b&&b.click();}}catch(e){}
+renderAll();
+if(!S.name||!Object.keys(S.col).length)onboarding();
+setTimeout(spawn,800);setInterval(spawn,3500);
+toggleCam();
+})();
+</script>
+</body></html>

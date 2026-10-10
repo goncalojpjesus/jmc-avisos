@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Documentos · Jesus Mar Couto</title>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#6e6e73;--line:#e3e3e8;--accent:#0f6b5c;--gold:#a2845e}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--card:#1c1c1e;--ink:#f2f2f7;--muted:#98989f;--line:#38383a;--accent:#30b39c;--gold:#c9a877}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:720px;margin:0 auto;padding:28px 16px 48px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:600}
+h1{font-size:30px;line-height:1.15;margin:4px 0 6px}
+.sub{color:var(--muted);margin:0 0 22px}
+.unid{display:flex;gap:8px;align-items:center;margin:0 0 18px;font-size:14px;color:var(--muted)}
+.seg{display:inline-flex;background:var(--line);border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;font:inherit;font-size:14px;padding:5px 14px;border-radius:7px;color:var(--ink);cursor:pointer}
+.seg button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+.group{background:var(--card);border-radius:14px;overflow:hidden}
+.gh{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:22px 4px 8px}
+a.row{display:flex;align-items:center;gap:14px;padding:14px 16px;color:inherit;text-decoration:none;border-top:1px solid var(--line)}
+a.row:first-child{border-top:0}
+a.row:active{background:var(--line)}
+.ico{width:40px;height:40px;border-radius:10px;background:var(--accent);color:#fff;display:grid;place-items:center;flex:none}
+.ico svg{width:22px;height:22px}
+.txt{flex:1;min-width:0}
+.txt b{display:block;font-weight:600}
+.txt small{display:block;color:var(--muted);font-size:13.5px}
+.chev{color:var(--muted);font-size:20px}
+.soon .ico{background:var(--line);color:var(--muted)}
+.soon{pointer-events:none}
+.soon .txt b{color:var(--muted)}
+.note{color:var(--muted);font-size:13px;margin:18px 4px 0}
+</style>
+</head>
+<body>
+<main>
+  <span class="eyebrow">Jesus Mar Couto</span>
+  <h1>Documentos</h1>
+  <p class="sub">Consentimentos que já passaram para a versão nova. Os restantes vão aparecendo aqui à medida que forem migrados.</p>
+
+  <div class="unid">Unidade deste aparelho
+    <span class="seg" id="seg"><button type="button" data-u="aveiro">Aveiro</button><button type="button" data-u="faiscas">Faíscas</button></span>
+  </div>
+
+  <div class="gh">Consentimentos</div>
+  <div class="group" id="lista">
+    <a class="row" data-doc="preparacao/">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span>
+      <span class="txt"><b>Preparação dentária</b><small>Para reabilitação cerâmica · rascunhos, edição do texto, envio</small></span>
+      <span class="chev">›</span>
+    </a>
+    <a class="row soon">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span>
+      <span class="txt"><b>Contrato de financiamento</b><small>Em migração</small></span>
+    </a>
+  </div>
+  <p class="note">O código pessoal é pedido uma vez em cada aparelho (o mesmo do fecho de caixa).</p>
+</main>
+<script>
+(()=>{const get=()=>{try{return localStorage.getItem('jmc_unidade')||''}catch(e){return ''}};
+ const fromUrl=(new URLSearchParams(location.search).get('unidade')||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+ if(fromUrl==='aveiro'||fromUrl==='faiscas'){try{localStorage.setItem('jmc_unidade',fromUrl)}catch(e){}}
+ const seg=document.getElementById('seg');
+ const paint=()=>{const u=get();seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.u===u));
+   document.querySelectorAll('a.row[data-doc]').forEach(a=>{a.href=a.dataset.doc+(u?'?unidade='+u:'');});};
+ seg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;try{localStorage.setItem('jmc_unidade',b.dataset.u)}catch(_){}paint();});
+ paint();})();
+</script>
+</body>
+</html>

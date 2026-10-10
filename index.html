@@ -31,8 +31,8 @@
 .rhlink{color:inherit;text-decoration:none;display:block;cursor:pointer}.rhlink:active{opacity:.6}
 </style>
 <script src="vendor/supabase.umd.js"></script>
-<script src="config.js?v=2026.10.07-2" onerror="void 0"></script>
-<script src="js/data.js?v=2026.10.07-2"></script>
+<script src="config.js?v=2026.10.10-1" onerror="void 0"></script>
+<script src="js/data.js?v=2026.10.10-1"></script>
 <style id="wa">
 /* ---------- chat ao estilo WhatsApp ---------- */
 :root{--waBg:#EFEAE2;--waMe:#D9FDD3;--waThem:#FFFFFF;--waTx:#111B21;--waMeta:#667781;--waIc:#54656F;--waBar:#F0F2F5;--waGreen:#00A884;--waBlue:#53BDEB;--waQuote:#06CF9C}
@@ -1549,6 +1549,7 @@ const UNI=()=>{const A=(window.JMC_CONFIG||{}).apps||{};const im=k=>`<img src="$
   cx:im('caixa'),
   ponto:im('ponto'),
   doc:im('docs'),
+  doc1:im('docs'),
   tal:im('talao'),
   gest:im('gestao')};
   const inChat=VIEW==='ph'?PHMODE==='chat':UNICTX==='chat';
@@ -1557,8 +1558,10 @@ const UNI=()=>{const A=(window.JMC_CONFIG||{}).apps||{};const im=k=>`<img src="$
     {k:'cx',t:'Fecho de caixa',s:'Fechos e faturação',u:A.caixa||''},
     {k:'ponto',t:'Área RH',s:'Recursos humanos · ponto, férias e recibos',u:A.ponto||''},
     {k:'doc',t:'Documentos',s:'Consentimentos e documentos',u:A.documentos||''},
+    {k:'doc1',t:'Documentos 1',s:'Novos documentos · em migração',u:A.documentos1||'https://goncalojpjesus.github.io/jmc-avisos/documentos/',only:'Dr. Gonçalo'},
     {k:'tal',t:'Digitalizar talões',s:'Talões do TPA para o fecho',u:A.taloes||(A.caixa?A.caixa+'?talao=1':'')},
     {k:'gest',t:'Gestão de topo',s:'Objetivos e faturação',u:A.gestao||(A.caixa?A.caixa+'?gestao=1':''),own:1}]
+   .filter(x=>!x.only||x.only===ME)
    .filter(x=>PERFIL[ME]?PERFIL[ME].apps.includes(x.k):OWN.includes(ME)||(!x.own&&(x.k!=='ponto'||uniPonto())))
    .map(x=>x.k==='tal'&&x.u?(()=>{const c=talCfg()||{clinica:talFix()},n=talCount();const sub=!c.clinica?'Escolha primeiro este aparelho nas Definições':n?n+(n===1?' talão':' talões')+' hoje · ver ou digitalizar outro':'Abre a câmara · '+esc(c.clinica==='Ambas'?'Aveiro ou Faíscas':c.clinica);
      return n?`<button class="ua tal" data-tallist><span class="ui bare">${I[x.k]}</span><span class="ut">${x.t}<small>${sub}</small></span></button>`:`<label class="ua tal">${c.clinica?'<input type="file" accept="image/*" capture="environment" hidden data-talin>':''}<span class="ui bare">${I[x.k]}</span><span class="ut">${x.t}<small>${sub}</small></span></label>`;})():x.cur?`<button class="ua cur" data-ux data-uchat="${x.go}"><span class="ui">${im('jmc')}</span><span class="ut">${x.t}<small>${x.s}</small></span>${(()=>{const n=x.go==='rec'?pend().length:unreadAll();return n?`<span class="uc">${n}</span>`:'';})()}</button>`
@@ -1782,7 +1785,7 @@ addEventListener('resize',fitPanels);
 dragY('#bar','top',()=>$('topR'));dragY('#chatBtn, .chead','chat',()=>$('chatW'));
 applyPos();setInterval(applyPos,60000);
 // atualização automática: se houver versão nova publicada, recarrega (sem perder nada: os dados estão no servidor)
-const BUILD='2026.10.07-2';
+const BUILD='2026.10.10-1';
 const chkUpd=()=>{if(location.protocol!=='https:')return;fetch('version.txt?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{v=v&&v.trim();
   if(v&&v!==BUILD&&$('sheet').hidden&&$('pin').hidden&&!document.querySelector('input:focus, textarea:focus')){
     let tried='';try{tried=sessionStorage.getItem('jmc_upd')||'';}catch(e){}if(tried===v)return;try{sessionStorage.setItem('jmc_upd',v);}catch(e){}

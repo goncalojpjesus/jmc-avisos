@@ -1,0 +1,854 @@
+<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orçamentos · Jesus Mar Couto</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--g:#C6A755;--gd:#A88A3C;--ink:#3B3D39;--ch:#FBF7EE;--ln:#E6D9B5;--bg:#F2F1EE;--card:#fff;--mut:#8a8c86;--ok:#2f8f6b;--warn:#c98a1b;--bad:#c0503a;--blue:#0a6cff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Montserrat,system-ui,sans-serif;color:var(--ink);font-size:14px}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+.top{position:sticky;top:0;z-index:20;background:rgba(251,247,238,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--ln)}
+.top .in{max-width:1380px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.top .logo{width:118px;display:block}
+.top h1{font:500 26px "Cormorant Garamond",serif;margin:0;color:#1f201d}
+.top h1 small{display:block;font:500 9.5px Montserrat;letter-spacing:.3em;color:var(--gd);text-transform:uppercase;margin-top:2px}
+.seg{display:inline-flex;background:#e9e6df;border-radius:11px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:9px;font-weight:500;font-size:13px;cursor:pointer;color:#55574f}
+.seg button.on{background:#fff;color:#1f201d;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.sp{flex:1}
+.unit{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut)}
+.wrap{max-width:1380px;margin:0 auto;padding:20px 18px 60px}
+.view{display:none}.view.on{display:block}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:18px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);padding:20px 22px;margin-bottom:16px}
+.card h2{font:600 15px Montserrat;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+.card h2 .n{width:24px;height:24px;border-radius:50%;background:var(--ch);border:1px solid var(--ln);color:var(--gd);font:600 12px Montserrat;display:inline-grid;place-items:center}
+.card .hint{color:var(--mut);font-size:12.5px;margin:0 0 14px}
+.row{display:grid;gap:12px}
+.r4{grid-template-columns:2fr 1fr 1fr 1fr}.r3{grid-template-columns:repeat(3,1fr)}.r2{grid-template-columns:1fr 1fr}
+@media(max-width:700px){.r4,.r3{grid-template-columns:1fr 1fr}}
+label.f{display:block;font-size:11.5px;font-weight:500;color:#6b6d68}
+label.f input,label.f select,label.f textarea{display:block;width:100%;margin-top:6px;padding:10px 12px;border:1px solid #e1ded6;border-radius:11px;background:#fbfaf8;outline:none}
+label.f input:focus,label.f select:focus,label.f textarea:focus{border-color:var(--g);background:#fff;box-shadow:0 0 0 3px rgba(198,167,85,.15)}
+.paste{display:flex;gap:10px;align-items:center;background:var(--ch);border:1px dashed var(--g);border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:#6b5a2c}
+.paste b{font-weight:600}.paste button{margin-left:auto}
+.btn{border:0;border-radius:11px;padding:10px 16px;font-weight:600;cursor:pointer;background:#ece9e2;color:#2b2c29}
+.btn.p{background:#1f201d;color:#f6efdc}.btn.g{background:var(--g);color:#fff}.btn.gr{background:#0e6b5e;color:#fff}.btn.sm{padding:7px 11px;font-size:12px;border-radius:9px}
+.btn.ghost{background:transparent;border:1px solid #ddd8cc}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid #e1ded6;background:#fbfaf8;border-radius:12px;padding:9px 12px;cursor:pointer;text-align:left;min-width:132px;transition:.15s}
+.chip:hover{border-color:var(--g);background:#fff;transform:translateY(-1px)}
+.chip b{display:block;font:700 11px Montserrat;letter-spacing:.08em;color:var(--gd)}
+.chip span{display:block;font-size:12.5px;font-weight:500;margin-top:2px}
+.chip small{display:block;font-size:10.5px;color:var(--mut);margin-top:2px}
+.teethin{display:flex;gap:10px;align-items:end;margin-bottom:12px}
+.teethin label{flex:1}
+table{width:100%;border-collapse:collapse}
+.lines th{font:600 10.5px Montserrat;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);text-align:left;padding:8px 6px;border-bottom:1px solid #eee}
+.lines td{padding:7px 6px;border-bottom:1px solid #f2f0eb;vertical-align:middle}
+.lines td.num,.lines th.num{text-align:right;white-space:nowrap}
+.lines input{width:74px;padding:6px 8px;border:1px solid transparent;border-radius:8px;background:#f6f5f2;text-align:right}
+.lines input.q{width:46px}.lines input.nota{display:block;width:100%;max-width:300px;margin-top:4px;text-align:left;background:transparent;border:1px dashed transparent;font-size:11.5px;color:#55574f;padding:3px 6px}.lines input.nota:hover{border-color:#e1ded6}.lines input.nota:focus{background:#fff}.lines input.nota::placeholder{color:#c4c1b8}.lines input.d{width:56px}
+.lines input:hover{border-color:#e1ded6}.lines input:focus{border-color:var(--g);background:#fff;outline:none}
+.grp td{background:var(--ch);font-weight:600;font-size:12.5px;border-bottom:1px solid var(--ln)}
+.grp .code{font:700 10.5px Montserrat;letter-spacing:.08em;color:var(--gd);margin-right:8px}
+.grp .x{float:right;cursor:pointer;color:var(--mut);font-weight:400}
+.cod{font:600 10.5px Montserrat;color:var(--mut)}
+.lines tr.arc td{font:600 10px Montserrat;letter-spacing:.18em;text-transform:uppercase;color:var(--gd);padding:10px 6px 2px;border-bottom:0}
+.ib{border:0;background:#f1efe9;color:#6b6d68;width:24px;height:22px;border-radius:7px;cursor:pointer;font-size:9px;margin:1px}
+.ib:hover{background:#1f201d;color:#fff}.ib.j{background:#f6eccd;color:#8a6516;font-size:13px}.ib.x{font-size:10px}
+.mvs{width:30px}.mvs .ib{display:block}
+.empty{padding:26px;text-align:center;color:var(--mut);font-size:13px;border:1px dashed #e1ded6;border-radius:12px}
+.opts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 2px}
+.tot{display:grid;grid-template-columns:1fr auto;gap:6px 18px;margin-top:14px;padding-top:12px;border-top:1px solid #eee;font-size:13.5px}
+.tot .big{font:600 22px Montserrat;color:#1f201d}
+.tot .mut{color:var(--mut)}
+.pay{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:900px){.pay{grid-template-columns:1fr 1fr}}
+.pc{border:1.5px solid #e6e2d8;border-radius:14px;padding:12px;cursor:pointer;background:#fbfaf8;position:relative}
+.pc.on{border-color:var(--g);background:#fff;box-shadow:0 0 0 3px rgba(198,167,85,.14)}
+.pc b{display:block;font-size:13px}.pc small{display:block;color:var(--mut);font-size:11.5px;margin-top:4px;line-height:1.4}
+.pc .ic{font-size:18px}
+.paybox{margin-top:14px;background:#fbfaf8;border-radius:14px;padding:14px 16px;border:1px solid #efece4}
+.kv{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}.kv b{font-weight:600}
+.sched{margin-top:8px;font-size:12px;color:#55574f;max-height:120px;overflow:auto}
+.notes label{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:13px;cursor:pointer}
+.notes input{margin-top:3px;accent-color:var(--gd)}
+.acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px}
+/* painel direito */
+.side{position:sticky;top:84px}
+.sim .hero{background:linear-gradient(160deg,#1f201d,#3b3d39);color:#f6efdc;border-radius:16px;padding:16px 18px;margin-bottom:14px}
+.sim .hero .l{font:500 10px Montserrat;letter-spacing:.24em;text-transform:uppercase;color:#d9c48c}
+.sim .hero .v{font:600 30px Montserrat;margin:4px 0 10px}
+.sim .hero .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:11px;color:#cfc8b6}
+.sim .hero .g3 b{display:block;font-size:15px;color:#fff;margin-top:2px}
+.q{margin:12px 0}.q .t{font-size:12px;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between}
+.q .t span{color:var(--mut);font-weight:500}
+.q .s{display:flex;flex-wrap:wrap;gap:5px}
+.q .s button{border:1px solid #e1ded6;background:#fbfaf8;border-radius:9px;padding:6px 9px;font-size:11.5px;cursor:pointer}
+.q .s button.on{background:#1f201d;color:#f6efdc;border-color:#1f201d}
+input[type=range]{width:100%;accent-color:var(--gd)}
+.gauge{margin:14px 0 6px;height:10px;border-radius:6px;background:linear-gradient(90deg,#2f8f6b 0 33%,#e0b040 33% 66%,#c0503a 66%);position:relative}
+.gauge i{position:absolute;top:-5px;width:4px;height:20px;background:#1f201d;border-radius:2px;transition:left .3s}
+.gl{display:flex;justify-content:space-between;font-size:10px;color:var(--mut);letter-spacing:.1em;text-transform:uppercase}
+.verdict{border-radius:14px;padding:12px 14px;margin-top:10px;font-size:12.5px;line-height:1.5}
+.verdict h4{margin:0 0 6px;font-size:14px}
+.verdict ul{margin:6px 0 0;padding-left:18px}
+.v-b{background:#e9f5ef;color:#1f5d45}.v-m{background:#fbf3e0;color:#7a5a12}.v-e{background:#fbe9e4;color:#7d2e1f}
+.why{font-size:11px;color:var(--mut);margin-top:8px;line-height:1.5}
+/* pasta */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+@media(max-width:900px){.kpis{grid-template-columns:1fr 1fr}}
+.kpi{background:#fff;border-radius:16px;padding:16px 18px;box-shadow:0 8px 24px rgba(0,0,0,.05)}
+.kpi .l{font-size:11.5px;color:var(--mut)}.kpi .v{font:600 24px Montserrat;margin-top:4px}.kpi .s{font-size:11.5px;color:var(--ok);margin-top:2px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.filters input,.filters select{padding:9px 12px;border:1px solid #e1ded6;border-radius:11px;background:#fff}
+.list td{padding:12px 10px;border-bottom:1px solid #f0eee8;font-size:13px}
+.list th{padding:10px;font:600 10.5px Montserrat;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);text-align:left;border-bottom:1px solid #eee}
+.list tr:hover td{background:#fcfbf8}
+.pill{display:inline-block;padding:4px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.p-r{background:#eef0f3;color:#5b6270}.p-e{background:#e8f0fe;color:#2559c7}.p-a{background:#e5f4ec;color:#22744f}.p-pa{background:#fbf3e0;color:#8a6516}.p-x{background:#f4e6e2;color:#9a3a26}.p-v{background:#f1efea;color:#8a8c86}
+.uni{font:700 10px Montserrat;letter-spacing:.08em;padding:3px 6px;border-radius:6px;background:var(--ch);color:var(--gd);border:1px solid var(--ln)}
+.numo{font-weight:600;color:#1f201d}
+.mini{color:var(--mut);font-size:11.5px}
+/* tabela de preços */
+.prices td{padding:8px 10px;border-bottom:1px solid #f0eee8}
+.prices th{padding:10px;font:600 10.5px Montserrat;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);text-align:left;border-bottom:1px solid #eee}
+.prices input{width:90px;padding:6px 8px;border:1px solid #e9e6df;border-radius:8px;text-align:right;background:#fbfaf8}
+.flag{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:1px}
+.bund{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.bund .b{border:1px solid #ece8dd;border-radius:14px;padding:12px 14px;background:#fbfaf8}
+.bund .b b{font:700 11px Montserrat;letter-spacing:.08em;color:var(--gd)}
+.bund .b h5{margin:3px 0 6px;font-size:13.5px}
+.bund .b li{font-size:12px;color:#55574f;margin:2px 0}
+.bund ul{padding-left:16px;margin:0}
+/* modal documento */
+.modal{position:fixed;inset:0;background:rgba(20,20,18,.55);backdrop-filter:blur(3px);display:none;z-index:50;overflow:auto;padding:30px 12px}
+.modal.on{display:block}
+.mclose{position:fixed;top:14px;right:18px;z-index:51}.doc.editing{outline:2px dashed var(--g);outline-offset:6px}.doc.editing *:hover{background:rgba(198,167,85,.08)}
+.doc{background:#fff;width:794px;max-width:100%;min-height:1123px;margin:0 auto;padding:46px 64px 34px;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.35);color:#1d1d1b;font-family:Montserrat,sans-serif;display:flex;flex-direction:column}
+.doc .lg{width:96px;margin:0 auto}
+.doc .eyebrow{font:500 9px Montserrat;letter-spacing:.42em;text-transform:uppercase;color:#a3a39c;text-align:center;margin-top:22px}
+.doc .who{font:300 36px/1.05 "Cormorant Garamond",serif;text-align:center;margin:14px 0 0;letter-spacing:-.01em}
+.doc .who i{color:var(--g);font-style:italic}
+.doc .meta{display:flex;justify-content:center;gap:34px;margin-top:14px;font:400 9.5px Montserrat;letter-spacing:.2em;text-transform:uppercase;color:#a3a39c}
+.doc .meta b{display:block;font:500 11px Montserrat;letter-spacing:.04em;text-transform:none;color:#1d1d1b;margin-top:5px}
+.doc .intro{font:300 12.5px/1.85 Montserrat;color:#55554f;text-align:center;max-width:470px;margin:38px auto 0}
+.doc .hair{height:1px;background:#e9e6de;margin:40px 0 0}
+.ph{display:grid;grid-template-columns:64px 1fr 120px;gap:0 22px;padding:26px 0;border-bottom:1px solid #f0ede6}
+.ph .no{font:300 30px/1 "Cormorant Garamond",serif;color:var(--g)}
+.ph h4{margin:0;font:500 10px Montserrat;letter-spacing:.32em;text-transform:uppercase;color:#1d1d1b}
+.ph p{margin:8px 0 10px;font:300 12px/1.7 Montserrat;color:#76766f}
+.ph ul{list-style:none;margin:0;padding:0}
+.ph li{display:flex;justify-content:space-between;gap:12px;font:400 12px/1.6 Montserrat;color:#33332f;padding:2px 0}
+.ph li span{color:#a3a39c;font-weight:300}
+.ph .pv{text-align:right;font:300 20px/1 Montserrat;letter-spacing:-.01em;padding-top:2px}
+.ph .pv small{display:block;font:400 9px Montserrat;letter-spacing:.2em;text-transform:uppercase;color:#a3a39c;margin-top:8px}
+.hd{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:22px;padding-bottom:16px}
+.hd .tt{font:300 30px/1.05 "Cormorant Garamond",serif;margin:0 0 12px;color:#1d1d1b}.hd .tt i{color:var(--g)}
+.hd .m2 div,.hd .pl{font:400 10.5px/1.75 Montserrat;color:#33332f}
+.hd .m2 span,.hd .pl span{display:inline-block;width:96px;font:400 8.5px Montserrat;letter-spacing:.14em;text-transform:uppercase;color:#a3a39c}
+.hd .hr{border-left:1px solid #e9e6de;padding-left:26px}
+.hd .hr .k{font:500 8.5px Montserrat;letter-spacing:.3em;text-transform:uppercase;color:var(--gd);margin-top:4px}
+.hd .pn{font:500 14px/1.3 Montserrat;color:#1d1d1b;margin:8px 0 6px}
+.hd .pl{display:flex}.hd .pl span{flex:none;width:64px}
+.dtab{width:100%;border-collapse:collapse;margin-top:6px}
+.dtab th{font:500 8.5px Montserrat;letter-spacing:.26em;text-transform:uppercase;color:#a3a39c;text-align:left;padding:0 6px 8px;border-bottom:1px solid #1d1d1b}
+.dtab td{font:300 11px/1.4 Montserrat;color:#33332f;padding:5px 6px;border-bottom:1px solid #f0ede6;vertical-align:top}
+.dtab .c{text-align:center}.dtab .r{text-align:right;white-space:nowrap}
+.dtab .nt{color:#55554f;font-style:italic}
+.dtab .dn{color:#a3a39c;font-size:10.5px}
+.dtab td.b{font-weight:400;color:#1d1d1b}.dtab td.dsc{color:var(--gd)}
+.dtab tr.ah td{padding:6px 6px 1px;border-bottom:0;font:400 8px Montserrat;letter-spacing:.22em;text-transform:uppercase;color:#bcbab2}
+.dtab tr.ah td:before{content:none}
+.dtab tr.fh td{padding:11px 6px 5px;border-bottom:1px solid #e9e6de;font:500 9.5px Montserrat;letter-spacing:.28em;text-transform:uppercase;color:#1d1d1b}
+.dtab tr.fh td.r{font:400 12px Montserrat;letter-spacing:0;text-transform:none;vertical-align:bottom}
+.dtab tr.fh .no{font:300 20px/1 "Cormorant Garamond",serif;letter-spacing:0;color:var(--g);margin-right:12px;vertical-align:-3px}
+.dtab tr.fh em{font:300 10.5px/1.5 Montserrat;letter-spacing:0;text-transform:none;font-style:normal;color:#8c8c85;margin-left:14px}
+.dtotal{display:flex;justify-content:space-between;align-items:flex-end;padding:18px 0 4px}
+.dtotal .l{font:500 10px Montserrat;letter-spacing:.32em;text-transform:uppercase}
+.dtotal .l small{display:block;font:300 11px Montserrat;letter-spacing:0;text-transform:none;color:#a3a39c;margin-top:6px}
+.dtotal .v{font:600 15px/1 Montserrat;letter-spacing:.04em;color:#1d1d1b}
+.dtotal .v s{display:block;text-align:right;font:300 13px Montserrat;color:#b9b8b1;margin-bottom:6px;letter-spacing:0}
+.dpay2{display:grid;grid-template-columns:repeat(4,1fr);margin-top:16px;border-top:1px solid #1d1d1b;border-bottom:1px solid #e9e6de}
+.dpay2>div{padding:11px 0;text-align:center}
+.dpay2>div+div{border-left:1px solid #f0ede6}
+.dpay2 .k{font:400 9px Montserrat;letter-spacing:.28em;text-transform:uppercase;color:#a3a39c}
+.dpay2 .v{font:300 15px/1.2 Montserrat;margin-top:8px}
+.dpay2 .s{font:300 10.5px Montserrat;color:#8c8c85;margin-top:4px}
+.fa-sw{display:flex;align-items:center;gap:8px;font-size:13px;margin:2px 0 10px}.fa-sw input[type=number]{width:74px;padding:5px 8px;border:1px solid var(--line,#ddd);border-radius:8px;font:inherit;text-align:right}
+.fa-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;margin-bottom:10px}.fa-seg{display:inline-flex;gap:4px}.fa-seg button{border:1px solid #ddd;background:#fff;border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}.fa-seg button.on{background:#1d1d1b;color:#fff;border-color:#1d1d1b}
+.fa-l{list-style:none;margin:0;padding:0;counter-reset:f}.fa-l li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #eee;font-size:13px;counter-increment:f}.fa-l li>div{display:flex;flex-direction:column}.fa-l li>div:before{content:counter(f)'.';display:none}.fa-l small{color:var(--mut);font-size:11.5px}.fa-l span{font-weight:600;white-space:nowrap}
+.dfa{margin-top:16px;border-top:1px solid #1d1d1b;padding-top:14px;font:300 10.5px/1.8 Montserrat;color:#8c8c85;text-align:center}.dfa p{max-width:600px;margin:0 auto}.dfa .k{display:block;font:400 8.5px Montserrat;letter-spacing:.28em;text-transform:uppercase;color:#a3a39c;margin-bottom:4px}.dfa b{font-weight:400;color:#55554f}
+.dpay1{margin-top:16px;border-top:1px solid #1d1d1b;padding-top:16px;font:300 12px/1.8 Montserrat;color:#55554f;text-align:center}
+.opt3{display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;border-top:1px solid #1d1d1b}
+.opt3>div{padding:12px 12px 12px;text-align:center}
+.opt3>div+div{border-left:1px solid #f0ede6}
+.opt3 .k{font:400 9px Montserrat;letter-spacing:.3em;text-transform:uppercase;color:var(--g)}
+.opt3 h6{font:300 25px/1.1 "Cormorant Garamond",serif;margin:8px 0 6px}
+.opt3 p{font:300 10px/1.5 Montserrat;color:#8c8c85;margin:0}
+.opt3 .v{font:200 26px/1 Montserrat;letter-spacing:-.02em;margin-top:8px}
+.opt3 .m{font:400 10px Montserrat;color:#76766f;margin-top:8px}
+.dfine{margin-top:auto;padding-top:14px;font:300 9.5px/1.8 Montserrat;color:#a3a39c;text-align:center}
+.xopt{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:12.5px;color:var(--mut)}.xopt label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.ddesc{text-align:right;font:300 10.5px Montserrat;color:#8c8c85;margin-top:2px}.ddesc b{font-weight:500;color:#A88A3C}
+.dcer{margin-top:16px;border-top:1px solid #eee8d8;padding:12px 0 4px}.dcer .k{font:400 8px Montserrat;letter-spacing:.3em;text-transform:uppercase;color:#a3a39c;text-align:center;margin-bottom:10px}
+.dcer .cg{display:grid;grid-template-columns:repeat(4,1fr)}.dcer .ct{padding:0 12px}.dcer .ct+.ct{border-left:1px solid #f2eee3}
+.dcer .ch{display:flex;align-items:center;gap:5px;margin-bottom:6px}.dcer svg{width:13px;height:13px;flex:none;fill:none;stroke:#C6A755;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.dcer .cl{font:500 7.5px Montserrat;letter-spacing:.18em;text-transform:uppercase;color:#55554f}.dcer .cs{margin-left:auto;font:italic 500 14px/1 "Cormorant Garamond",serif;color:#A88A3C}
+.dcer p{font:300 8.5px/1.45 Montserrat;color:#8c8c85;margin:5px 0 0}
+.dcer .cb{display:grid;grid-template-columns:auto 1fr;gap:2px 6px;align-items:center;font:400 7px Montserrat;color:#a3a39c}.dcer .cb i{display:block;height:3px;border-radius:2px;background:#f1eee6}.dcer .cb b{display:block;height:3px;border-radius:2px;background:#d6d2c7}.dcer .cb b.g{background:#C6A755}.dcer .cc{font:300 7px Montserrat;color:#b3b2ab;margin-top:2px}
+.dsig{display:flex;justify-content:space-between;margin-top:14px;font:400 9px Montserrat;letter-spacing:.24em;text-transform:uppercase;color:#a3a39c}
+.dsig>div{width:40%;text-align:center}
+.dsig .dr{font:italic 400 17px "Cormorant Garamond",serif;letter-spacing:0;text-transform:none;color:#1d1d1b;min-height:34px;border-bottom:1px solid #d9d6cd;padding-bottom:6px;margin-bottom:9px;display:flex;align-items:flex-end;justify-content:center}
+.dft b{display:block;font-weight:500;color:#8c8a82;margin-bottom:4px;letter-spacing:.38em;text-transform:uppercase;font-size:8px}.dft small{display:block;font-size:7px;letter-spacing:.1em;margin-top:3px;text-transform:none}
+.dft{margin-top:12px;text-align:center;font:300 8.5px/1.5 Montserrat;letter-spacing:.06em;color:#a3a39c}
+.toast{opacity:0;pointer-events:none;position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:#1f201d;color:#f6efdc;padding:12px 18px;border-radius:12px;font-size:13px;transition:.3s;z-index:60}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.banner{background:#fff8e6;border:1px solid #f0dca6;color:#7a5a12;border-radius:12px;padding:10px 14px;font-size:12.5px;margin-bottom:16px}
+@media print{body *{visibility:hidden}.doc,.doc *{visibility:visible}.doc{position:absolute;left:0;top:0;box-shadow:none}
+.dtab tr.ah td{color:#555!important;font-weight:600!important}.dtab .nt{color:#55554f;font-style:italic}
+.dtab .dn{color:#666!important}.ph .no,.dtab tr.fh .no{color:#444!important}@page{size:A4;margin:0}}
+</style><script>(function(){var q=new URLSearchParams(location.search);window.ORC_TESTE=q.get('teste')==='1';var u=(q.get('unidade')||'').toLowerCase();if(u==='aveiro'||u==='faiscas'){window.JMC_UNIDADE=u;try{localStorage.setItem('jmc_unidade',u);localStorage.removeItem('jmc_orc_un');}catch(e){}}window.ORC_LOGO="data:image/png;base64,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";})();</script>
+<script>/* ---- Ligação ao servidor (GitHub → Apps Script). Código pessoal uma vez por aparelho. ---- */
+const JMC_API='https://script.google.com/macros/s/AKfycbz4r7u2KxQK2NLh-4julAkcAMj8qOmp-kKaI5vZC6HXJfTkhWyIpEVqoXt16HUmwwjFjQ/exec';
+const JMC_TK='jmc_docs_token';
+function jmcToken(){try{return localStorage.getItem(JMC_TK)||'';}catch(e){return '';}}
+function jmcPost(fn,payload,token){return fetch(JMC_API,{method:'POST',body:JSON.stringify({fn,payload,token}),redirect:'follow'}).then(r=>{if(!r.ok)throw Error('Sem ligação ao servidor (HTTP '+r.status+').');return r.json();});}
+let jmcLoginWait=null;
+function jmcLogin(){if(jmcLoginWait)return jmcLoginWait;const el=$('jmcLogin');el.style.display='flex';$('jmcPin').value='';$('jmcPinErr').textContent='';setTimeout(()=>$('jmcPin').focus(),50);
+ jmcLoginWait=new Promise(res=>{const go=async()=>{const code=$('jmcPin').value.trim();if(!code)return;$('jmcPinGo').disabled=true;$('jmcPinErr').textContent='A verificar…';
+  try{const o=await jmcPost('login',{code,aparelho:(navigator.userAgent.match(/\(([^)]+)\)/)||[])[1]||''});if(!o.ok)throw Error(o.erro);try{localStorage.setItem(JMC_TK,o.r.token);localStorage.setItem('jmc_docs_nome',o.r.nome||'');}catch(e){}
+   el.style.display='none';jmcLoginWait=null;jmcWho();res(o.r.token);}catch(e){$('jmcPinErr').textContent=e.message||String(e);}finally{$('jmcPinGo').disabled=false;}};
+  $('jmcPinGo').onclick=go;$('jmcPin').onkeydown=e=>{if(e.key==='Enter')go();};});return jmcLoginWait;}
+async function jmcApi(fn,payload){let t=jmcToken();if(!t)t=await jmcLogin();let o=await jmcPost(fn,payload,t);
+ if(!o.ok&&o.auth){try{localStorage.removeItem(JMC_TK);}catch(e){}t=await jmcLogin();o=await jmcPost(fn,payload,t);}
+ if(!o.ok)throw Error(o.erro||'Erro no servidor');return o.r;}
+function jmcWho(){let n='';try{n=localStorage.getItem('jmc_docs_nome')||'';}catch(e){}const w=$('jmcWho');if(w)w.textContent=n?('Sessão: '+n):'';}
+</script>
+</head><body><div id="jmcLogin" style="display:none;position:fixed;inset:0;z-index:99;background:rgba(20,24,28,.55);align-items:center;justify-content:center;padding:16px">
+ <div style="background:#fff;border-radius:16px;padding:22px 22px 18px;width:min(340px,100%);box-shadow:0 20px 50px rgba(0,0,0,.25);text-align:center">
+  <div style="font-weight:700;font-size:17px;margin-bottom:4px">Código pessoal</div>
+  <div style="font-size:13px;color:#6b7280;margin-bottom:14px">O mesmo do fecho de caixa. Só é pedido uma vez neste aparelho.</div>
+  <input id="jmcPin" type="password" inputmode="numeric" autocomplete="off" style="width:100%;font-size:22px;letter-spacing:.3em;text-align:center;padding:10px;border:1px solid #d9dbe0;border-radius:10px">
+  <div id="jmcPinErr" style="min-height:18px;font-size:12.5px;color:#a1382b;margin:8px 0"></div>
+  <button id="jmcPinGo" class="btn" type="button" style="width:100%">Entrar</button>
+ </div>
+</div>
+<div id="jmcWho" style="position:fixed;right:10px;bottom:8px;font-size:11px;color:#9ca3af;z-index:4;pointer-events:none"></div>
+
+<div class="top"><div class="in">
+ <div style="display:flex;align-items:center;gap:14px"><div class="logo"><img id="logoTop" alt="Jesus Mar Couto" style="width:100%;display:block"></div><h1>Orçamentos<small>Implantologia · Documentos JMC</small></h1></div>
+ <div class="seg" id="tabs"><button class="on" data-v="novo">Novo orçamento</button><button data-v="pasta">Pasta de orçamentos</button><button data-v="precos">Tabela de preços</button></div>
+ <div class="sp"></div>
+ <div class="unit">Unidade <div class="seg" id="unSeg"><button class="on" data-u="F">Faíscas</button><button data-u="A">Aveiro</button></div></div>
+</div></div>
+
+<div class="wrap">
+
+<!-- ============ NOVO ============ -->
+<section class="view on" id="v-novo"><div class="grid"><div>
+
+<div class="card">
+ <h2><span class="n">1</span>Paciente <span class="mini" style="margin-left:auto" id="numorc">N.º F-2026/0143 · rascunho</span></h2>
+ <div class="paste" id="pasteBox" style="display:block"><textarea id="pasteTa" rows="2" placeholder="&#x1F4CB; Colar aqui a ficha do paciente copiada do iMED (Ctrl/Cmd+V) — preenche nome, NIF, data de nascimento, telemóvel, email e morada" style="width:100%;box-sizing:border-box;border:0;background:transparent;font:12px Montserrat;resize:vertical;outline:none;color:#2f3a33"></textarea><div id="pasteOk" class="mini" style="display:none;color:#3d6b4f;margin-top:4px"></div></div>
+ <div class="row r4">
+  <label class="f">Nome<input id="pNome" placeholder="Nome completo"></label>
+  <label class="f">Data de nascimento<input id="pNasc" type="date" onchange="calc()"></label>
+  <label class="f">NIF<input id="pNif"></label>
+  <label class="f">Telemóvel<input id="pTel"></label>
+ </div>
+ <div class="row" style="margin-top:12px;grid-template-columns:2fr 1fr"><label class="f">Morada<input id="pMor" placeholder="Rua, n.º, código postal, localidade"></label><label class="f">Email<input id="pEmail" type="email" placeholder="email do paciente"></label></div>
+ <div class="row r3" style="margin-top:12px">
+  <label class="f">Médico responsável<select id="med"><option>Dr. Gonçalo Jesus</option><option>Dra. Catarina Mar Couto</option><option>Dra. Andreia Hortênsio</option><option>Dra. Angelina Andrade</option><option>Dra. Rafaela Pais</option><option>Dra. Patrícia Martins</option><option>Dr. Carlos Alves</option></select></label>
+  <label class="f">Data<input type="date" id="dOrc"></label>
+  <label class="f">Validade<select id="val"><option value="30">1 mês</option><option value="15">15 dias</option><option value="60">2 meses</option></select></label>
+ </div>
+</div>
+
+<div class="card">
+ <h2><span class="n">2</span>Tratamento — códigos rápidos</h2>
+ <p class="hint">Indique os dentes e toque num código: o implante entra logo pela ordem clínica — cirurgia, impressão e coroa. Tudo é editável a seguir.</p>
+ <div class="paste" style="border-style:solid;margin-bottom:12px"><label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="cbct" checked style="accent-color:#A88A3C"> <b>TAC (Rx 3D) já realizada</b></label><span>— o orçamento é feito a partir da TAC (Rx 3D); não entra como linha, só é referido no documento.</span><input type="date" id="cbctD" style="margin-left:auto;border:1px solid #e1ded6;border-radius:9px;padding:5px 8px;background:#fff"></div><div class="teethin"><label class="f">Dentes / posições<input id="dentes" placeholder="ex.: 36, 46"></label><span class="mini" style="padding-bottom:12px" id="nd">0 posições</span></div>
+ <div class="chips" id="chips"></div>
+</div>
+
+<div class="card">
+ <h2><span class="n">3</span>Linhas do orçamento <button class="btn sm ghost" style="margin-left:auto" onclick="abrirImp()">⤓ Importar orçamento</button></h2>
+ <div id="linesWrap"></div>
+ <div id="optWrap"></div>
+ <div class="row r3" style="margin-top:14px">
+  <label class="f">Desconto global<select id="dgTipo" onchange="calc()"><option value="p">%</option><option value="e">€</option></select></label>
+  <label class="f">Valor<input id="dgVal" type="number" value="0" oninput="calc()"></label>
+  <label class="f">Motivo (interno)<input id="dgMot" placeholder="ex.: familiar de paciente"></label>
+ </div>
+ <div class="xopt"><label><input type="checkbox" id="dtTot" onchange="calc()"> Mostrar o desconto total no orçamento</label><label><input type="checkbox" id="cerV" checked onchange="calc()"> Realçar as vantagens da cerâmica (quando há prótese cerâmica)</label></div>
+ <div class="tot" id="tot"></div>
+</div>
+
+<div class="card">
+ <h2><span class="n">4</span>Modalidade de pagamento</h2>
+ <p class="hint">A opção escolhida aparece no orçamento do paciente; "Prestações" liga ao contrato de financiamento da app (?doc=contrato).</p>
+ <div class="pay" id="pay">
+  <div class="pc" data-m="pp"><div class="ic">&#x1F4B6;</div><b>Pronto pagamento</b><small>Valor total no início do tratamento</small></div>
+  <div class="pc" data-m="fa"><div class="ic">&#x1F9B7;</div><b>Faseado por fase</b><small>Sinal na marcação · cada fase no seu dia</small></div>
+  <div class="pc on" data-m="pr"><div class="ic">&#x1F4C4;</div><b>Prestações sem juros</b><small>Entrada + débito direto · contrato da clínica</small></div>
+  <div class="pc" data-m="fe"><div class="ic">&#x1F3E6;</div><b>Financiamento externo</b><small>Abanca · FLOA · Parcela Já</small></div>
+ </div>
+ <div class="paybox" id="paybox"></div>
+</div>
+
+<div class="card notes" id="notasCard">
+ <h2><span class="n">5</span>Notas do orçamento</h2>
+ <label><input type="checkbox" checked data-val="1"> Os valores orçamentados são válidos pelo período indicado em "Validade" (1 mês por defeito).</label>
+ <label><input type="checkbox"> O orçamento poderá ser ajustado após análise do CBCT e simulação em software de planeamento de implantes. Em caso de atrofia óssea severa poderão ser necessários implantes zigomáticos, com avaliação e orçamento específicos.</label>
+ <label><input type="checkbox"> Valores por arcada.</label>
+ <label class="f" style="display:block;margin-top:8px">Nota livre<textarea rows="2" placeholder="Visível para o paciente"></textarea></label>
+ <div class="acts" style="margin-top:14px">
+  <button class="btn ghost" onclick="novoOrc()">Novo</button><button class="btn ghost" onclick="guardarRascunho()">Guardar rascunho</button><button class="btn ghost" onclick="criarAlternativa()" title="Guarda este orçamento e abre uma cópia com novo n.º para alterar">Guardar e criar alternativa</button>
+  <button class="btn" onclick="abrirDoc()">Pré-visualizar PDF</button>
+  <button class="btn g" onclick="abrirEnvio()">Enviar ao paciente e guardar ✉</button>
+  <button class="btn p" onclick="contrato()">Gerar contrato de prestações →</button>
+ </div>
+</div>
+
+</div>
+
+<!-- painel direito -->
+<aside class="side"><div class="card sim">
+ <h2 style="margin-bottom:12px">Simulação rápida &amp; risco</h2>
+ <div class="hero"><div class="l">Total do orçamento</div><div class="v" id="sTot">0 €</div>
+  <div class="g3"><div>Entrada<b id="sEnt">0 €</b></div><div>Financiado<b id="sFin">0 €</b></div><div>Mensalidade<b id="sMen">0 €</b></div></div></div>
+ <div class="q"><div class="t">Entrada <span id="eLbl">25%</span></div><input type="range" id="eR" min="0" max="100" step="5" value="25" oninput="calc()"></div>
+ <div class="q"><div class="t">Prestações</div><div class="s" id="qPrest"></div></div>
+ <div class="q"><div class="t">Idade <span id="idLbl">—</span></div><div class="s" id="qIdade"></div></div>
+ <div class="q"><div class="t">Situação profissional</div><div class="s" id="qProf"></div></div>
+ <div class="q"><div class="t">Histórico na clínica</div><div class="s" id="qHist"></div></div>
+ <div class="q"><div class="t">Débito direto (SEPA)</div><div class="s" id="qSepa"></div></div>
+ <div class="q"><div class="t">Rendimento líquido mensal <span>opcional</span></div><input id="rend" type="number" placeholder="€ / mês" oninput="calc()" style="width:100%;padding:9px 12px;border:1px solid #e1ded6;border-radius:11px;background:#fbfaf8"></div>
+ <div class="gauge"><i id="gI"></i></div><div class="gl"><span>Baixo</span><span>Moderado</span><span>Elevado</span></div>
+ <div class="verdict" id="verd"></div>
+ <div class="why" id="why"></div>
+</div></aside>
+</div></section>
+
+<!-- ============ PASTA ============ -->
+<section class="view" id="v-pasta">
+ <div class="kpis">
+  <div class="kpi"><div class="l">Em aberto</div><div class="v">23</div><div class="s" style="color:var(--mut)">68 420 € por aceitar</div></div>
+  <div class="kpi"><div class="l">Aceites em setembro</div><div class="v">11</div><div class="s">+3 que agosto</div></div>
+  <div class="kpi"><div class="l">Taxa de aceitação (90 dias)</div><div class="v">41%</div><div class="s">implantologia</div></div>
+  <div class="kpi"><div class="l">A expirar esta semana</div><div class="v">4</div><div class="s" style="color:var(--warn)">lembrar o paciente</div></div>
+ </div>
+ <div class="card">
+  <div class="filters"><input id="fQ" oninput="desenharPasta()" placeholder="Pesquisar paciente ou n.º" style="flex:1;min-width:200px"><select id="fU" onchange="desenharPasta()"><option value="">Todas as unidades</option><option value="faiscas">Faíscas</option><option value="aveiro">Aveiro</option></select><select id="fE" onchange="desenharPasta()"><option value="">Todos os estados</option><option>Rascunho</option><option>Entregue</option><option>Aceite</option><option>Parcialmente aceite</option><option>Recusado</option><option>Expirado</option></select><button class="btn sm ghost" onclick="carregarLista()">↻</button></div>
+  <table class="list"><thead><tr><th>N.º</th><th>Paciente</th><th>Data</th><th>Valor</th><th>Pagamento</th><th>Estado</th><th>Validade</th><th></th></tr></thead><tbody id="lista"></tbody></table>
+  
+ </div>
+</section>
+
+<!-- ============ PREÇOS ============ -->
+<section class="view" id="v-precos">
+ <div class="card">
+  <h2>Tabela de preços por unidade <button class="btn sm p" style="margin-left:auto" onclick="gravarPrecos()">Gravar (supervisão)</button></h2>
+  <p class="hint">Valores por defeito retirados dos orçamentos do iMED (2025–2026). Alterar aqui muda os códigos rápidos; para gravar é pedido o código de supervisão. <span class="flag"></span> = por confirmar.</p>
+  <table class="prices"><thead><tr><th>Descrição</th><th>Código</th><th style="text-align:right">Faíscas</th><th style="text-align:right">Aveiro</th></tr></thead><tbody id="tp"></tbody></table>
+ </div>
+ <div class="card"><h2>Códigos rápidos (pacotes)</h2><p class="hint">O que cada código acrescenta ao orçamento.</p><div class="bund" id="bund"></div></div>
+</section>
+</div>
+
+<div class="modal" id="modal"><div class="mclose" style="display:flex;gap:8px"><button class="btn" onclick="editarDoc()">✎ Editar texto (supervisão)</button><button class="btn ghost" style="background:#fff" onclick="abrirDocLimpo()">Repor</button><button class="btn p" onclick="fecharDoc()">Fechar ✕</button></div><div class="doc" id="doc"></div></div>
+<div class="modal" id="imp" style="padding-top:60px"><div class="card" style="max-width:720px;margin:0 auto">
+ <h2>Importar orçamento <button class="btn sm ghost" style="margin-left:auto" onclick="$('imp').classList.remove('on')">Fechar ✕</button></h2>
+ <p class="hint">Copia as linhas e os dados do paciente para este orçamento. Depois acrescentas o que quiseres e ajustas maxilares, ordem e valores.</p>
+ <div class="seg" id="impTabs" style="margin-bottom:14px"><button class="on" data-t="pasta">Da pasta de orçamentos</button><button data-t="pdf">PDF do orçamento</button><button data-t="imed">Do iMED (copiar e colar)</button></div>
+ <div id="impPdf" style="display:none"><label id="drop" style="display:block;border:1.5px dashed var(--g);border-radius:14px;padding:30px;text-align:center;background:var(--ch);cursor:pointer"><div style="font-size:26px">&#x1F4C4;</div><b>Arrasta aqui o PDF do orçamento</b><div class="mini" style="margin-top:4px">ou clica para escolher · PDF gerado pelo iMED</div><input type="file" id="pdfIn" accept="application/pdf" style="display:none"></label><div id="pdfRes" class="mini" style="margin-top:10px"></div></div>
+ <div id="impPasta"></div>
+ <div id="impImed" style="display:none">
+  <p class="mini" style="margin:0 0 8px">No iMED abre o orçamento, seleciona a tabela dos artigos (Artigo · IVA · Valor · Desc. · Quant. · Total), copia (Ctrl+C) e cola aqui:</p>
+  <textarea id="impTxt" rows="8" style="width:100%;padding:12px;border:1px solid #e1ded6;border-radius:12px;background:#fbfaf8;font:12px Montserrat" placeholder="Cola aqui as linhas do orçamento do iMED"></textarea>
+  <div class="acts" style="margin-top:10px"><button class="btn p" onclick="importarImed()">Importar linhas</button></div>
+  <div id="impRes" class="mini" style="margin-top:8px"></div>
+ </div>
+</div></div>
+<div class="modal" id="env" style="padding-top:50px"><div class="card" style="max-width:640px;margin:0 auto">
+ <h2>Enviar ao paciente e guardar <button class="btn sm ghost" style="margin-left:auto" onclick="$('env').classList.remove('on')">Fechar ✕</button></h2>
+ <p class="hint">O PDF é gerado a partir do orçamento, enviado por email e guardado na Drive da unidade — tudo num clique.</p>
+ <div class="row r2"><label class="f">Para<input id="eTo"></label><label class="f">De<input id="eFrom" readonly></label></div>
+ <label class="f" style="display:block;margin-top:10px">Assunto<input id="eSub"></label>
+ <label class="f" style="display:block;margin-top:10px">Mensagem<textarea id="eMsg" rows="6"></textarea></label>
+ <div class="paste" style="margin-top:12px;border-style:solid">&#x1F4CE; <span id="eAnexo"></span></div>
+ <div id="eOutros" class="notes" style="margin-top:4px"></div>
+ <div class="notes" style="margin-top:4px">
+  <label><input type="checkbox" checked id="eCc"> Cópia para a clínica (<span id="eCcMail"></span>)</label>
+  <label><input type="checkbox" checked id="eDrive"> Guardar na Drive · <b id="eFolder"></b></label>
+  <label><input type="checkbox" checked id="eImed"> Pôr também na pasta <b id="eImedF"></b> para importar no iMED</label>
+ </div>
+ <div class="acts" style="margin-top:12px"><button class="btn ghost" onclick="abrirDoc()">Ver PDF</button><button class="btn p" onclick="enviar()">Enviar e guardar</button></div>
+ <div id="eOk" class="mini" style="margin-top:10px"></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const LOGO='<img src="'+(window.ORC_LOGO||'')+'" style="width:100%;display:block" alt="Jesus Mar Couto">'; try{document.getElementById('logoTop').src=window.ORC_LOGO||'';}catch(e){}
+// ---------- tabela de preços (F = Faíscas, A = Aveiro; c = confirmar) ----------
+const P={
+ AVAL:{d:'Consulta de medicação e avaliação pré-cirúrgica',i:'—',F:90,A:90},
+ PLAN:{d:'Profilaxia dentária e planeamento cirúrgico',i:'—',F:120,A:120},
+ IMP:{d:'Cirurgia para colocação de implante',i:'07.02.01.01',F:600,A:600,c:1},
+ IMI:{d:'Implante imediato pós-extração',i:'07.02.01.08',F:650,A:650},
+ IMPR:{d:'Impressão / scanner para reabilitação definitiva',i:'—',F:90,A:90},
+ COR:{d:'Coroa cerâmica aparafusada sobre implante',i:'08.58.01.03',F:600,A:550,c:1},
+ PROV:{d:'Coroa provisória sobre implante',i:'08.54.01.04',F:120,A:120},
+ ROG:{d:'Regeneração óssea simultânea',i:'07.04.01.02',F:490,A:480},
+ SEIO:{d:'Elevação de seio maxilar com biomateriais',i:'—',F:890,A:890,cA:1},
+ EXO:{d:'Exodontia',i:'—',F:60,A:60},
+ ALL4:{d:'Cirurgia de colocação de 4 implantes dentários com prótese fixa provisória',i:'—',F:4650,A:4650},
+ PFH:{d:'Prótese fixa definitiva híbrida',i:'—',F:2250,A:2250},
+ PFP:{d:'Prótese fixa definitiva híbrida premium',i:'—',F:2850,A:2850},
+ PFC:{d:'Prótese fixa definitiva cerâmica',i:'—',F:4450,A:4450},
+ ZIG:{d:'Implante zigomático (por implante)',i:'07.02.01.07',F:1400,A:1600}
+};
+const OPT={PFH:{n:'Opção 1',t:'Híbrida',s:'Acrílico'},PFP:{n:'Opção 2',t:'Híbrida Premium',s:'Acrílico de elevada caracterização'},PFC:{n:'Opção 3',t:'Cerâmica',s:'Cerâmica de alta resistência'}};
+// pacotes: per = por dente; once = uma vez; arc = n.º de arcadas
+const B={
+ IMP:{t:'Implante unitário',s:'cirurgia + impressão + coroa',per:['IMP','COR'],once:['IMPR']},
+ IMI:{t:'Implante imediato',s:'pós-extração + coroa',per:['EXO','IMI','PROV','COR'],once:['IMPR']},
+ IMPO:{t:'Implante + osso',s:'implante + regeneração + coroa',per:['IMP','ROG','COR'],once:['IMPR']},
+ A4S:{t:'All-on-4 superior',s:'1 arcada · prótese à escolha',arc:1,once:['PLAN','AVAL'],perArc:['ALL4','IMPR','PF']},
+ A4I:{t:'All-on-4 inferior',s:'1 arcada · prótese à escolha',arc:1,once:['PLAN','AVAL'],perArc:['ALL4','IMPR','PF']},
+ A4B:{t:'All-on-4 bimaxilar',s:'2 arcadas',arc:2,once:['PLAN','AVAL'],perArc:['ALL4','IMPR','PF']},
+ ZIG:{t:'Zigomático',s:'por implante',per:['ZIG']},
+ SEIO:{t:'Elevação de seio',s:'por lado',per:['SEIO']}
+};
+let U='F', pf='PFH', show3=false, modo='pr', prest=24;
+const FA={s:1,v:450,p:40};
+const ans={idade:null,prof:'ef',hist:'novo',sepa:'prop'};
+const eur=v=>(Math.round(v*100)/100).toLocaleString('pt-PT',{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})+' €';
+const $=id=>document.getElementById(id);
+
+function chips(){ $('chips').innerHTML=Object.entries(B).map(([k,b])=>`<button class="chip" onclick="addB('${k}')"><span>${b.t}</span><small>${b.s}</small></button>`).join(''); }
+function dentes(){ return $('dentes').value.split(/[^0-9]+/).filter(x=>x.length>=2); }
+$('dentes').oninput=()=>{$('nd').textContent=dentes().length+' posições'};
+const ARC=t=>/^[1256]/.test(t)?'S':'I';
+const AN={S:'Maxilar superior',I:'Maxilar inferior',SI:'Maxilar superior e inferior',G:''};
+const FN={1:'Planeamento e avaliação pré-cirúrgica',2:'Fase cirúrgica',3:'Impressão',4:'Reabilitação definitiva'};
+let LS=[], uid=0;
+function line(code,q,pos,a){ const p=P[code]; return {id:++uid,code,d:p.d,q,u:p[U],disc:0,pos:pos||'',f:FASE[code]||2,a:a||'G'}; }
+const AO={G:0,S:1,I:2,SI:3};
+const FDI=/^(1[1-8]|2[1-8]|3[1-8]|4[1-8]|5[1-5]|6[1-5]|7[1-5]|8[1-5])$/;
+function dentesDe(txt){ const out=[]; String(txt||'').replace(/\b(\d{2})\b/g,(m,d)=>{ if(FDI.test(d)&&!out.includes(d)) out.push(d); return m; }); return out; }
+function arcDe(pos,txt){ const ds=dentesDe(pos); const s=ds.some(t=>ARC(t)=='S'), i=ds.some(t=>ARC(t)=='I');
+ if(s&&i) return 'SI'; if(s) return 'S'; if(i) return 'I';
+ const t=String(txt||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); const ws=/superior|maxilar sup|\bsup\b/.test(t), wi=/inferior|mandib|\binf\b/.test(t);
+ if(/bimaxilar|superior e inferior|sup\.? e inf/.test(t)||(ws&&wi)) return 'SI'; if(ws) return 'S'; if(wi) return 'I'; return ''; }
+function setPos(i,v){ const l=LS[i]; const ds=dentesDe(v); l.pos=ds.length?ds.join(', '):String(v).trim(); const a=arcDe(l.pos); if(a) l.a=a; sortLS(); render(); }
+function setArc(i,v){ LS[i].a=v; sortLS(); render(); }
+function sortLS(){ LS=LS.map((l,i)=>[l,i]).sort((x,y)=>(x[0].f-y[0].f)||(AO[x[0].a]-AO[y[0].a])||(x[1]-y[1])).map(x=>x[0]); }
+function addB(k){ const b=B[k]; const ds=dentes(); const by={S:ds.filter(t=>ARC(t)=='S'),I:ds.filter(t=>ARC(t)=='I')};
+ const arcs=ds.length?['S','I'].filter(a=>by[a].length):['G'];
+ if(b.per) arcs.forEach(a=>b.per.forEach(c=>LS.push(line(c,Math.max((by[a]||[]).length,1),(by[a]||[]).join(', '),a))));
+ if(b.once) b.once.forEach(c=>{ if(c=='IMPR') arcs.forEach(a=>LS.push(line(c,1,'',a))); else if(!LS.some(l=>l.code==c)) LS.push(line(c,1)); });
+ if(b.perArc){ const as=k=='A4S'?['S']:k=='A4I'?['I']:['S','I']; as.forEach(a=>b.perArc.forEach(c=>{ if(c=='PF') LS.push(Object.assign(line(pf,1,'',a),{pf:1})); else LS.push(line(c,1,'',a)); })); }
+ sortLS(); $('dentes').value=''; $('nd').textContent='0 posições'; render(); }
+function hasA4(){ return LS.some(l=>l.pf); }
+const sec=l=>l.f+l.a;
+function mv(i,d){ const j=i+d; if(j<0||j>=LS.length) return; const x=LS[i],y=LS[j];
+ if(sec(x)==sec(y)){ LS[i]=y; LS[j]=x; } else { x.f=y.f; x.a=y.a; sortLS(); } render(); }
+function del(i){ LS.splice(i,1); render(); }
+function par(i){ const x=LS[i]; return LS.findIndex((l,k)=>k!==i&&l.code==x.code&&l.f==x.f&&l.u==x.u&&l.disc==x.disc&&(l.a==x.a||(!l.pos&&!x.pos))); }
+function juntar(i){ const j=par(i); if(j<0) return; const x=LS[i],y=LS[j]; const k=Math.min(i,j), o=k==i?y:x, t=LS[k];
+ if(t.a!==o.a){ const nm=a=>({S:'sup.',I:'inf.'}[a]||''); t.pos=[t.pos,o.pos].filter(Boolean).join(', '); t.a=((t.a=='S'&&o.a=='I')||(t.a=='I'&&o.a=='S'))?'SI':'G'; } else t.pos=[t.pos,o.pos].filter(Boolean).join(', ');
+ t.q+=o.q; LS.splice(LS.indexOf(o),1); sortLS(); render(); toast('Linhas juntas: '+t.d+' × '+t.q); }
+function render(){
+ if(!LS.length){ $('linesWrap').innerHTML='<div class="empty">Ainda sem linhas — escolha um código rápido acima.</div>'; $('optWrap').innerHTML=''; calc(); return; }
+ let h='<table class="lines"><thead><tr><th></th><th>Descrição</th><th>Dentes</th><th class="num">Qt.</th><th class="num">Preço</th><th class="num">Desc. %</th><th class="num">Total</th><th></th></tr></thead><tbody>';
+ let lf=0, la=null;
+ LS.forEach((l,i)=>{ if(l.f!==lf){ lf=l.f; la=null; h+=`<tr class="grp"><td colspan="8">${FN[l.f]}</td></tr>`; }
+  if(l.a!==la){ la=l.a; if(l.a!=='G') h+=`<tr class="arc"><td></td><td colspan="7">${AN[l.a]}</td></tr>`; }
+  const fl=(P[l.code].c||P[l.code]['c'+U])?'<span class="flag" title="por confirmar"></span>':'';
+  const pj=par(i)>=0?`<button class="ib j" title="Juntar com a linha igual (soma quantidades)" onclick="juntar(${i})">⊕</button>`:'';
+  h+=`<tr><td class="mvs"><button class="ib" onclick="mv(${i},-1)" title="Subir">▲</button><button class="ib" onclick="mv(${i},1)" title="Descer">▼</button></td>
+   <td>${l.d}${fl}${P[l.code].i!=='—'?'<div class="cod">'+P[l.code].i+'</div>':''}<input class="nota" placeholder="+ escrever à frente (aparece no orçamento)" value="${(l.nota||'').replace(/"/g,'&quot;')}" oninput="LS[${i}].nota=this.value"></td><td class="mini"><input class="pos" value="${String(l.pos||'').replace(/"/g,'&quot;')}" placeholder="ex.: 36" onchange="setPos(${i},this.value)" style="width:74px;padding:5px 7px;border:1px solid #e6e1d6;border-radius:8px;font:11px Montserrat;background:#fff"><select onchange="setArc(${i},this.value)" title="Maxilar" style="display:block;margin-top:4px;width:74px;padding:3px 4px;border:1px solid #e6e1d6;border-radius:8px;font:10.5px Montserrat;background:${l.a=='G'?'#fff6e0':'#fff'}">${[['G','Maxilar?'],['S','Superior'],['I','Inferior'],['SI','Sup.+Inf.']].map(([k,t])=>`<option value="${k}"${l.a==k?' selected':''}>${t}</option>`).join('')}</select></td>
+   <td class="num"><input class="q" type="number" value="${l.q}" oninput="upd(${i},'q',this.value)"></td>
+   <td class="num"><input type="number" value="${l.u}" oninput="upd(${i},'u',this.value)"></td>
+   <td class="num"><input class="d" type="number" value="${l.disc}" oninput="upd(${i},'disc',this.value)"></td>
+   <td class="num" id="lt${i}">${eur(lt(l))}</td><td style="white-space:nowrap">${pj}<button class="ib x" onclick="del(${i})" title="Remover">✕</button></td></tr>`; });
+ $('linesWrap').innerHTML=h+'</tbody></table><p class="mini" style="margin:10px 0 0">▲▼ muda a ordem — ao passar o limite de um grupo, a linha muda de maxilar ou de fase. ⊕ junta duas linhas iguais (ex.: os dois scanners) somando o valor.</p>';
+ $('optWrap').innerHTML=hasA4()?`<div class="opts"><span class="mini" style="align-self:center;margin-right:4px">Prótese definitiva:</span>${Object.entries(OPT).map(([c,o])=>`<button class="btn sm ${pf==c&&!show3?'p':'ghost'}" onclick="setPF('${c}')">${o.t} · ${eur(P[c][U])}</button>`).join('')}<button class="btn sm ${show3?'g':'ghost'}" onclick="show3=!show3;render()">Apresentar as 3 opções</button></div>`:'';
+ calc(); }
+function setPF(c){ pf=c; show3=false; LS.forEach(l=>{ if(l.pf){ l.code=c; l.d=P[c].d; l.u=P[c][U]; } }); render(); }
+function upd(i,k,v){ LS[i][k]=parseFloat(v)||0; $('lt'+i).textContent=eur(lt(LS[i])); calc(); }
+const lt=l=>l.q*l.u*(1-l.disc/100);
+function subtotal(code){ // total com a prótese "code" (para comparar opções)
+ let s=0; LS.forEach(l=>{ if(l.pf&&code){ s+=l.q*P[code][U]*(1-l.disc/100);} else s+=lt(l); }); return s; }
+function totalCom(sub){ const v=parseFloat($('dgVal').value)||0; return Math.max(0,$('dgTipo').value=='p'?sub*(1-v/100):sub-v); }
+function idade(){ const d=$('pNasc').value; if(!d) return ans.idade; const b=new Date(d),n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate())) a--; return a; }
+
+function seg(id,opts,key,fn){ $(id).innerHTML=opts.map(([v,t])=>`<button data-v="${v}" class="${ans[key]==v||(key=='prest'&&prest==v)?'on':''}">${t}</button>`).join('');
+ $(id).onclick=e=>{ const b=e.target.closest('button'); if(!b) return; if(key=='prest') prest=+b.dataset.v; else ans[key]=isNaN(b.dataset.v)?b.dataset.v:+b.dataset.v; [...$(id).children].forEach(x=>x.classList.toggle('on',x==b)); calc(); }; }
+
+function calc(){
+ const sub=subtotal(), tot=totalCom(sub), dg=sub-tot;
+ const ep=+$('eR').value; $('eLbl').textContent=ep+'%';
+ const ent=tot*ep/100, fin=tot-ent, men=prest?fin/prest:0, fee=75;
+ $('tot').innerHTML=`<span class="mut">Subtotal</span><span>${eur(sub)}</span>${dg>0?`<span class="mut">Desconto global</span><span>− ${eur(dg)}</span>`:''}<span class="big">Total</span><span class="big">${eur(tot)}</span>`;
+ $('sTot').textContent=eur(tot); $('sEnt').textContent=eur(ent); $('sFin').textContent=eur(fin); $('sMen').textContent=eur(men);
+ // pagamento
+ let pb='';
+ if(modo=='pr') pb=`<div class="kv"><span>Entrada (${ep}%)</span><b>${eur(ent)}</b></div><div class="kv"><span>Abertura de contrato</span><b>${eur(fee)}</b></div><div class="kv"><span>Pago no dia da entrada</span><b>${eur(ent+fee)}</b></div><div class="kv"><span>${prest} prestações mensais sem juros</span><b>${eur(men)}</b></div><div class="kv"><span>Débito direto (SEPA) · dia</span><b>10 de cada mês</b></div><div class="sched">${sched(fin,prest)}</div>`;
+ if(modo=='pp') pb=`<div class="kv"><span>Pago no início do tratamento</span><b>${eur(tot)}</b></div><div class="mini">Pode aplicar um desconto de pronto pagamento no desconto global.</div>`;
+ if(modo=='fa') pb=faUI();
+ if(modo=='fe') pb=`<div class="kv"><span>Montante a financiar</span><b>${eur(tot)}</b></div><div class="mini">Simulação e aprovação feitas pela financeira (Abanca, FLOA ou Parcela Já), com as condições dela. A clínica recebe o valor total.</div>`;
+ $('paybox').innerHTML=pb; if(modo=='fa') faBind();
+ risco(tot,ep,fin,men);
+}
+function planoFa(){ const sub=subtotal(), tot=totalCom(sub), k=sub?tot/sub:1; const fl=x=>LS.filter(l=>l.f==x&&!(show3&&l.pf));
+ const c={1:0,2:0,3:0,4:0}; LS.forEach(l=>{ if(!(show3&&l.pf)) c[l.f]+=lt(l)*k; });
+ const P=[]; const s=FA.s&&c[2]>0?Math.min(+FA.v||0,c[2]):0;
+ if(s) P.push({q:'Na adjudicação do orçamento',d:'Sinal para reservar a data da cirurgia — é descontado no valor da fase cirúrgica',v:s,k:'sinal'});
+ fl(1).forEach(l=>P.push({q:/avalia|medica/i.test(l.d)?'Na consulta de avaliação pré-cirúrgica':/profilax|planea/i.test(l.d)?'Na consulta de profilaxia e planeamento':'Na consulta respetiva',d:l.d,v:lt(l)*k}));
+ if(c[2]>0) P.push({q:'No dia da cirurgia',d:'Fase cirúrgica'+(s?' (valor de '+eur(c[2])+', descontado o sinal de '+eur(s)+')':''),v:c[2]-s});
+ if(c[3]>0) P.push({q:'Na impressão, após boa cicatrização',d:'Impressão para a reabilitação definitiva',v:c[3]});
+ const p4=show3?null:c[4];
+ if(c[4]>0||show3){ P.push({q:'No início da reabilitação definitiva',d:FA.p+'% da reabilitação definitiva — início do processo, com as provas',v:p4==null?null:p4*FA.p/100,pc:FA.p});
+  P.push({q:'Na entrega da prótese fixa',d:(100-FA.p)+'% da reabilitação definitiva',v:p4==null?null:p4*(100-FA.p)/100,pc:100-FA.p}); }
+ return P; }
+function faUI(){ const P=planoFa();
+ return `<label class="fa-sw"><input type="checkbox" id="faS" ${FA.s?'checked':''}> Sinal para reservar a data da cirurgia <input type="number" id="faV" value="${FA.v}" min="0" step="50" ${FA.s?'':'disabled'}> €</label>
+ <div class="fa-row"><span>Reabilitação definitiva: no início</span><span class="seg fa-seg">${[30,40,50].map(x=>`<button data-p="${x}" class="${FA.p==x?'on':''}">${x}%</button>`).join('')}</span><span class="mini">resto na entrega</span></div>
+ <ol class="fa-l">${P.map(x=>`<li><div><b>${x.q}</b><small>${x.d}</small></div><span>${x.v==null?x.pc+'%':eur(x.v)}</span></li>`).join('')}</ol>`; }
+function faBind(){ const s=$('faS'); if(!s) return; s.onchange=()=>{FA.s=s.checked?1:0;calc();}; $('faV').onchange=()=>{FA.v=Math.max(0,+$('faV').value||0);calc();};
+ document.querySelectorAll('.fa-seg button').forEach(b=>b.onclick=()=>{FA.p=+b.dataset.p;calc();}); }
+function sched(fin,n){ if(!n) return ''; const d=new Date(); let s=[]; for(let i=1;i<=n;i++){ const x=new Date(d.getFullYear(),d.getMonth()+i,10); s.push(x.toLocaleDateString('pt-PT',{month:'short',year:'2-digit'})); } return n+' débitos de '+eur(fin/n)+': '+s[0]+' → '+s[s.length-1]; }
+
+function risco(tot,ep,fin,men){
+ const a=idade(); $('idLbl').textContent=a!=null?a+' anos':'—';
+ let pts=0, why=[];
+ const add=(p,t)=>{ if(p){pts+=p; why.push((p>0?'+':'')+p+' '+t);} };
+ if(a!=null){ if(a<25) add(2,'idade < 25'); else if(a>75) add(2,'idade > 75'); else if(a>65) add(1,'idade 66–75'); if(a+prest/12>82) add(1,'prazo termina depois dos 82 anos'); }
+ if(ep>=40) add(-1,'entrada ≥ 40%'); else if(ep<15) add(3,'entrada < 15%'); else if(ep<25) add(2,'entrada abaixo de 25%');
+ if(prest>=36) add(2,'36 prestações'); else if(prest>=18) add(1,prest+' prestações');
+ add({ef:0,ref:0,ind:1,sem:3}[ans.prof],{ind:'trabalhador independente',sem:'sem rendimento próprio'}[ans.prof]||'');
+ add({bom:-1,novo:0,atr:3}[ans.hist],{bom:'bom pagador na clínica',atr:'atrasos anteriores'}[ans.hist]||'');
+ add({prop:0,ter:1,nao:3}[ans.sepa],{ter:'pagador é outra pessoa',nao:'sem débito direto'}[ans.sepa]||'');
+ const r=parseFloat($('rend').value); if(r>0&&men>0){ const te=men/r*100; if(te>30) add(3,'mensalidade = '+te.toFixed(0)+'% do rendimento'); else if(te>15) add(1,'mensalidade = '+te.toFixed(0)+'% do rendimento'); }
+ if(fin>8000) add(1,'financiado > 8 000 €');
+ if(!tot){ $('verd').innerHTML='<div class="mini">Adicione tratamentos para simular.</div>'; $('verd').className='verdict'; $('gI').style.left='0%'; $('why').textContent=''; return; }
+ const lvl=pts<=2?'b':pts<=5?'m':'e'; $('gI').style.left=Math.min(97,Math.max(1,(pts+2)/11*100))+'%';
+ const R={b:['Risco baixo','v-b',['Pode avançar com 25% de entrada e até 24–36 prestações.','Débito direto no IBAN do paciente.'],25,24],
+  m:['Risco moderado','v-m',['Sugerir entrada de 35% e no máximo 18–24 prestações.','Débito direto obrigatório; confirmar IBAN e morada.','Iniciar a prótese definitiva só com as prestações em dia.'],35,18],
+  e:['Risco elevado','v-e',['Entrada mínima de 50% ou pagamento faseado por fase.','Máximo 12 prestações.','Pedir terceiro outorgante (fiador) no contrato.'],50,12]}[lvl];
+ $('verd').className='verdict '+R[1]; $('verd').innerHTML=`<h4>${R[0]} · ${pts} pts</h4><ul>${R[2].map(x=>'<li>'+x+'</li>').join('')}</ul><button class="btn sm p" style="margin-top:10px" onclick="aplicar(${R[3]},${R[4]})">Aplicar recomendação</button>`;
+ $('why').textContent=why.length?'Porquê: '+why.join(' · '):'';
+}
+function aplicar(e,n){ if(+$('eR').value<e) $('eR').value=e; if(prest>n) prest=n; seg('qPrest',[[6,'6'],[12,'12'],[18,'18'],[24,'24'],[36,'36']],'prest'); calc(); toast('Recomendação aplicada: entrada '+$('eR').value+'% · '+prest+' prestações'); }
+
+document.querySelectorAll('#pay .pc').forEach(c=>c.onclick=()=>{ document.querySelectorAll('#pay .pc').forEach(x=>x.classList.toggle('on',x==c)); modo=c.dataset.m; calc(); });
+$('tabs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; [...$('tabs').children].forEach(x=>x.classList.toggle('on',x==b)); document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id=='v-'+b.dataset.v)); };
+$('unSeg').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; U=b.dataset.u; [...$('unSeg').children].forEach(x=>x.classList.toggle('on',x==b)); LS.forEach(l=>l.u=P[l.code][U]); $('numorc').textContent='N.º '+U+'-2026/'+(U=='F'?'0143':'0092')+' · rascunho'; render(); toast('Preços de '+(U=='F'?'Faíscas':'Aveiro')); };
+
+// ---------- importar ----------
+const EXIMED='';
+const MAP=[[/zigom/i,'ZIG'],[/(4|quatro) implantes|provisionaliza/i,'ALL4'],[/imediato/i,'IMI'],[/coroa.*(implante|aparafus)/i,'COR'],[/provis.*(coroa|implante)/i,'PROV'],[/cer[aâ]mica.*implantes|implantes.*cer[aâ]mica/i,'PFC'],[/premium/i,'PFP'],[/(h[ií]brida|acr[ií]lic|pr[oó]tese fixa)/i,'PFH'],[/impress|scanner/i,'IMPR'],[/seio/i,'SEIO'],[/regenera|enxerto/i,'ROG'],[/exodontia|extra[cç][aã]o/i,'EXO'],[/avalia|medica[cç]/i,'AVAL'],[/destartariza|profilaxia|planeamento/i,'PLAN'],[/implante/i,'IMP']];
+let xn=0;
+const nr=s=>parseFloat(String(s).replace(/\./g,'').replace(',','.'))||0;
+const NAO=/^(total|sub-?total|iva|total iva|desconto|valor|base|incid|pago|a pagar|artigo|descri|quadro|resumo|taxa|isento|isen[çc][aã]o|motivo|regime|pagamento|vencimento|data|n\.?º|contribuinte|nif|morada|cliente|utente|observa)/i;
+const FIM=/quadro\s+resumo|resumo\s+do\s+iva|total\s+(a\s+pagar|do\s+documento|l[ií]quido)|^\s*total\b/i;
+const CAB=/\bartigo\b.*\bdescri|\bdescri\S*\b.*\b(quant|pr\.?\s*unit|total)/i;
+function importarLinhas(ls){ let ok=0, novos=[], last=null, fim=false;
+ const txt=l=>typeof l=='string'?l:l.t; const hi=ls.findIndex(l=>CAB.test(txt(l))); let dentro=hi<0;
+ ls.forEach((o,idx)=>{ if(fim) return; const t0=txt(o); if(hi>=0&&idx<=hi){ return; } if(/@/.test(t0)){ last=null; return; } if(FIM.test(t0)&&novos.length){ fim=true; return; } if(/quadro\s+resumo|resumo\s+do\s+iva/i.test(t0)) { last=null; return; } const t=t0.replace(/(\d)[ \u00a0\u202f](?=\d{3}\b)/g,'$1.');
+  let eurs=[...t.matchAll(/(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:,\d{1,2})?)\s*€/g)].map(m=>nr(m[1]));
+  const cells=t.split(/\t|\s{2,}|\s*;\s*/).map(x=>x.trim()).filter(Boolean);
+  const d0=(cells[0]||'').replace(/^\d{2}(\.\d{2}){2,3}\s+/,'').trim();
+  let qCell=0;
+  if(!eurs.length&&cells.length>1){ // iMED sem «€»: células numéricas (Valor, Total) e quantidade
+   cells.slice(1).forEach(c=>{ if(/%$/.test(c)) return; const m=c.match(/^(\d{1,3}(?:[.\s]\d{3})*|\d+)(?:,(\d{1,2}))?(?:\s*(UN|un|x))?$/); if(!m) return;
+    const v=nr(m[1].replace(/\s/g,'')+(m[2]?','+m[2]:'')); if(!v) return; if(!m[2]&&!m[3]&&FDI.test(String(v))) return; if(m[3]||(!m[2]&&v>0&&v<=50&&!qCell)) { if(!qCell) qCell=v; } else eurs.push(v); }); }
+  if(!eurs.length){ if(last&&(o.cont||hi>=0||typeof o=='string')&&d0&&!NAO.test(d0)&&!/^(dados|outras|observa)/i.test(d0)){ last.d=(last.d+' '+d0).replace(/\s*-\s*Prótese Fixa implanto suportada/i,''); last.recode=true; const nd=dentesDe(d0); if(nd.length){ last.pos=[...new Set([...(last.pos?last.pos.split(', '):[]),...nd])].join(', '); } const na=arcDe(last.pos,last.d+' '+d0); if(na) last.a=na; } else last=null; return; }
+  if(!d0||NAO.test(d0)||/^[\d.,]+\s*€?$/.test(d0)){ last=null; return; }
+  const pcs=[...t.matchAll(/([\d.,]+)\s*%/g)].map(m=>nr(m[1])); const q=nr((t.match(/([\d.,]+)\s*UN/i)||[])[1]||qCell||1)||1;
+  const l={raw:d0.replace(/\s*-\s*Prótese Fixa implanto suportada/i,'').trim(),u:eurs[0],q,disc:(pcs.find(v=>v&&![23,13,6].includes(v))||0)};
+  const dts=[...dentesDe(d0.replace(/^\d{2}(\.\d{2}){2,3}\s*/,'')),...cells.slice(1).flatMap(c=>/^[\d\s,;\/-]+$/.test(c)&&!/,\d{2}$/.test(c)&&c.replace(/\D/g,'').length>=2?dentesDe(c):[])].filter((x,k,a)=>a.indexOf(x)===k);
+  l.pos=dts.join(', '); l.a=arcDe(l.pos,t)||'G';
+  l.d=l.raw; novos.push(l); last=l; });
+ const fora=[], add=[];
+ novos.forEach(x=>{ let code=(MAP.find(m=>m[0].test(x.d))||[])[1];
+  if(!code){ code='X'+(++xn); P[code]={d:x.d,i:'—',F:x.u,A:x.u}; FASE[code]=/consulta|estudo/i.test(x.d)?1:2; fora.push(x.d); }
+  const l=line(code,x.q,x.pos||'',x.a||'G'); l.u=x.u; l.disc=x.disc; if(['PFH','PFP','PFC'].includes(code)) l.pf=1;
+  LS.push(l); add.push(l); ok++; });
+ const ars=[...new Set(add.map(l=>l.a).filter(a=>a!=='G'))]; if(ars.length==1) add.forEach(l=>{ if(l.a==='G'&&(FASE[l.code]||2)>1){ l.a=ars[0]; l.auto=1; } });
+ sortLS(); render(); const sem=add.filter(l=>l.a==='G'&&(FASE[l.code]||2)>1).length; return {ok,fora,sem}; }
+function importarImed(){ if(!$('impTxt').value.trim()){ $('impRes').textContent='Cola primeiro as linhas do orçamento copiadas do iMED.'; return; } const res=importarLinhas($('impTxt').value.split(/\n/).map(x=>x.trim()).filter(Boolean));
+ $('impRes').innerHTML=`${res.ok} linhas importadas com os valores do iMED.`+(res.fora.length?` Sem código pré-definido (entraram como estão): ${res.fora.join(', ')}.`:'')+(res.sem?` <b>${res.sem} linha(s) sem maxilar</b> — escolhe em «Maxilar?» ou escreve o dente.`:' Maxilares detetados pelos dentes.');
+ if(res.ok){ toast(res.ok+' linhas importadas'); setTimeout(()=>$('imp').classList.remove('on'),res.sem?2600:900); } else $('impRes').innerHTML='Não encontrei linhas com valores. No iMED seleciona só a tabela dos artigos (do nome do artigo até ao total de cada linha) e cola outra vez — ou usa o PDF do orçamento.'; }
+// ---- PDF ----
+function pdfjs(){ return window.pdfjsLib?Promise.resolve(pdfjsLib):new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src='https:\/\/cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; s.onload=()=>{ pdfjsLib.GlobalWorkerOptions.workerSrc='https:\/\/cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; ok(pdfjsLib); }; s.onerror=ko; document.head.appendChild(s); }); }
+async function lerPdf(f){ $('pdfRes').textContent='A ler o PDF…';
+ try{ const lib=await pdfjs(); const doc=await lib.getDocument({data:await f.arrayBuffer()}).promise; let linhas=[];
+  for(let pg=1;pg<=doc.numPages;pg++){ const tc=await (await doc.getPage(pg)).getTextContent(); const its=tc.items.filter(i=>i.str.trim()).map(i=>({s:i.str,x:i.transform[4],y:i.transform[5],w:i.width}));
+   const rows=[]; its.sort((a,b)=>b.y-a.y||a.x-b.x).forEach(i=>{ let r=rows.find(r=>Math.abs(r.y-i.y)<3); if(!r){ r={y:i.y,it:[]}; rows.push(r);} r.it.push(i); });
+   rows.forEach(r=>{ r.it.sort((a,b)=>a.x-b.x); let t='',px=null; r.it.forEach(i=>{ t+=(px==null?'':(i.x-px>8?'\t':' '))+i.s; px=i.x+i.w; }); linhas.push({t,x:r.it[0].x}); }); }
+  // dados do paciente
+  const tudo=linhas.map(l=>l.t).join('\n');
+  const L=linhas.map(l=>l.t.replace(/\t+/g,' ').trim());
+  const ex=L.findIndex(x=>/^Exmo/i.test(x));
+  let cli=(tudo.match(/(?:Cliente|Utente|Paciente|Nome)\s*:?\s*\t?\s*([^\n\t]+)/i)||[])[1]; let mor=(tudo.match(/Morada\s*:?\s*\t?\s*([^\n\t]+)/i)||[])[1];
+  if(ex>=0){ cli=L[ex+1]; const mm=[]; for(let k=ex+2;k<Math.min(ex+5,L.length);k++){ if(/^(dados|outras|or[çc]amento|endere|artigo)/i.test(L[k])||/@/.test(L[k])) break; mm.push(L[k]); } if(mm.length) mor=mm.join(', ').replace(/\s+,/g,','); }
+  if(cli) cli=cli.replace(/\b([A-ZÀ-Ý])([A-ZÀ-Ý'’]+)\b/g,(m,a,b)=>a+b.toLowerCase()).replace(/\b(De|Da|Do|Das|Dos|E)\b/g,w=>w.toLowerCase());
+  const ci=L.findIndex(x=>/Contrib/i.test(x)); const nifs=[...(ci>=0?L.slice(ci,ci+3).join(' '):tudo).matchAll(/\b(\d{9})\b/g)].map(m=>m[1]).filter(n=>n!=='514531592');
+  const emP=(tudo.match(/[^\s@:;,<>]+@[^\s@;,<>]+\.[a-z]{2,}/i)||[])[0]; if(emP&&!$('pEmail').value) $('pEmail').value=emP;
+  const obs=(tudo.match(/OUTRAS INFORMA[ÇC][ÕO]ES\s*:?\s*([^\n]+(?:\n(?!Or[çc]amento)[^\n\t]{0,80})?)/i)||[])[1];
+
+  if(cli&&!$('pNome').value) $('pNome').value=cli.trim(); if(nifs[0]&&!$('pNif').value) $('pNif').value=nifs[0].replace(/(\d{3})(\d{3})(\d{3})/,'$1 $2 $3'); if(mor&&!$('pMor').value) $('pMor').value=mor.trim();
+  // linhas da tabela: x da coluna de descrição = x das linhas com €
+  const xs=linhas.filter(l=>/€/.test(l.t)).map(l=>l.x); const xd=xs.sort((a,b)=>a-b)[0];
+  linhas.forEach(l=>{ l.cont=Math.abs(l.x-xd)<6; });
+  const res=importarLinhas(linhas); const num=(tudo.match(/Or[çc]amento\s*:?\s*([A-Z\-]+\/\d+)/i)||[])[1];
+  $('pdfRes').innerHTML=`<b>${res.ok} linhas importadas</b>${num?' do orçamento '+num:''}${cli?' · '+cli.trim():''}.`+(obs?` <br><span style="color:#8a6d1f">Nota do iMED: ${obs.replace(/\s+/g,' ').trim().replace(/</g,'&lt;')}</span><br>`:'')+(res.fora.length?` Sem código pré-definido: ${res.fora.join(', ')}.`:'')+(res.sem?` <b>${res.sem} linha(s) sem maxilar</b> — escolhe em «Maxilar?» ou escreve o dente.`:' Maxilares detetados pelos dentes.');
+  if(res.ok){ toast(res.ok+' linhas importadas do PDF'); setTimeout(()=>$('imp').classList.remove('on'),1500); }
+ }catch(e){ $('pdfRes').textContent='Não consegui ler este PDF ('+e.message+'). Se for uma digitalização (imagem), usa o copiar e colar do iMED.'; } }
+$('pdfIn').onchange=e=>{ if(e.target.files[0]) lerPdf(e.target.files[0]); };
+$('drop').ondragover=e=>{e.preventDefault(); $('drop').style.background='#fff';};
+$('drop').ondrop=e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) lerPdf(f); };
+const GUARD=[['F-2026/0142','Ana Fictícia Ramos','All-on-4 superior · híbrida',()=>{addB('A4S');}],['F-2026/0140','João Demo Pires','Implantes 35, 36, 46',()=>{$('dentes').value='35, 36, 46';addB('IMP');}],['A-2026/0089','Sofia Exemplo Dias','Implante + osso · 26',()=>{$('dentes').value='26';addB('IMPO');}]];
+function abrirImp(){ $('impPasta').innerHTML='<table class="list"><tbody>'+GUARD.map((g,i)=>`<tr><td class="numo">${g[0]}</td><td>${g[1]}</td><td class="mini">${g[2]}</td><td style="text-align:right"><button class="btn sm p" onclick="copiarG(${i})">Copiar para este orçamento</button></td></tr>`).join('')+'</tbody></table><p class="mini" style="margin-top:10px">As linhas são acrescentadas às que já tens; o paciente só é preenchido se estiver vazio.</p>'; $('imp').classList.add('on'); }
+function copiarG(i){ const g=GUARD[i]; if(!$('pNome').value) $('pNome').value=g[1]; g[3](); $('imp').classList.remove('on'); toast('Copiado de '+g[0]+' — podes acrescentar o que quiseres'); }
+$('impTabs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; [...$('impTabs').children].forEach(x=>x.classList.toggle('on',x==b)); $('impPasta').style.display=b.dataset.t=='pasta'?'':'none'; $('impImed').style.display=b.dataset.t=='imed'?'':'none'; $('impPdf').style.display=b.dataset.t=='pdf'?'':'none'; };
+
+// ---------- envio ----------
+function abrirEnvio(){
+ const un=U=='F'?'Faíscas':'Aveiro', mail=U=='F'?'faiscas@jesusmarcouto.pt':'aveiro@jesusmarcouto.pt';
+ const ref=$('numorc').textContent.split(' · ')[0].replace('N.º ',''); const nome=($('pNome').value||'Paciente').trim(); const pn=nome.split(/\s+/)[0];
+ $('eTo').value=$('pEmail').value||''; $('eFrom').value='Jesus Mar Couto <'+mail+'>';
+ $('eSub').value='O seu plano de tratamento · Jesus Mar Couto';
+ $('eMsg').value=`Olá ${pn},\n\nConforme conversado na consulta, enviamos em anexo o seu plano de tratamento (ref. ${ref}).\nOs valores são válidos pelo período de ${({30:'um mês',15:'15 dias',60:'dois meses'})[$('val').value]}.\n\nQualquer dúvida, estamos ao dispor.\n\nCom os melhores cumprimentos,\nA equipa Jesus Mar Couto\n${U=='F'?'910 086 007':'960 393 000'}`;
+ const fn=`Orçamento ${ref.replace('/','-')} - ${nome}.pdf`; $('eAnexo').textContent=fn;
+ $('eCcMail').textContent=mail; $('eFolder').textContent='Orçamentos / '+un+' / '+new Date().getFullYear(); $('eImedF').textContent='"'+un+' assinados"';
+ $('eOk').textContent=''; outrosDoPaciente(); $('env').classList.add('on'); }
+function outrosDoPaciente(){ const nif=$('pNif').value.replace(/\D/g,''), nm=$('pNome').value.trim().toLowerCase();
+ const os=(ORC.lista||[]).filter(o=>o.id!==ORC.id&&((nif&&String(o.nif||'').replace(/\D/g,'')===nif)||(nm&&String(o.paciente||'').trim().toLowerCase()===nm)));
+ $('eOutros').innerHTML=os.length?'<div class="mini" style="margin-bottom:4px">Outros orçamentos deste paciente — juntar ao mesmo email:</div>'+os.slice(0,8).map(o=>`<label><input type="checkbox" class="eAlt" value="${o.id}" ${o.temPdf?'':'disabled'} ${o.temPdf&&ORC.altDe===o.numero?'checked':''}> ${o.numero} · ${eur(o.total)}${o.temPdf?'':' <span class="mini">(sem PDF — abre-o e carrega em «Guardar rascunho»)</span>'}</label>`).join(''):''; }
+function enviar(){ const to=$('eTo').value.trim(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)){ $('eOk').innerHTML='<span style="color:#c0503a">Falta o email do paciente (ou não é válido).</span>'; return; }
+ const it=['✉ Enviado para '+to+($('eCc').checked?' (cópia para a clínica)':'')]; if($('eDrive').checked) it.push('☁ Guardado em '+$('eFolder').textContent); if($('eImed').checked) it.push('⇢ Na pasta '+$('eImedF').textContent+' — marcar como importado depois de passar para o iMED');
+ $('eOk').innerHTML=it.join('<br>')+'<br><b>Estado do orçamento: Entregue</b>'; $('numorc').textContent=$('numorc').textContent.replace('rascunho','entregue'); toast('Orçamento enviado e guardado'); }
+function colar(){ $('pNome').value='Maria Exemplo Fictício'; $('pNasc').value='1958-03-14'; $('pNif').value='123 456 789'; $('pTel').value='912 345 678'; $('pEmail').value='maria.exemplo@email.pt'; $('pMor').value='Rua das Flores, 12, 3800-000 Aveiro'; calc(); toast('Ficha colada (exemplo fictício)'); }
+function toast(t){ const x=$('toast'); x.textContent=t; x.classList.add('on'); clearTimeout(x._t); x._t=setTimeout(()=>x.classList.remove('on'),2200); }
+function contrato(){ const tot=totalCom(subtotal()); toast('Abre ?doc=contrato com: '+($('pNome').value||'paciente')+' · '+eur(tot)+' · entrada '+$('eR').value+'% · '+prest+'× · orçamento em anexo'); }
+
+// ---------- documento ----------
+const FASE={AVAL:1,PLAN:1,EXO:2,IMP:2,IMI:2,ROG:2,SEIO:2,ZIG:2,ALL4:2,PROV:2,IMPR:3,COR:4,PFH:4,PFP:4,PFC:4};
+const eu=v=>{const r=Math.round(v*100)/100; const [i,d]=r.toFixed(2).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g,' ')+(d!=='00'?','+d:'')+' €';};
+function abrirDoc(){
+ const sub=subtotal(), tot=totalCom(sub), ep=+$('eR').value, ent=tot*ep/100, men=(tot-ent)/prest;
+ const dd=$('dOrc').value?new Date($('dOrc').value):new Date(); const vd=new Date(dd); vd.setDate(vd.getDate()+(+$('val').value));
+ const f=d=>d.toLocaleDateString('pt-PT',{day:'numeric',month:'long',year:'numeric'});
+ const nome=($('pNome').value||'Nome do paciente').trim().split(/\s+/); const nm=nome.length>1?nome[0]+' <i>'+nome[nome.length-1]+'</i>':'<i>'+nome[0]+'</i>';
+ const a4=hasA4(), cb=$('cbct').checked, cbd=$('cbctD').value?new Date($('cbctD').value).toLocaleDateString('pt-PT',{day:'numeric',month:'long'}):'';
+ const T={1:['Planeamento e avaliação pré-cirúrgica',''],
+  2:['Fase cirúrgica',''],
+  3:['Impressão',''],
+  4:['Reabilitação definitiva','']};
+ const ph={1:[],2:[],3:[],4:[]};
+ LS.forEach(l=>{ if(show3&&l.pf) return; ph[l.f].push(l); });
+ let n=0;
+ const pfl=LS.filter(l=>l.pf);
+ const temD=LS.some(l=>l.disc>0)||((pfl[0]||{}).disc>0&&show3); const nc=temD?4:3;
+ const dn=p=>p?` <span class="dn">· ${/[a-z]/.test(p)?p:(p.includes(',')?'dentes ':'dente ')+p}</span>`:'';
+ const row=l=>`<tr><td>${l.d}${l.nota?' <span class="nt">— '+l.nota.replace(/</g,'&lt;')+'</span>':''}${dn(l.pos)}</td><td class="c">${l.q}</td><td class="r">${eu(l.u)}</td>${temD?`<td class="r dsc">${l.disc?'−'+String(l.disc).replace('.',',')+'%':''}</td>`:''}<td class="r b">${eu(lt(l))}</td></tr>`;
+ const fh=x=>{ n++; return `<tr class="fh"><td colspan="${nc+1}"><span class="no">0${n}</span>${T[x][0]}${T[x][1]?'<em>'+T[x][1]+'</em>':''}</td></tr>`; };
+ let body=''; [1,2,3,4].filter(x=>ph[x].length).forEach(x=>{
+  let la=null; const secs=new Set(ph[x].map(l=>l.a)); const multi=[...secs].some(a=>a!=='G');
+  body+=fh(x)+ph[x].map(l=>{ let r=''; if(l.a!==la){ la=l.a; if(l.a!=='G'&&multi) r=`<tr class="ah"><td colspan="${nc+1}">${AN[l.a]}</td></tr>`; } return r+row(l); }).join(''); });
+ if(show3&&a4){ body+=fh(4).replace('</td></tr>','<em>Escolha uma das três opções.</em></td></tr>')+Object.entries(OPT).map(([c,o])=>{ const q=pfl.reduce((a,l)=>a+l.q,0)||1, d=(pfl[0]||{}).disc||0; return row({d:o.n+' · Prótese fixa '+o.t.toLowerCase(),pos:'',q,u:P[c][U],disc:d}); }).join(''); }
+ const fases=body?`<table class="dtab"><thead><tr><th>Tratamento</th><th class="c">Qt.</th><th class="r">Valor</th>${temD?'<th class="r">Desc.</th>':''}<th class="r">Total</th></tr></thead><tbody>${body}</tbody></table>`:'';
+ let fim='';
+ if(show3&&a4){ fim='<div class="opt3">'+Object.entries(OPT).map(([c,o])=>{ const t=totalCom(subtotal(c)); const e=t*ep/100; return `<div><div class="k">${o.n}</div><h6>${o.t}</h6><p>${o.s}</p><div class="v">${eu(t)}</div><div class="m">${modo=='pr'?'entrada '+eu(e)+' · '+prest+' × '+eu((t-e)/prest):''}</div></div>`; }).join('')+'</div>'; }
+ else { fim=`<div class="dtotal"><div class="l">Total</div><div class="v">${sub-tot>0.5?'<s>'+eu(sub)+'</s>':''}${eu(tot)}</div></div>`;
+  if($('dtTot').checked){ const full=LS.reduce((a,l)=>a+l.q*l.u,0), dsc=full-tot; if(dsc>0.5) fim+=`<div class="ddesc">Desconto total aplicado <b>− ${eu(dsc)} (${Math.round(dsc/full*100)}%)</b></div>`; } }
+ if(modo=='pr') fim+=`<div class="dpay2"><div><div class="k">Entrada</div><div class="v">${show3?'Por opção':eu(ent)}</div><div class="s">No ato de adjudicação do orçamento</div></div><div><div class="k">Mensalidade</div><div class="v">${show3?prest+' ×':eu(men)}</div><div class="s">${show3?'mensalidades':prest+' meses'}</div></div><div><div class="k">Juros</div><div class="v">0%</div><div class="s">sem juros</div></div><div><div class="k">Débito direto SEPA</div><div class="v">DD · dia 10</div><div class="s">de cada mês</div></div></div>`;
+ else if(modo=='fa'){ const P=planoFa(), S=P.find(x=>x.k=='sinal'), C=P.find(x=>x.q=='No dia da cirurgia'), I=P.filter(x=>x.pc!=null);
+  const l=[];
+  l.push('Cada fase é paga no dia em que se realiza.');
+  if(S) l.push(`Na marcação da cirurgia é pago um sinal de <b>${eu(S.v)}</b>, que reserva a data e é descontado no dia da cirurgia${C?` (restam ${eu(C.v)})`:''}.`);
+  if(I.length) l.push(`Na reabilitação definitiva, ${I[0].pc}% no início${I[0].v!=null?` (${eu(I[0].v)})`:''} e ${I[1].pc}% na entrega da prótese fixa${I[1].v!=null?` (${eu(I[1].v)})`:''}.`);
+  fim+=`<div class="dfa"><span class="k">Pagamento por fases</span><p>${l.join(' ')}</p></div>`; }
+ else fim+=`<div class="dpay1">${{pp:'Pagamento integral no início do tratamento.',fa:'Pagamento por fases — cada fase é liquidada no dia em que se realiza.',fe:'Possibilidade de financiamento através de entidade parceira, sujeito a aprovação.'}[modo]}</div>`;
+ const vtx={30:'um mês',15:'15 dias',60:'dois meses'}[$('val').value]; const notas=[...document.querySelectorAll('#notasCard input:checked')].map(c=>c.dataset.val?'Os valores orçamentados são válidos pelo período de '+vtx+'.':c.parentElement.textContent.trim()).join(' ')+(((document.querySelector('#notasCard textarea')||{}).value||'').trim()?' '+document.querySelector('#notasCard textarea').value.trim().replace(/</g,'&lt;'):'')+(modo=='fa'?' Na modalidade de pagamento por fases, cada valor é liquidado no dia da consulta ou do ato respetivo.'+(FA.s?' O sinal reserva a data da cirurgia na agenda e é integralmente descontado no valor da fase cirúrgica.':'')+' Na reabilitação definitiva são realizadas provas antes da entrega da prótese fixa.':'')+(modo=='pr'?' Para a modalidade de pagamento em prestações será elaborado um contrato; a consulta para leitura e assinatura do contrato tem o valor de 75 €. Cada transação por débito direto tem o valor de 1 €. Documentos necessários para o financiamento: Cartão de Cidadão; comprovativo de IBAN com SWIFT/BIC; comprovativo de rendimentos (três últimos recibos de vencimento ou, por conta própria, as duas últimas declarações de IRS com nota de liquidação); comprovativo de morada (fatura da luz, água ou telefone).':'');
+ const CL={F:['Faíscas','Rua da Cabeleireira n.º 37, Faíscas, 3140-033 Arazede','910 086 007','faiscas@jesusmarcouto.pt'],A:['Aveiro','Av. Dr. Lourenço Peixinho 180A, 3810-106 Aveiro','960 393 000','aveiro@jesusmarcouto.pt']}[U];
+ const pv=id=>($(id).value||'').trim();
+ $('doc').innerHTML=`<div class="lg">${LOGO}</div>
+ <div class="hd"><div class="hl"><h3 class="tt">Plano de <i>tratamento</i></h3><div class="m2"><div><span>Referência</span>${$('numorc').textContent.split(' · ')[0].replace('N.º ','')}</div><div><span>Data</span>${f(dd)}</div>${cb?`<div><span>TAC (Rx 3D)</span>${cbd||'realizada'}</div>`:''}<div><span>Médico</span>${$('med').value}</div></div></div>
+ <div class="hr"><div class="k">Paciente</div><div class="pn">${pv('pNome')||'—'}</div><div class="pl"><span>NIF</span>${pv('pNif')||'—'}</div><div class="pl"><span>Morada</span>${pv('pMor')||'—'}</div></div></div>
+ <div style="height:16px"></div>${fases||'<p class="intro">Sem tratamentos.</p>'}${fim}
+ ${($('cerV').checked&&(show3||LS.some(l=>l.code==='PFC')))?`<div class="dcer"><div class="k">${show3?'Porquê a opção em cerâmica':'Porquê a reabilitação final em cerâmica'}</div><div class="cg"><div class="ct"><div class="ch"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span class="cl">Resistência</span><span class="cs">7–10×</span></div><div class="cb"><span>Acrílico</span><i><b style="width:12%"></b></i><span>Cerâmica</span><i><b class="g" style="width:100%"></b></i></div><p>A cerâmica apresenta um grau de resistência à fratura e ao desgaste muito superior ao do acrílico.</p></div><div class="ct"><div class="ch"><svg viewBox="0 0 24 24"><path d="M12 3.5c3 4 6 7 6 10.5a6 6 0 0 1-12 0c0-3.5 3-6.5 6-10.5z"/><path d="M9.5 14.5a2.6 2.6 0 0 0 2.5 2.4"/></svg><span class="cl">Saúde gengival</span><span class="cs">2×</span></div><div class="cb"><span>Acrílico</span><i><b style="width:51%"></b></i><span>Cerâmica</span><i><b class="g" style="width:100%"></b></i></div><p>A cerâmica tem uma superfície mais lisa e não porosa: acumula menos placa bacteriana, o que permite uma gengiva mais estável e saudável.</p></div><div class="ct"><div class="ch"><svg viewBox="0 0 24 24"><rect x="3" y="8.5" width="18" height="7" rx="3.5"/><circle cx="12" cy="12" r="1.8"/><path d="M8.5 8.5v7M15.5 8.5v7"/></svg><span class="cl">Cor</span><span class="cs">Estável</span></div><p>Devido à sua porosidade extremamente baixa, a cerâmica não absorve pigmentos e mantém a cor estável ao longo dos anos.</p></div><div class="ct"><div class="ch"><svg viewBox="0 0 24 24"><path d="M12 3l1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z"/><path d="M18.5 16.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/></svg><span class="cl">Estética</span><span class="cs">Natural</span></div><p>A cerâmica é o material que reproduz mais fielmente a translucidez e o brilho do dente natural.</p></div></div></div>`:''}<div class="dsig"><div><div class="dr">${$('med').value}</div>Médico dentista</div><div><div class="dr">&nbsp;</div>Aceito o plano proposto</div></div>
+ <div class="dfine">${notas}</div>
+ <div class="dft"><b>Jesus Mar Couto · ${CL[0]}</b>${CL[1]} · ${CL[2]} · ${CL[3]}<small>Chamada para a rede móvel nacional · Couto e Jesus, Lda · NIF 514 531 592</small></div>`;
+ $('modal').classList.add('on'); }
+function fecharDoc(){ $('modal').classList.remove('on'); }
+
+// ---------- pasta ----------
+// ---------- preços ----------
+function tp(){ $('tp').innerHTML=Object.entries(P).filter(([k])=>!k.startsWith('X')).map(([k,p])=>`<tr><td>${p.d}</td><td class="mini">${p.i!=='—'?p.i:''}</td><td style="text-align:right"><input value="${p.F}">${p.c?'<span class="flag"></span>':''}</td><td style="text-align:right"><input value="${p.A}">${p.c||p.cA?'<span class="flag"></span>':''}</td></tr>`).join('');
+ $('bund').innerHTML=Object.entries(B).map(([k,b])=>`<div class="b"><h5>${b.t}</h5><ul>${(b.per||[]).map(c=>'<li>'+P[c].d+' <span class="mini">· por dente</span></li>').join('')}${(b.once||[]).map(c=>'<li>'+P[c].d+' <span class="mini">· 1×</span></li>').join('')}${(b.perArc||[]).map(c=>'<li>'+(c=='PF'?'Prótese definitiva (híbrida / premium / cerâmica)':P[c].d)+' <span class="mini">· por arcada</span></li>').join('')}</ul></div>`).join(''); }
+
+// ---------- arranque: exemplo all-on-4 superior ----------
+$('dOrc').valueAsDate=new Date();
+seg('qPrest',[[6,'6'],[12,'12'],[18,'18'],[24,'24'],[36,'36']],'prest');
+seg('qIdade',[[22,'< 25'],[45,'25–65'],[70,'66–75'],[80,'> 75']],'idade');
+seg('qProf',[['ef','Efetivo'],['ref','Reformado'],['ind','Independente'],['sem','Sem rendimento']],'prof');
+seg('qHist',[['bom','Bom pagador'],['novo','Paciente novo'],['atr','Já teve atrasos']],'hist');
+seg('qSepa',[['prop','IBAN do próprio'],['ter','Outro pagador'],['nao','Sem débito direto']],'sepa');
+chips(); tp();
+</script>
+<script>
+// ================== LIGAÇÃO À APP (servidor) ==================
+const TESTE=!!window.ORC_TESTE; let ORC={id:null,numero:null,estado:'Rascunho',base:'',lista:[]}; let docEditado=false;
+function run(fn,arg){ return jmcApi(fn,arg||{}); }
+async function supervisao(txt){ try{ await run('orcSupervisao',{}); return {}; }catch(e){} const c=prompt(txt+'\nCódigo pessoal do Dr. Gonçalo ou da Dra. Catarina:'); if(!c) return null; await run('orcSupervisao',{codigo:c}); return {codigo:c}; }
+function unAtual(){ return U=='F'?'faiscas':'aveiro'; }
+function setNum(){ $('numorc').textContent=ORC.numero?('N.º '+ORC.numero+' · '+ORC.estado.toLowerCase()):(TESTE?'TESTE · ':'')+'Novo · n.º atribuído ao guardar'; }
+function setUnidade(u){ U=u; [...$('unSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.u==U)); LS.forEach(l=>{ if(!l.code.startsWith('X')) l.u=P[l.code][U]; }); render(); }
+$('unSeg').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; setUnidade(b.dataset.u); try{ localStorage.setItem('jmc_orc_un',U);}catch(x){} toast('Preços de '+(U=='F'?'Faíscas':'Aveiro')); };
+function parseFicha(t){
+ const K={nome:'nome',datanasc:'nasc',datadenascimento:'nasc',nascimento:'nasc',profissao:'prof',local:'local',estado:'estado',nif:'nif',contribuinte:'nif',cartaodecidadao:'cc',nutente:'utente',utente:'utente',entidade:'entidade',nbenef:'benef',morada:'morada',telemovel:'tel',telefone:'tel',email:'email'};
+ const norm=x=>x.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]/g,'');
+ const lev=(a,b)=>{const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const q=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=q;}}return d[b.length];};
+ const key=l=>{const n=norm(l);if(n.length<2)return '';let best='',bd=9;for(const k in K){const dd=k===n?0:(k.endsWith(n)||k.startsWith(n))&&n.length>=3?1:lev(n,k);if(dd<bd){bd=dd;best=K[k];}}return bd<=Math.max(1,Math.floor(n.length/3))?best:'';};
+ const o={}; const lines=String(t).replace(/\r/g,'').replace(/:[ \t]*\t[ \t]*/g,': ').split(/\n|\t/).map(x=>x.trim()).filter(Boolean);
+ lines.forEach((ln,i)=>{ ln.split(/\s+(?=(?:Profiss\S*|Cart\S* de Cidad\S*|NIF|Telem\S*|Telefone|Email|E-mail|Morada|Data\s+(?:de\s+)?nasc\S*|Local)\s*:)/i).forEach(pt=>{
+  const c=pt.indexOf(':'); if(c<0||c>25){ if(i===0&&!o._first)o._first=pt; return; }
+  const k=key(pt.slice(0,c)), v=pt.slice(c+1).replace(/\s+/g,' ').trim(); if(k&&v&&!o[k])o[k]=v; else if(i===0&&!o._first)o._first=v; }); });
+ if(!o.nome&&o._first&&/^[A-Za-zÀ-ÿ'’. -]{3,}$/.test(o._first)&&o._first.split(' ').length>=2)o.nome=o._first;
+ const r={};
+ if(o.nome)r.nome=o.nome.replace(/\s*\(.*$/,'').trim();
+ const dn=(o.nasc||'').match(/(\d{4})-(\d{2})-(\d{2})/)||(o.nasc||'').match(/(\d{2})[-\/.](\d{2})[-\/.](\d{4})/);
+ if(dn) r.nasc=dn[1].length==4?dn[1]+'-'+dn[2]+'-'+dn[3]:dn[3]+'-'+dn[2]+'-'+dn[1];
+ const nif=(o.nif||'').replace(/\D/g,'')||((t.match(/\bNIF\D{0,5}(\d{3}\s?\d{3}\s?\d{3})\b/i)||[])[1]||'').replace(/\D/g,''); if(nif.length==9)r.nif=nif;
+ const tel=(o.tel||'').replace(/[^\d+]/g,'')||((t.match(/(?:\+351\s?)?9\d{2}\s?\d{3}\s?\d{3}/)||[''])[0]).replace(/\s/g,''); if(tel)r.tel=tel;
+ const em=(o.email||t).match(/[^\s@:;,<>]+@[^\s@;,<>]+\.[a-z]{2,}/i); if(em)r.email=em[0];
+ if(o.morada){ // iMED: «Localidade, Concelho, Rua …, Nº. X, 1234-567» → «Rua …, Nº. X, 1234-567 Localidade»
+  const cp=(o.morada.match(/\d{4}-\d{3}/)||[''])[0]; const ps=o.morada.replace(cp,'').split(',').map(x=>x.trim()).filter(Boolean);
+  r.morada=ps.length>2?ps.slice(2).join(', ')+(cp?', '+cp:'')+' '+ps[0]:o.morada; }
+ const u=(o.local||'')+' '+((t.match(/Jesus Mar Couto\s*-\s*(Aveiro|Fa[ií]scas)/i)||[''])[0]); if(/fa[ií]scas/i.test(u))r.unidade='F'; else if(/aveiro/i.test(u))r.unidade='A';
+ return r; }
+function aplicarFicha(t){ const r=parseFicha(t), done=[];
+ if(r.nome&&$('pNome').value&&$('pNome').value.trim().toLowerCase()!==r.nome.toLowerCase()) ['pNasc','pNif','pTel','pEmail','pMor'].forEach(i=>$(i).value='');
+ if(r.nome){ $('pNome').value=r.nome; done.push('nome'); }
+ if(r.nif){ $('pNif').value=r.nif.replace(/(\d{3})(\d{3})(\d{3})/,'$1 $2 $3'); done.push('NIF'); }
+ if(r.nasc){ $('pNasc').value=r.nasc; done.push('data de nascimento'); }
+ if(r.tel){ $('pTel').value=r.tel; done.push('telemóvel'); }
+ if(r.email){ $('pEmail').value=r.email; done.push('email'); }
+ if(r.morada){ $('pMor').value=r.morada; done.push('morada'); }
+ if(r.unidade&&r.unidade!==U){ setUnidade(r.unidade); try{ localStorage.setItem('jmc_orc_un',U);}catch(x){} done.push('unidade '+(U=='F'?'Faíscas':'Aveiro')); }
+ calc(); return {r,done}; }
+function colar(){ $('pasteTa').focus(); }
+(function(){ const ta=$('pasteTa'), ok=$('pasteOk'); if(!ta) return;
+ const go=()=>{ const t=ta.value; if(t.trim().length<4) return; const {r,done}=aplicarFicha(t);
+  ok.style.display='block';
+  if(done.length){ ok.style.color='#3d6b4f'; ok.textContent='✓ Preenchido: '+done.join(', ')+(r.nome?'':' — falta o nome')+'. Confirme os dados.'; ta.value=''; toast(r.nome?'Ficha colada: '+r.nome:'Ficha colada'); }
+  else { ok.style.color='#9a3b2e'; ok.textContent='Não reconheci os dados. Copie no iMED a ficha do paciente (Nome:, NIF:, Telemóvel:…) e cole outra vez.'; } };
+ ta.addEventListener('paste',()=>setTimeout(go,0)); ta.addEventListener('input',()=>{ clearTimeout(ta._t); ta._t=setTimeout(go,400); });
+})();
+// ---------- estado (para guardar/abrir) ----------
+function estado(){ return {U,LS,pf,show3,modo,prest,fa:Object.assign({},FA),ep:+$('eR').value,dgTipo:$('dgTipo').value,dgVal:$('dgVal').value,dgMot:$('dgMot').value,dtTot:$('dtTot').checked,cerV:$('cerV').checked,
+ pac:{nome:$('pNome').value,nasc:$('pNasc').value,nif:$('pNif').value,tel:$('pTel').value,mor:$('pMor').value,email:$('pEmail').value},
+ med:$('med').value,dOrc:$('dOrc').value,val:$('val').value,cbct:$('cbct').checked,cbctD:$('cbctD').value,
+ notas:[...document.querySelectorAll('#notasCard input[type=checkbox]')].map(c=>c.checked),notaLivre:(document.querySelector('#notasCard textarea')||{}).value||'',ans,rend:$('rend').value,
+ xp:Object.fromEntries(Object.entries(P).filter(([k])=>k.startsWith('X'))),xf:Object.fromEntries(Object.keys(P).filter(k=>k.startsWith('X')).map(k=>[k,FASE[k]]))}; }
+function repor(d,novo){ Object.assign(P,d.xp||{}); Object.assign(FASE,d.xf||{}); U=d.U||U; LS=(d.LS||[]).map(l=>Object.assign({},l)); uid=LS.reduce((a,l)=>Math.max(a,l.id||0),0);
+ pf=d.pf||'PFH'; show3=!!d.show3; modo=d.modo||'pr'; prest=d.prest||24; Object.assign(FA,{s:1,v:450,p:40},d.fa||{}); $('eR').value=d.ep!=null?d.ep:25; $('dgTipo').value=d.dgTipo||'p'; $('dgVal').value=d.dgVal||0; $('dtTot').checked=!!d.dtTot; $('cerV').checked=d.cerV!==false; $('dgMot').value=d.dgMot||'';
+ const p=d.pac||{}; $('pNome').value=p.nome||''; $('pNasc').value=p.nasc||''; $('pNif').value=p.nif||''; $('pTel').value=p.tel||''; $('pMor').value=p.mor||''; $('pEmail').value=p.email||'';
+ $('med').value=d.med||$('med').value; $('dOrc').value=novo?new Date().toISOString().slice(0,10):(d.dOrc||''); $('val').value=d.val||'30'; $('cbct').checked=d.cbct!==false; $('cbctD').value=d.cbctD||'';
+ const cs=document.querySelectorAll('#notasCard input[type=checkbox]'); (d.notas||[]).forEach((v,i)=>{ if(cs[i]) cs[i].checked=v; }); const ta=document.querySelector('#notasCard textarea'); if(ta) ta.value=d.notaLivre||'';
+ Object.assign(ans,d.ans||{}); $('rend').value=d.rend||''; document.querySelectorAll('#pay .pc').forEach(x=>x.classList.toggle('on',x.dataset.m==modo));
+ [...$('unSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.u==U)); seg('qPrest',[[6,'6'],[12,'12'],[18,'18'],[24,'24'],[36,'36']],'prest'); render(); }
+function resumo(){ const tot=totalCom(subtotal()); return {paciente:$('pNome').value.trim(),nif:$('pNif').value,email:$('pEmail').value.trim(),telemovel:$('pTel').value,medico:$('med').value,total:Math.round(tot*100)/100,modalidade:{pr:'Prestações',pp:'Pronto pagamento',fa:'Faseado',fe:'Financiamento externo'}[modo]}; }
+async function guardar(extra){ const r=await run('saveOrcamento',Object.assign({teste:TESTE,id:ORC.id,unidade:unAtual(),data:estado(),resumo:resumo()},extra||{}));
+ ORC.id=r.id; ORC.numero=r.numero; ORC.estado=r.estado||ORC.estado; setNum(); carregarLista(); return r; }
+async function guardarComPdf(){ if(!ORC.numero) await guardar(); const b64=await gerarPdf(); fecharDoc(); return guardar({pdfB64:b64,enviar:{drive:true}}); }
+async function guardarRascunho(){ if(!LS.length) return toast('Ainda sem linhas'); toast('A guardar…'); try{ const r=await guardarComPdf(); toast('Guardado · '+r.numero); }catch(e){ toast('Erro: '+e.message); } }
+async function criarAlternativa(){ if(!LS.length) return toast('Ainda sem linhas'); toast('A guardar…');
+ try{ const r=await guardarComPdf(); const base=r.numero; ORC.id=null; ORC.numero=null; ORC.estado='Rascunho'; ORC.altDe=base; docEditado=false; setNum();
+  $('numorc').textContent='Alternativa a '+base+' · n.º atribuído ao guardar'; window.scrollTo(0,0);
+  toast(base+' guardado. Estás agora na alternativa — altera o que quiseres.'); }catch(e){ toast('Erro: '+e.message); } }
+function novoOrc(){ if(LS.length&&!confirm('Começar um orçamento novo? (o atual fica como está na pasta)')) return; ORC.id=null; ORC.numero=null; ORC.estado='Rascunho'; docEditado=false; LS=[];
+ ['pNome','pNasc','pNif','pTel','pMor','pEmail','cbctD'].forEach(i=>$(i).value=''); $('dOrc').valueAsDate=new Date(); setNum(); render(); window.scrollTo(0,0); }
+// ---------- PDF (fiel ao ecrã) ----------
+function loadJs(src){ return new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>ko(new Error('Não carregou '+src)); document.head.appendChild(s); }); }
+async function libs(){ if(!window.html2canvas) await loadJs('https:\/\/cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'); if(!(window.jspdf&&window.jspdf.jsPDF)) await loadJs('https:\/\/cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'); }
+async function gerarPdf(){ await libs(); if(!docEditado) abrirDoc(); else $('modal').classList.add('on'); await document.fonts.ready;
+ const el=$('doc'); const cv=await html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true,width:el.offsetWidth,height:el.offsetHeight,windowWidth:Math.max(document.documentElement.clientWidth,900)});
+ const pdf=new jspdf.jsPDF({unit:'pt',format:'a4',compress:true}); const pw=595.28, ph=841.89; const pages=Math.max(1,Math.round(el.offsetHeight/1123)); const pagePx=Math.ceil(cv.height/pages);
+ for(let i=0;i<pages;i++){ const c=document.createElement('canvas'); c.width=cv.width; c.height=pagePx; const cx=c.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,c.width,c.height); cx.drawImage(cv,0,-i*pagePx);
+  if(i) pdf.addPage(); pdf.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',0,0,pw,ph); }
+ return pdf.output('datauristring').split(',')[1]; }
+// ---------- envio ----------
+function abrirEnvio(){ if(!LS.length) return toast('Ainda sem linhas');
+ const un=U=='F'?'Faíscas':'Aveiro', mail=U=='F'?'faiscas@jesusmarcouto.pt':'aveiro@jesusmarcouto.pt'; const nome=($('pNome').value||'Paciente').trim(); const pn=nome.split(/\s+/)[0];
+ $('eTo').value=$('pEmail').value||''; $('eFrom').value='Jesus Mar Couto <'+mail+'>'; $('eSub').value='O seu plano de tratamento · Jesus Mar Couto';
+ $('eMsg').value=`Olá ${pn},\n\nConforme conversado na consulta, enviamos em anexo o seu plano de tratamento.\nOs valores orçamentados são válidos pelo período de ${({30:'um mês',15:'15 dias',60:'dois meses'})[$('val').value]}.\n\nQualquer dúvida, estamos ao dispor.\n\nCom os melhores cumprimentos,\nA equipa Jesus Mar Couto\n${U=='F'?'910 086 007':'960 393 000'}`;
+ $('eAnexo').textContent='Orçamento '+(ORC.numero?ORC.numero.replace('/','-'):'(n.º atribuído ao guardar)')+' - '+nome+'.pdf'; $('eCcMail').textContent=mail;
+ $('eFolder').textContent='Orçamentos / '+un+' / '+new Date().getFullYear()+(TESTE?' (teste)':''); $('eImedF').textContent='da '+un+' para importar no iMED'; $('eOk').textContent=''; outrosDoPaciente(); $('env').classList.add('on'); }
+async function enviar(){ const to=$('eTo').value.trim(), soGuardar=!to;
+ if(to&&ORC.id&&ORC.estado&&ORC.estado!=='Rascunho'&&!confirm('Este orçamento já foi enviado ao paciente.\n\nOK — enviar novamente\nCancelar — não enviar (para só gerar o PDF, deixe o campo "Para" vazio)')) return;
+ if(to&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)){ $('eOk').innerHTML='<span style="color:#c0503a">O email do paciente não é válido.</span>'; return; }
+ const btn=document.querySelector('#env .btn.p'); btn.disabled=true; btn.textContent='A preparar o PDF…';
+ try{ if(!ORC.numero){ await guardar(); }
+  const b64=await gerarPdf(); fecharDoc(); btn.textContent=to?'A enviar…':'A guardar…';
+  const anexos=[...document.querySelectorAll('.eAlt:checked')].map(c=>c.value); const refs=[ORC.numero,...anexos.map(id=>(ORC.lista.find(o=>o.id==id)||{}).numero).filter(Boolean)];
+  let msg=$('eMsg').value; msg=refs.length>1?msg.replace('o seu plano de tratamento.','as propostas de plano de tratamento (ref. '+refs.join(' e ')+').'):msg.replace('o seu plano de tratamento.','o seu plano de tratamento (ref. '+ORC.numero+').');
+  const r=await guardar({pdfB64:b64,enviar:{to,anexos,assunto:$('eSub').value,mensagem:msg,cc:$('eCc').checked,drive:$('eDrive').checked,imed:$('eImed').checked}});
+  const it=[]; if(r.enviado) it.push('✉ Enviado para '+to+(r.anexos&&r.anexos.length?' com '+r.anexos.join(', '):'')); if(r.drive) it.push('☁ Guardado na Drive · '+r.drive); if(r.imed) it.push('⇢ Na pasta '+r.imed+' para importar no iMED');
+  $('eOk').innerHTML=it.join('<br>')+'<br><b>'+r.numero+' · '+(r.estado||'')+'</b>'; toast(r.enviado?'Orçamento enviado e guardado':'Orçamento guardado');
+ }catch(e){ $('eOk').innerHTML='<span style="color:#c0503a">Erro: '+e.message+'</span>'; }
+ btn.disabled=false; btn.textContent='Enviar e guardar'; }
+// ---------- edição do documento sob supervisão ----------
+async function editarDoc(){ try{ if(!await supervisao('Editar o texto do documento (supervisão).')) return; }catch(e){ return toast(e.message); }
+ docEditado=true; $('doc').contentEditable='true'; $('doc').classList.add('editing'); toast('Edição ativa — clique em qualquer texto para alterar. O PDF sai como está aqui.'); }
+function abrirDocLimpo(){ docEditado=false; $('doc').contentEditable='false'; $('doc').classList.remove('editing'); abrirDoc(); }
+// ---------- contrato ----------
+function contrato(){ const tot=totalCom(subtotal()), ep=+$('eR').value; const d={orcamento:ORC.numero,paciente:$('pNome').value,nif:$('pNif').value,morada:$('pMor').value,email:$('pEmail').value,total:Math.round(tot*100)/100,entradaPct:ep,entrada:Math.round(tot*ep)/100,prestacoes:prest,taxa:75,dia:10};
+ try{ localStorage.setItem('jmc_orc_para_contrato',JSON.stringify(d)); }catch(e){}
+ if(ORC.base) window.open(ORC.base+'?doc=contrato'+(TESTE?'&teste=1':''),'_blank'); toast('Contrato aberto · valores: '+eur(tot)+', entrada '+eur(d.entrada)+', '+prest+'×'); }
+// ---------- pasta ----------
+const EST={'Rascunho':'p-r','Entregue':'p-e','Aceite':'p-a','Parcialmente aceite':'p-pa','Recusado':'p-x','Expirado':'p-v'};
+function estadoVisto(o){ if(o.estado==='Entregue'||o.estado==='Rascunho'){ const d=new Date(o.criado); if(!isNaN(d)&&(Date.now()-d)/864e5>31) return 'Expirado'; } return o.estado||'Rascunho'; }
+async function carregarLista(){ try{ const r=await run('listOrcamentos',{teste:TESTE}); ORC.lista=r.lista||[]; desenharPasta(); }catch(e){ console.warn(e); } }
+function desenharPasta(){ const q=($('fQ')||{}).value||'', fu=($('fU')||{}).value||'', fe=($('fE')||{}).value||'';
+ const rows=ORC.lista.filter(o=>(!q||(o.paciente+' '+o.numero).toLowerCase().includes(q.toLowerCase()))&&(!fu||o.unidade==fu)&&(!fe||estadoVisto(o)==fe));
+ $('lista').innerHTML=rows.map(o=>{ const ev=estadoVisto(o), d=new Date(o.criado); const dias=Math.ceil(31-(Date.now()-d)/864e5);
+  return `<tr><td><span class="uni">${o.unidade=='faiscas'?'FAÍSCAS':'AVEIRO'}</span><div class="numo" style="margin-top:4px">${o.numero}</div></td><td>${esc(o.paciente||'—')}</td><td class="mini">${isNaN(d)?'':d.toLocaleDateString('pt-PT')}</td><td class="numo">${eur(o.total)}</td><td class="mini">${esc(o.modalidade||'')}</td>
+  <td><select class="pill ${EST[ev]||'p-r'}" style="border:0" onchange="mudarEstado('${o.id}',this.value)">${['Rascunho','Entregue','Aceite','Parcialmente aceite','Recusado'].map(s=>`<option ${s==o.estado?'selected':''}>${s}</option>`).join('')}${ev=='Expirado'?'<option selected disabled>Expirado</option>':''}</select></td>
+  <td class="mini">${ev=='Entregue'&&dias>0?'expira em '+dias+' dias':''}</td>
+  <td style="white-space:nowrap"><button class="btn sm ghost" onclick="abrirOrc('${o.id}',false)">Abrir</button> <button class="btn sm ghost" onclick="abrirOrc('${o.id}',true)">Duplicar</button>${o.pdfUrl?` <a class="btn sm ghost" target="_blank" href="${o.pdfUrl}">PDF</a>`:''}</td></tr>`; }).join('')||'<tr><td colspan="8" class="mini" style="padding:20px">Ainda não há orçamentos guardados.</td></tr>';
+ const ab=ORC.lista.filter(o=>['Entregue','Rascunho'].includes(estadoVisto(o))), m=new Date().getMonth();
+ const ac=ORC.lista.filter(o=>['Aceite','Parcialmente aceite'].includes(o.estado)), env=ORC.lista.filter(o=>o.estado!=='Rascunho');
+ const k=document.querySelectorAll('.kpi .v'), s=document.querySelectorAll('.kpi .s');
+ if(k.length==4){ k[0].textContent=ab.length; s[0].textContent=eur(ab.reduce((a,o)=>a+o.total,0))+' por aceitar'; k[1].textContent=ac.filter(o=>new Date(o.criado).getMonth()==m).length; s[1].textContent='este mês';
+  k[2].textContent=env.length?Math.round(ac.length/env.length*100)+'%':'—'; s[2].textContent=env.length+' entregues'; k[3].textContent=ORC.lista.filter(o=>{ if(o.estado!=='Entregue') return false; const d=(Date.now()-new Date(o.criado))/864e5; return d>24&&d<=31; }).length; } }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
+async function mudarEstado(id,e){ try{ await run('setEstadoOrcamento',{teste:TESTE,id,estado:e}); const o=ORC.lista.find(x=>x.id==id); if(o) o.estado=e; desenharPasta(); toast('Estado: '+e); }catch(x){ toast('Erro: '+x.message); } }
+async function abrirOrc(id,dup){ try{ const r=await run('loadOrcamento',{teste:TESTE,id}); repor(r.data,dup); if(dup){ ORC.id=null; ORC.numero=null; ORC.estado='Rascunho'; } else { ORC.id=r.id; ORC.numero=r.numero; ORC.estado=r.estado; }
+  docEditado=false; setNum(); document.querySelector('#tabs button[data-v=novo]').click(); toast(dup?'Duplicado de '+r.numero+' — novo orçamento':'Aberto '+r.numero); }catch(e){ toast('Erro: '+e.message); } }
+// importar da pasta (substitui o exemplo)
+function abrirImp(){ $('impPasta').innerHTML=ORC.lista.length?'<table class="list"><tbody>'+ORC.lista.slice(0,40).map(o=>`<tr><td class="numo">${o.numero}</td><td>${esc(o.paciente||'')}</td><td class="mini">${eur(o.total)}</td><td style="text-align:right"><button class="btn sm p" onclick="copiarOrc('${o.id}')">Copiar linhas</button></td></tr>`).join('')+'</tbody></table><p class="mini" style="margin-top:10px">As linhas são acrescentadas às que já tens; o paciente só é preenchido se estiver vazio.</p>':'<p class="mini">Ainda não há orçamentos guardados.</p>'; $('imp').classList.add('on'); }
+async function copiarOrc(id){ try{ const r=await run('loadOrcamento',{teste:TESTE,id}); const d=r.data||{}; Object.assign(P,d.xp||{}); Object.assign(FASE,d.xf||{});
+  (d.LS||[]).forEach(l=>{ const n=Object.assign({},l,{id:++uid}); if(!n.code.startsWith('X')) n.u=(d.U||U)==U?n.u:P[n.code][U]; LS.push(n); });
+  const p=d.pac||{}; if(!$('pNome').value){ $('pNome').value=p.nome||''; $('pNif').value=p.nif||''; $('pMor').value=p.mor||''; $('pEmail').value=p.email||''; $('pTel').value=p.tel||''; $('pNasc').value=p.nasc||''; }
+  sortLS(); render(); $('imp').classList.remove('on'); toast('Copiado de '+r.numero+' — acrescente o que quiser'); }catch(e){ toast('Erro: '+e.message); } }
+// tabela de preços (gravar com supervisão)
+async function gravarPrecos(){ let sv; try{ sv=await supervisao('Gravar a tabela de preços (supervisão).'); }catch(e){ return toast(e.message); } if(!sv) return; const c=sv.codigo;
+ const rows=[...document.querySelectorAll('#tp tr')]; const keys=Object.keys(P).filter(k=>!k.startsWith('X')); const pr={};
+ rows.forEach((tr,i)=>{ const k=keys[i], ins=tr.querySelectorAll('input'); if(k&&ins.length==2) pr[k]={F:+ins[0].value||0,A:+ins[1].value||0}; });
+ try{ await run('setOrcPrecos',{codigo:c,precos:pr}); Object.entries(pr).forEach(([k,v])=>{ P[k].F=v.F; P[k].A=v.A; }); toast('Tabela de preços gravada'); }catch(e){ toast(e.message); } }
+// ---------- arranque ----------
+(function(){ let u=null; try{ u=localStorage.getItem('jmc_orc_un'); }catch(e){}
+ if(!u){ let x=''; try{ x=(window.jmcUnidade&&jmcUnidade())||window.JMC_UNIDADE||localStorage.getItem('jmc_unidade')||''; }catch(e){} x=String(x).toLowerCase(); u=x.startsWith('fa')?'F':'A'; }
+ U=u==='F'?'F':'A'; [...$('unSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.u==U)); setNum(); render();
+ run('getOrcConfig',{teste:TESTE}).then(c=>{ ORC.base=c.base||''; if(c.precos) Object.entries(c.precos).forEach(([k,v])=>{ if(P[k]){ P[k].F=v.F; P[k].A=v.A; } }); tp(); ORC.lista=c.lista||[]; desenharPasta(); LS.forEach(l=>{ if(!l.code.startsWith('X')) l.u=P[l.code][U]; }); render(); }).catch(e=>toast('Sem ligação ao servidor: '+e.message));
+})();
+
+</script><script>jmcWho();</script></body></html>

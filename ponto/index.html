@@ -239,6 +239,8 @@ h1, h2, h3 { font-family: var(--f-display); font-weight: 700; margin: 0; text-wr
 @keyframes surge { from { transform: scale(.5); opacity: 0; } }
 .resultado h1 { font-size: clamp(36px, 6vw, 54px); }
 .resultado .hora { font-size: 21px; color: var(--muted); }
+.aviso-pag { width: 100%; max-width: 560px; border: 1px solid var(--linha, #e6e1d6); background: var(--cartao, #fff); border-radius: 18px; padding: 16px 20px; font-size: 17px; line-height: 1.5; box-shadow: 0 10px 30px -18px rgba(0,0,0,.25); }
+.ult-pag { font-size: 13px; color: var(--muted); margin: -2px 0 2px; }
 .frase { background: var(--surface); border-radius: 22px; padding: 22px 24px; box-shadow: var(--shadow); font-size: 20px; line-height: 1.4; max-width: 34ch; }
 .frase .emo { font-size: 34px; display: block; margin-bottom: 6px; }
 
@@ -608,6 +610,7 @@ function ecraPessoa() {
       forms + perg +
       cartaoHorario(eu.horarios || []) +
       '<div class="eyebrow" style="margin-top:6px">Pedidos e documentos</div>' +
+      (eu.ultimoPagamento ? '<div class="ult-pag">Último pagamento de horas extra: realizado a ' + dataPT(eu.ultimoPagamento.pagoEm) + ' (horas até ' + dataPT(eu.ultimoPagamento.ate) + ')</div>' : '') +
       '<div class="acoes">' +
         '<button class="acao acao-ferias" data-acao="ferias">' + PRAIA_SVG + '<span class="af-texto"><b>Férias</b><span>O meu mapa do ano</span></span></button>' +
         acaoBtn('horario', 'Entrar mais tarde ou sair mais cedo', 'Ou ausentar-se num período') +
@@ -708,10 +711,11 @@ function ecraResultado(r) {
       '<h1>' + (entrada ? 'Entrada registada' : 'Saída registada') + '</h1>' +
       '<div class="hora num">' + esc(S.eu.primeiroNome) + ' · ' + esc(r.hora) + ' · ' + esc(r.clinica) + (r.tardio ? ' · com registo feito mais tarde' : '') + '</div>' +
       (m.texto ? '<div class="frase"><span class="emo">' + esc(m.emoji) + '</span>' + esc(m.texto) + '</div>' : '') +
+      (r.pagamento ? '<div class="aviso-pag">' + esc(r.pagamento) + '</div>' : '') +
       '<div class="linha-flex" style="justify-content:center"><button class="btn sec" id="rMais">Fazer um pedido ou enviar documento</button><button class="btn" id="rFim">Concluir</button></div>' +
     '</div></section>';
   S.eu = r.eu;
-  var t = setTimeout(terminarSessao, 6000);
+  var t = setTimeout(terminarSessao, r.pagamento ? 15000 : 6000);
   document.getElementById('rFim').onclick = function () { clearTimeout(t); terminarSessao(); };
   document.getElementById('rMais').onclick = function () { clearTimeout(t); ecraPessoa(); };
 }
@@ -1801,7 +1805,7 @@ function folhaPagamento(pid) {
   var ontem = somaDias(hojeStr(), -1), dom = ultimoDomingo(), sex = somaDias(dom, -2);
   var desde0 = p.ultimoPagamento ? somaDias(p.ultimoPagamento, 1) : ((p.porPagar[0] || {}).inicio || hojeSegunda());
   var ult = p.pagamentos[0];
-  var hist = p.pagamentos.length ? p.pagamentos.map(function (g) { return '<div class="item"><div><b>' + (g.desde ? 'De ' + dataPT(g.desde) + ' a ' + dataPT(g.ate) : 'Pago até ' + dataPT(g.ate)) + '</b><div class="meta">' + hSinal(g.horas) + ' · ' + eur(g.valor) + (g.taxa1 !== '' && g.taxa1 != null ? ' · taxas ' + String(g.taxa1).replace('.', ',') + '% / ' + String(g.taxa2).replace('.', ',') + '%' : '') + (g.nota ? ' · ' + esc(g.nota) : '') + ' · registado por ' + esc(g.criadoPor) + '</div></div><button class="btn sec peq" data-anpag="' + esc(g.id) + '">Anular</button></div>'; }).join('') : '<div class="vazio">Ainda sem pagamentos registados.</div>';
+  var hist = p.pagamentos.length ? p.pagamentos.map(function (g) { return '<div class="item"><div><b>' + (g.desde ? 'De ' + dataPT(g.desde) + ' a ' + dataPT(g.ate) : 'Pago até ' + dataPT(g.ate)) + '</b><div class="meta">' + hSinal(g.horas) + ' · ' + eur(g.valor) + (g.taxa1 !== '' && g.taxa1 != null ? ' · taxas ' + String(g.taxa1).replace('.', ',') + '% / ' + String(g.taxa2).replace('.', ',') + '%' : '') + (g.nota ? ' · ' + esc(g.nota) : '') + ' · registado por ' + esc(g.criadoPor) + '<br>Pago a ' + dataPT(g.pagoEm) + ' · ' + ({ transferencia: 'transferência bancária', numerario: 'numerário', recibo: 'no recibo de vencimento' }[g.metodo] || 'transferência bancária') + ' · ' + (g.avisoEm ? 'mensagem vista pela assistente a ' + esc(g.avisoEm.slice(8, 10) + '/' + g.avisoEm.slice(5, 7) + ' às ' + g.avisoEm.slice(11, 16)) : 'a assistente ainda não viu a mensagem') + '</div></div><button class="btn sec peq" data-anpag="' + esc(g.id) + '">Anular</button></div>'; }).join('') : '<div class="vazio">Ainda sem pagamentos registados.</div>';
   abrirFolha('<div class="eyebrow">' + esc(p.nome) + '</div><h2>Pagamento de horas extra</h2>' +
     '<p>' + (ult ? 'Último pagamento: <b>' + (ult.desde ? dataPT(ult.desde) + ' a ' : 'até ') + dataPT(ult.ate) + '</b> (' + hSinal(ult.horas) + ' · ' + eur(ult.valor) + '). ' : '') + 'O período começa no dia a seguir ao último pagamento; pode mudar as datas, mesmo a meio da semana. A partir do dia seguinte ao fim, as horas extra voltam a contar do zero.</p>' +
     '<div class="duas"><div class="campo"><label for="pgDe">De</label><input id="pgDe" type="date" value="' + desde0 + '"></div><div class="campo"><label for="pgAte">Até</label><input id="pgAte" type="date" value="' + ontem + '"></div></div>' +
@@ -1811,6 +1815,7 @@ function folhaPagamento(pid) {
     '<div class="calc-res" id="pgRes"></div>' +
     '<div class="duas"><div class="campo"><label for="pgH">Horas extra pagas</label><input id="pgH" type="text" inputmode="decimal"></div>' +
     '<div class="campo"><label for="pgV">Valor pago (€)</label><input id="pgV" type="text" inputmode="decimal"></div></div>' +
+    '<div class="duas"><div class="campo"><label for="pgM">Como foi pago</label><select id="pgM"><option value="transferencia">Transferência bancária</option><option value="numerario">Numerário</option><option value="recibo">No recibo de vencimento</option></select></div><div class="campo"><label for="pgP">Data do pagamento</label><input id="pgP" type="date" value="' + hojeStr() + '"></div></div>' +
     '<div class="campo"><label for="pgN">Nota (opcional)</label><input id="pgN" type="text" placeholder="Ex.: pago no salário de outubro"></div>' +
     '<div class="msg-erro" id="pgE"></div><div class="botoes-folha"><button class="btn sec" id="pgC">Cancelar</button><button class="btn verde" id="pgO">Registar pagamento</button></div>' +
     '<div class="eyebrow">Pagamentos anteriores</div><div class="lista">' + hist + '</div>');
@@ -1832,7 +1837,7 @@ function folhaPagamento(pid) {
   document.querySelectorAll('[data-pgate]').forEach(function (b) { b.onclick = function () { document.getElementById('pgAte').value = b.dataset.pgate; conta(); }; });
   document.getElementById('pgC').onclick = fecharFolha;
   document.getElementById('pgO').onclick = function () {
-    chamar('pagamento', { token: S.token, pessoaId: pid, dados: { desde: valor('pgDe'), ate: valor('pgAte'), horas: valor('pgH'), valor: valor('pgV'), taxa1: valor('pgT1').replace(',', '.'), taxa2: valor('pgT2').replace(',', '.'), nota: valor('pgN') } })
+    chamar('pagamento', { token: S.token, pessoaId: pid, dados: { desde: valor('pgDe'), ate: valor('pgAte'), horas: valor('pgH'), valor: valor('pgV'), taxa1: valor('pgT1').replace(',', '.'), taxa2: valor('pgT2').replace(',', '.'), nota: valor('pgN'), metodo: valor('pgM'), pagoEm: valor('pgP') } })
       .then(function () { fecharFolha(); toast('Pagamento registado. As horas extra recomeçam do zero.'); supHoras(); }, function (e) { document.getElementById('pgE').textContent = e.message; });
   };
   document.querySelectorAll('[data-anpag]').forEach(function (b) { b.onclick = function () {

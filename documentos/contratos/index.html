@@ -448,7 +448,7 @@ function render(){
   $('pages').innerHTML=build();if(window.jmcAnexo1Preview)jmcAnexo1Preview();
   const missing=[];['num','data','nome','nif','cc','rua','cp','loc','email','valor','n','dia'].forEach(k=>{if(!v(k))missing.push(k)});if(window.__entOk===false)missing.push('parcelas da entrada não somam o total');if(v('iban')&&!ib.ok)missing.push('IBAN válido');if(!v('iban'))missing.push('IBAN');if(ib.ok&&!ib.pt&&!v('bic'))missing.push('BIC (IBAN estrangeiro)');
   const w=$('warn');w.style.display=missing.length?'block':'none';w.textContent=missing.length?'Em falta: '+missing.join(', '):'';
-  const safe=(v('nome')||'Paciente').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_');document.title=`Contrato_${v('num')||'000'}_${ano}_${safe}`;
+  const safe=(v('nome')||'Paciente').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_');document.title=`Contrato_${v('num')||'000'}_${ano()}_${safe}`;
 }
 const ano=()=>v('ano');
 ids.forEach(id=>{$(id).addEventListener('input',render);$(id).addEventListener('change',render)});

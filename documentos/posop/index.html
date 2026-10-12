@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<script>
+/* JMC — documentos migrados da app antiga (Apps Script) para o GitHub.
+   Mantém o mesmo código da página: google.script.run passa a falar com o servidor "JMC Documentos API" (código pessoal uma vez por aparelho). */
+(function(){
+ const qs=new URLSearchParams(location.search);
+ const u=(qs.get('unidade')||'').toLowerCase();
+ if(u==='aveiro'||u==='faiscas'){window.JMC_UNIDADE=u;try{localStorage.setItem('jmc_unidade',u);}catch(e){}}
+ else{try{const s=localStorage.getItem('jmc_unidade');if(s==='aveiro'||s==='faiscas')window.JMC_UNIDADE=s;}catch(e){}}
+ window.JMC_TESTE=qs.get('teste')==='1';
+ const API='https://script.google.com/macros/s/AKfycbz4r7u2KxQK2NLh-4julAkcAMj8qOmp-kKaI5vZC6HXJfTkhWyIpEVqoXt16HUmwwjFjQ/exec',TK='jmc_docs_token';
+ const tok=()=>{try{return localStorage.getItem(TK)||'';}catch(e){return '';}};
+ const post=(fn,payload,token)=>fetch(API,{method:'POST',body:JSON.stringify({fn,payload,token}),redirect:'follow'}).then(r=>{if(!r.ok)throw Error('Sem ligação ao servidor (HTTP '+r.status+').');return r.json();});
+ let wait=null;
+ function overlay(){let el=document.getElementById('jmcLogin');if(el)return el;el=document.createElement('div');el.id='jmcLogin';
+  el.style.cssText='display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(20,24,28,.55);align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif';
+  el.innerHTML='<div style="background:#fff;border-radius:16px;padding:22px 22px 18px;width:min(340px,100%);box-shadow:0 20px 50px rgba(0,0,0,.25);text-align:center"><div style="font-weight:700;font-size:17px;margin-bottom:4px">Código pessoal</div><div style="font-size:13px;color:#6b7280;margin-bottom:14px">O mesmo do fecho de caixa. Só é pedido uma vez neste aparelho.</div><input id="jmcPin" type="password" inputmode="numeric" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:22px;letter-spacing:.3em;text-align:center;padding:10px;border:1px solid #d9dbe0;border-radius:10px"><div id="jmcPinErr" style="min-height:18px;font-size:12.5px;color:#a1382b;margin:8px 0"></div><button id="jmcPinGo" type="button" style="width:100%;padding:11px;border:0;border-radius:10px;background:#1f2a2e;color:#fff;font-size:15px;font-weight:600;cursor:pointer">Entrar</button></div>';
+  document.body.appendChild(el);return el;}
+ function login(){if(wait)return wait;const el=overlay();el.style.display='flex';const pin=document.getElementById('jmcPin'),err=document.getElementById('jmcPinErr'),go=document.getElementById('jmcPinGo');pin.value='';err.textContent='';setTimeout(()=>pin.focus(),50);
+  wait=new Promise(res=>{const run=async()=>{const code=pin.value.trim();if(!code)return;go.disabled=true;err.textContent='A verificar…';
+   try{const o=await post('login',{code,aparelho:(navigator.userAgent.match(/\(([^)]+)\)/)||[])[1]||''});if(!o.ok)throw Error(o.erro);try{localStorage.setItem(TK,o.r.token);localStorage.setItem('jmc_docs_nome',o.r.nome||'');}catch(e){}
+    el.style.display='none';wait=null;res(o.r.token);}catch(e){err.textContent=e.message||String(e);}finally{go.disabled=false;}};
+   go.onclick=run;pin.onkeydown=e=>{if(e.key==='Enter')run();};});return wait;}
+ async function api(fn,payload){let t=tok();if(!t)t=await login();let o=await post(fn,payload,t);
+  if(!o.ok&&o.auth){try{localStorage.removeItem(TK);}catch(e){}t=await login();o=await post(fn,payload,t);}
+  if(!o.ok)throw Error(o.erro||'Erro no servidor.');return o.r;}
+ window.jmcApi=api;
+ function runner(){const st={ok:null,fail:null};const p=new Proxy({},{get(_,k){
+   if(k==='withSuccessHandler')return f=>{st.ok=f;return p;};
+   if(k==='withFailureHandler')return f=>{st.fail=f;return p;};
+   if(k==='withUserObject')return ()=>p;
+   if(typeof k!=='string'||k==='then')return undefined;
+   return (arg)=>{api(k,arg===undefined?{}:arg).then(r=>{if(st.ok)st.ok(r);}).catch(e=>{if(st.fail)st.fail(e);else console.error(e);});};}});return p;}
+ window.google=window.google||{};window.google.script={get run(){return runner();},url:{getLocation:f=>f({parameter:Object.fromEntries(qs.entries()),parameters:{}})}};
+})();
+</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cuidados Pós-Operatórios</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Source+Sans+3:wght@400;500;600&display=swap">
+<style>
+:root{--desk:#e7e5de;--ink:#2f3a33;--green:#253e35;--gold:#ad8d4b;--gold-soft:#f5eedc;--line:#d9dad1;--muted:#7c8277;--warn:#96552a;--warn-soft:#f8ebe1;
+--serif:"Cormorant Garamond",Georgia,serif;--sans:"Source Sans 3","Segoe UI",Roboto,Arial,sans-serif}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--sans);font-size:15px}
+.bar{background:var(--warn-soft);color:var(--warn);text-align:center;font-size:12px;font-weight:600;letter-spacing:.5px;padding:6px 12px}
+.wrap{display:grid;grid-template-columns:330px 1fr;gap:20px;padding:18px 16px 40px;max-width:1300px;margin:0 auto;align-items:start}
+.panel{background:#fff;border-radius:10px;padding:16px 18px;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto;overscroll-behavior:contain;box-shadow:0 2px 14px #26362b12}
+.panel h2{font-family:var(--serif);font-size:22px;color:var(--green);margin:0 0 10px}
+.panel h3{font-size:12px;letter-spacing:1px;color:var(--gold);margin:16px 0 6px;text-transform:uppercase}
+label.f{display:block;font-size:12px;color:#646b60;margin:8px 0 3px}
+input[type=text],input[type=date],select{width:100%;font:inherit;font-size:15px;border:0;border-bottom:1px solid #b8bcae;padding:6px 2px;background:transparent;min-height:38px}
+input:focus,select:focus{outline:none;border-bottom:2px solid var(--gold)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button,.chip{font:inherit;font-size:13px;border:1px solid #cfd3c7;background:#fff;border-radius:20px;padding:7px 12px;cursor:pointer;color:#4a5646;min-height:36px}
+.seg button[aria-pressed=true],.chip[aria-pressed=true]{background:var(--green);border-color:var(--green);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.paste{width:100%;font:inherit;font-size:12px;border:1px dashed #c9b88f;background:var(--gold-soft);border-radius:8px;padding:7px 9px;height:36px;resize:none;color:var(--ink)}
+.paste:focus{outline:none;border-style:solid;height:90px}
+.pasteok{font-size:11px;color:#3d6b4f;margin:4px 0 0}
+.hint{font-size:11px;color:var(--muted);margin:6px 0 0;line-height:1.45}
+.sheet{background:#fff;box-shadow:0 4px 26px #26362b18;max-width:820px;width:100%;padding:36px clamp(20px,5vw,56px) 40px;justify-self:center}
+.top{text-align:center;padding-bottom:16px;border-bottom:1px solid #cdbf93}
+.top img{width:170px}
+.eyebrow{text-align:center;font-size:11px;letter-spacing:2.5px;color:var(--gold);font-weight:600;margin-top:20px}
+h1{font-family:var(--serif);font-weight:600;font-size:34px;color:var(--green);text-align:center;margin:6px 0 2px;text-wrap:balance}
+.sub{text-align:center;font-family:var(--serif);font-size:19px;color:#4b5a4f;margin:0 0 14px}
+.for{text-align:center;color:var(--muted);font-size:13.5px;margin:0 0 22px;line-height:1.5}
+.for b{color:var(--ink);font-weight:600;font-size:15px}
+.intro{font-size:14.5px;line-height:1.62;margin:0 0 12px}
+.key{border:1px solid #e4d6ad;background:var(--gold-soft);border-radius:8px;padding:12px 16px;margin:16px 0 8px;font-size:13.5px;line-height:1.55}
+.key b{color:#6f5724}
+section{margin-top:22px;break-inside:avoid-page}
+h2.s{font-family:var(--serif);font-weight:600;font-size:23px;color:var(--green);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:baseline}
+h2.s .n{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--gold);letter-spacing:1px}
+p,li{font-size:14px;line-height:1.62}
+.item{margin:0 0 9px}
+.item b{color:var(--green)}
+ul{margin:4px 0 8px;padding-left:20px}
+.med{width:100%;border-collapse:collapse;margin:6px 0 12px;font-size:13.5px;table-layout:fixed;min-width:480px}.med th:nth-child(1){width:36%}.med th:nth-child(2){width:40%}.med th:nth-child(3){width:24%}
+.med th{text-align:left;font-size:11px;letter-spacing:.8px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);padding:6px 8px;text-transform:uppercase}
+.med td{border-bottom:1px solid #ecece6;padding:8px;vertical-align:top}
+.med td.empty{color:#b3b6ad;font-style:italic}
+.tblwrap{overflow-x:auto}
+.phase{display:grid;grid-template-columns:120px 1fr;gap:4px 14px;margin:8px 0}
+.phase dt{font-weight:600;color:var(--green);font-size:13.5px}
+.phase dd{margin:0 0 6px;font-size:14px;line-height:1.55}
+.sign{text-align:center;margin-top:30px;font-family:var(--serif);font-size:18px;color:var(--green)}
+.sign em{display:block;font:normal 13px var(--sans);color:var(--muted);margin-bottom:4px}
+.sign span{display:block;font:11px var(--sans);letter-spacing:1.5px;color:var(--muted);margin-top:2px}
+.contact{text-align:center;font-size:12.5px;color:var(--muted);margin-top:14px}
+.chip.add{border-style:dashed;color:var(--green)}
+.addbox{border:1px solid var(--line);border-radius:8px;padding:8px 10px 10px;margin-top:8px;background:#fbfaf6}
+.addbox input{min-height:32px;font-size:14px}
+.addbox .row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.btn{font:inherit;font-size:13px;font-weight:600;border:1px solid #cfd3c7;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;color:var(--green);min-height:38px}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+.chip .x{margin-left:6px;opacity:.7}
+textarea{width:100%;font:inherit;font-size:14px;border:1px solid #cfd3c7;border-radius:8px;padding:8px;min-height:80px;resize:vertical}
+.editing{outline:2px dashed var(--gold);outline-offset:6px}
+.editnote{font-size:12px;color:#6f5724;background:var(--gold-soft);border-radius:6px;padding:8px 10px;margin-top:8px}
+.mail{background:#fff;border-radius:10px;padding:14px 16px;margin-top:14px;font-size:13px;line-height:1.5;box-shadow:0 2px 14px #26362b12}
+.mail b{color:var(--green)}
+.draftb{background:var(--gold-soft);border:1px solid #e4d6ad;color:#6f5724;border-radius:8px;padding:8px 10px;font-size:12.5px;margin:0 0 10px;line-height:1.5}
+.btn.small{min-height:30px;padding:4px 10px;font-size:12px;margin-left:4px}
+.ptitle{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 10px}.ptitle h2{margin:0!important}
+.actions{display:grid;gap:6px;margin-top:14px}.actions .btn{width:100%}
+.msg{font-size:13px;line-height:1.45;margin-top:10px;min-height:1px}.msg.ok{color:#2f6a48}.msg.err{color:#a1382b}.msg a{color:var(--green);font-weight:600;margin-left:4px}
+.modal{position:fixed;inset:0;background:#1d2a2266;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modalbox{background:#fff;border-radius:12px;max-width:460px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 10px 40px #0003}
+.modalbox header{padding:14px 16px;border-bottom:1px solid var(--line)}.modalbox header span{font-size:12px;color:var(--muted)}
+.modalbox footer{padding:10px 16px;border-top:1px solid var(--line);text-align:right}
+.draft-list{display:grid;gap:6px;padding:12px 16px;overflow:auto}
+.draft-item{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff;cursor:pointer;font:inherit;text-align:left}
+.draft-item:hover{border-color:var(--gold)}.draft-row2{display:flex;gap:6px;align-items:stretch}.draft-row2 .draft-item{flex:1}.draft-del{color:#a1382b!important;border-color:#e2bdb5!important;margin:0!important}.draft-item small{color:var(--muted)}
+@media (max-width:900px){.wrap{grid-template-columns:1fr}.panel{position:static;max-height:none;overflow:visible}}
+</style>
+</head>
+<body>
+<div class="bar" id="testBar" hidden>MODO DE TESTE · os documentos ficam na pasta de teste e o email leva [TESTE]</div>
+<div class="wrap">
+  <aside class="panel" aria-label="Preenchimento">
+    <div class="ptitle"><h2>Cuidados pós-operatórios</h2><button type="button" class="btn small act" id="btnDrafts">Rascunhos</button></div>
+    <div class="draftb" id="draftBanner" hidden></div>
+    <textarea id="paste" class="paste" placeholder="Colar informação do paciente (iMED)" aria-label="Colar informação do paciente"></textarea>
+    <p class="pasteok" id="pasteOk" hidden></p>
+    <label class="f" for="nome">Nome do paciente</label><input type="text" id="nome" value="">
+    <label class="f" for="email">Email do paciente</label><input type="text" id="email" inputmode="email" value="">
+    <label class="f" for="data">Data da cirurgia</label><input type="date" id="data">
+    <h3>Idioma do documento</h3>
+    <div class="seg" id="lang"><button type="button" data-l="pt" aria-pressed="true">Português</button><button type="button" data-l="en" aria-pressed="false">English</button><button type="button" data-l="fr" aria-pressed="false">Français</button><button type="button" data-l="es" aria-pressed="false">Español</button><button type="button" data-l="de" aria-pressed="false">Deutsch</button></div>
+    <div id="langBox" hidden>
+      <label class="f">Ver no documento à direita</label><div class="seg" id="view"></div>
+      <label class="f">Enviar ao paciente</label><div class="seg" id="sendMode"></div>
+      <p class="hint">A clínica recebe sempre as duas versões: português e a língua escolhida.</p>
+    </div>
+    <h3>Tipo de cirurgia</h3>
+    <div class="seg" id="tipo">
+      <button type="button" data-t="simples" aria-pressed="true">Implantes dentários</button>
+      <button type="button" data-t="fixos" aria-pressed="false">Dentes fixos num dia</button>
+      <button type="button" data-t="osseo" aria-pressed="false">Enxerto ósseo</button>
+      <button type="button" data-t="gengival" aria-pressed="false">Enxerto gengival</button>
+      <button type="button" data-t="outro" aria-pressed="false">Outro</button>
+    </div>
+    <div id="outroBox" hidden><label class="f" for="outroTxt">Descreva a cirurgia</label><input type="text" id="outroTxt" placeholder="Ex.: Exodontia de dente incluso"></div>
+    <h3>Antibiótico</h3>
+    <div class="chips" id="ab"></div>
+    <p class="hint">Amoxicilina + clavulânico, amoxicilina 1 g e claritromicina excluem-se entre si (para associar mesmo assim, toque de imediato outra vez no que saiu); o metronidazol pode juntar-se a qualquer um.</p>
+    <h3>Analgésico / anti-inflamatório</h3>
+    <div class="chips" id="an"></div>
+    <h3>Outra medicação</h3>
+    <div class="chips" id="ou"></div>
+    <h3>Clorohexidina</h3>
+    <div class="chips"><button type="button" class="chip" id="clx" aria-pressed="true">Colutório e gel de clorohexidina</button></div>
+    <p class="hint">Toque num medicamento para incluir ou retirar. Em «＋ Outro» escreve um medicamento que não esteja na lista; fica guardado nessa categoria.</p>
+    <h3>Indicações adicionais</h3>
+    <textarea id="extra" placeholder="Ex.: Não usar a prótese removível durante 2 semanas."></textarea>
+    <p class="hint">Aparece no documento numa secção própria, antes da assinatura.</p>
+    <h3>Editar o documento</h3>
+    <div class="row" style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn" id="editBtn">Editar texto do documento</button><button type="button" class="btn" id="resetBtn" hidden>Repor texto original</button></div>
+    <div class="editnote" id="editNote" hidden>Modo de edição: escreva diretamente no documento à direita. Enquanto estiver ligado, as escolhas à esquerda não alteram o texto.</div>
+    <h3>Unidade</h3>
+    <div class="seg" id="uni">
+      <button type="button" data-u="aveiro" aria-pressed="true">Aveiro</button>
+      <button type="button" data-u="faiscas" aria-pressed="false">Faíscas</button>
+    </div>
+    <div class="mail" id="mail"></div>
+    <div class="actions">
+      <button type="button" class="btn act" id="btnSave">Guardar rascunho</button>
+      <button type="button" class="btn act" id="btnPreviewPdf">Ver PDF</button>
+      <button type="button" class="btn primary act" id="btnSend">Enviar ao paciente e guardar na Drive</button>
+    </div>
+    <div class="msg" id="msg" role="status"></div>
+  </aside>
+
+  <article class="sheet" id="doc"></article>
+</div>
+<div class="modal" id="draftModal" hidden><div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="draftTitle">
+  <header><strong id="draftTitle">Rascunhos</strong><br><span>Guardados na Drive da clínica. Os criados a partir do consentimento de implantologia já trazem nome, email, data e tipo de cirurgia.</span></header>
+  <div class="draft-list" id="draftList">A carregar…</div>
+  <footer><button type="button" class="btn act" id="draftClose">Fechar</button></footer>
+</div></div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LOGO='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAaQAAACaCAMAAADRlcxuAAABd2lDQ1BJQ0MgUHJvZmlsZQAAeJx1kT1Lw1AUhp+2il8VBxVEHDpUcagoCqKb1sGliNQKVl3a2LRCkoakRYqr4OJQcBBd/Br8B7oKrgqCoAgizo5+LSLxXCtURG+4OQ/vve/h5A34Y4ZmujVjYFoFJz4ZDc0l50N1jzTQToB+RlOaa49PT8f4d71d41P1qk/1+v/en6tpKeNq4KsXHtZspyAs0xBbKdiKN4TbtFxqSXhPOOLIgMLnSk9X+EFxtsIvip1EfAL8qmco+4PTP1jLOaZwr3DYNIra9zzqS4IZa3ZGaqfsLlziTBIlRJoiyxgU6JNqSWZ/+wa+fFPkxaPJ26aEI44sOfFGRC1K14xUXfSMPAYllfvvPF19aLDSPRiF2nvPe+6Guk34KHve+77nfRxA4A5Orao/LzmNvIpermrhXWhZg+OzqpbegpN16Li1U07qSwrI9us6PB1BcxJaL6FxoZLV9zmHN5BYlV90Ads70CP3WxY/AWL7aDfWdVR8AAAASFBMVEUAAAAsLiooKScpKic+QDvNrFfIplXIqFXKqla4n1E0RjNTU1NBQj1VVSA8QDkRVlZSLS22fDmsrDr/AAA9QDoMDGyqcVX//wAmw78FAAAAGHRSTlMA66Bf/uckXp4PFwX+ClgGCwUEAZ4DBQEwfRwFAAAL10lEQVR4nO2d6bqkqg6GS7C1tKrW3Ofc/51uBocEEhTQqvXsnfdH9yoHQD4TwqBeLoIgCIIgCILwS+gCXl0eATN0fX/9E3LtRanfwjDpc732fT9Zkfnrep2E+nx1Af/zDN2sxXALdn0ZrdzOXuzplXT9JBB7xDAdwh8hnIqr/20z+XLGJjK9gqF3RrTrWC+nyPRknEQJN0cff2KBhAjrwfq8U5xMYkxPw9Z3gfMajLJiTE/CmFGZ57qViSvkY2v6f4XnFusrZNFnt0YQ6ylFpZP57GtNoU5kYQfX+gitE5VOZTikSRGVzuQYjUSlUzHt0dchCQ0SPZxFf9yIQScqnUOFRlqpxqKWLaLSKRRXq7YCKaW1/UPPW43kpT1igcMEDUUaWYU0+LX8eZXg4XD6ojqFtmPRq0ilqgssXUmDpGErNG2pTFLgKbrtVSgRFgkZp2rCQ4VcCpydDjydQ0HZoPIq0lPIxER2uZ6JMCMD1s04PHqHUEC2IZFmFDu1xZS0eLtaspt4oxG5PVTOJPzpjxdDqiU3aqBdHRUd+JRFo3qGTEPiNLqoSAvXKolGB5DZItHNEcP1zyCB3QGY0C5ngoLRiDUvbruQQ54hMRo1zHbd3GVw6ACywgZWIyaUUBcZZz2AYe1xbqM4X8eYkdmck7zAkOPtmIaHCd98xHDNHswQIjK8nWacmqY2z8qVzYEIkCFj8QkzzkCyBN6diFRNRh0yLQ8FcICff67/zy2UgNnvjThnR4D6rzJDW83+dp12dsRsXmBxvYhUy/XPzvcw0CFcbF7RFmmUatnfS6INKdoaN1yd9JQq2X2b0y1SqBF1lIkcvvMLJqzsFolcSaLCBV2kS7z+kWWSVewO7ihDCuyGGwiX8K6SvaEXFTbgSXTGjDLyEBh2VaCxGMrbQY3idZKZeQg8eyrQPzFBbIZrwBMdXRGpklRfdtKgCZ5qmQC68J7OISJVkhDJq2AFMO6O6LM261/p8SIRqRJeJK+C+9c4tkiHWSOd9HQOEakStgJnjawCTSySb5D882PFeQj7YCvQNTN68ngq7CY583EBRbzWbn8ewj64ClSrRk4vLJJtqBQZTtB5yAR6FcyIg5Nn6sA6x2f0AJI0E/smAWWVQyXM2J3VZR5kcEaFRFFMVM4gIlVCi6SARhcf3ykTiPtYIlMiOwr+OKaw/1Xo+SSjz6KRGxNS/q9GLxLtXw8u80m1fF+v8cysMaR1QDV2c7sbI4/MzFZDzCPYx/IWGXRxvDAjC++qIWJwBbtF64CCbZPmhikHmU6qhnBGaHxhWZ2qfDuUa0eXLwnuqokf81PUaNw80L09UhciccMBRN6Iiq5nbbgnmhNIk3QAUSUSGjVrnyn38ddvaZIOIHRH8UT5aj75zi7v8SeB4Rs37JRGIAbPTl68XS2u9lE1xhopGI7nP+svsV0t7ukH4+8+lg0pjQqiBontDsDV+tq0JzUqiBpkwu8I3IuZhvkxr7RGBVGDNSQRqRqny/wGoNSyrSJnJ2HDMdhgwDYcmogKkGwlzk5ePH0Qdk0WPbSNbKdEIzGkA9F0/UONShoka6HHfFZBsFC3/O613iwyInQoQ/wSVo0Cu5LXc/bSRzqWuEKBLmUaSdRwOOFXC9BoUIlG3/IdhMMJ7/tVmPBTBzsRZ3cCeHBgbZEKNZKxhlPo4SJGMIVUqJE0SGfwgI3ILFJZe2S/gCAN0imAmp29Xf4CrjAl4WC6pW79AtbNBy030xGOZ7EAN9qgKjSSV9ydh1XJRg9ulX5ZyCC+7nS66XvAWQ+34BTkS8Cn0/mvn+vSjxfI9+mfQk01d730j56DVamspruDPp4ubGPqusSYBquurLJ7Ft+murNNouQcoQZnTDlV7k4QM3oyOTJ19mD59O8r6G3Nd9tVP/gDn1AiIebLGogxp5ROXe+PeVqhhAjb8TFmQgrVdV6hq0j0aj69EkYKo1TXDYP9x8jTX6fNotCvYOgmRQJoAxNehzUeo5Wnd2b16iIJgiAIgiAIgiAIgiAIgvDvQjOP2wu/B620zl/6qQEnFCqrJCO9Yzy6ZFr/KKVecr020+yMVbu8FL1pX6qSblvmFmvuRQ8qcfkoc6WOrHf1H5W7nt70l8P64vrSBxmOgn3rd8HrwBOoxsnjbkrzR+Gqc8h7zsHG3dXcGYUPqB6G5p6lID+PWZGJNaDx8hitTRmZ9K02UeON9hegxJJAVr9AJKIEN+eQD81jafpG87tV1SI1GSK5UpRn9StEiq+W2VycRfR9wPpkc0Wq4HSRPtLeW9PNoo9siOOzmgKP1Sg8jYkos5LlRKq20QhCJK0sxMvolN8xom34uPC8N38Kfx+4b/VFl0tvfSMLNj18ZneSOagdcQJ9yfzF2eOt9o49hawjFOnDhap3GwohNZwjn2JYUIQwTsa/XUx192Evk7//8m8Yhtu7FIuE8sdXcHcfMWtaJmTfdJsukvDBOa5bkyKyuPXifi73uw0U74YWFYZJqo5QJJOzu0Ps/2pExzXzDlB75ihk3ai6m3ZOy1wO01Jbkf4aPVAhXKGQSNqVyz/7HPgZe5y2e1tFfSNORXdAfEA7pRzob36Pwe+1OAvrKeZG4pKqIxDJJu4tyIVAy3YNGg70TuiESMDPUK9bXRLWkX+3qdyQSMZc1o/Jmd3w9mmb6bH1kRDp74YhfShn5o85ZSgLL9Lj8ni3v1CG4/Kd4nefVCrfLLBI9oI/1l1roBre66DcnEjBezOY5tSLhJKf5EEijUrDtxChMqcfWzc7P9id+O4L3yPBixT/IpLasOAMkEhB4wCqyZSI/N5kWqQdfnk6Cl7xVAq+s4jlT39nO27vMEFoiX5mipRKqg4o0iPMd7nAkTPehEic8WEmkWBdTnklevSo4lXSoW2IFL4mBw1G5Yn0ZpL6iw4/rDcORYouaK0n7rbY7+4YJpEeCjbKGmdO5YquIJHPhkhRRapikaLy7rtL94BFClLVSykVE1SmAoddbzhZ8lzOnFvCDJESdbFxq0QSalCzeSJRbdQJItmwAU40abBT+Qg4zDUl0jysmSzpciVqNSA95xgcOvWmFXZwGzds0pJiOwv8bpZIiaTqCERy3bMF0ytDO91oPxIq2U+a+p8bDfvyXTh/0UtIGYhkCrqUK0+kZIsVFq1YJEKSc0SaBzoAsBi+J2kq/Q2WlBdpPmdrxGH+q9VQGhVUSdu4ASZv4LtFuiV3vx1nSc8SSW+1dLdZKei2kyLZoUwvFFPeVaRb44YOoIMFxYQ9+Pem3W9J6UaJEAld3AMfnOnujhp1gJe4M1UFBmCi24lOQbOdBlAp9mRw8yKREvWzFUQl+yuRM1Q4cAhTSpwaJ3Vc4AAvcedQBjgsbjhomdlGFIj0wEYKk9Z4JUaWSMY/sFc1RhUJhLip6A7cCMHZpEoAiYXufZcpAZGiXja3rGRbJH/64j1TImUEDn5ILZw/AtYbjNbCwUd8NU0kEk41SMrelwWzX8vpLfBwbVAOeMFggBeVZq0+HdYXb0mb7s78uOPEYJbo41c5Irny4kNspv5muOH7MjQWoO5HOKEfdhHercBrG1a7kGa9rLCtQDPNGrY9wdDhfL+PanUmo0LRNvq2Dlti3OOD4T2sBBsqQD+YJ5JTSemPtWTgCnCRg5u0XdSc5mrgztnsFx1BUiPfCu9ET51MtxYNm6SbEVH6ze9rfpbSust8swFwOJ4/dVjt1FmDA1gbNC8xM2P6fLc8mE+a5xptFlltkjvGT5O5sqgG2zu+4qhZsWe9+Yv7CSZUXJ/RJAhUQknVzaPrqV9q/v2Jdq37sPVMC9faNopq3B5//Fp9tyWl5Eo33XKLM7E78fNpLjE1qnumSOiygHms1zbtj0ZUGlAZcc/I71tOGhVZeaXMU4urD1h3zSsnNb0ZzuzgtC7hiMOyBjMx4sCJFMZW84JO5Xq8MJd99QEKExw+akXvQPsuQbbGB08XDuvjjU+qiNQqcHLXI3HKtIMw8I0l0OQs1cQY/gRpFbiS8cKufPdJk2W5uUv4IMpjMbuikrx6db0gCMIv5R/dUTqrLLWcdAAAAABJRU5ErkJggg==';
+const UNI={aveiro:{nome:'Aveiro',tel:'960 393 000',email:'aveiro@jesusmarcouto.pt'},faiscas:{nome:'Faíscas',tel:'910 086 007',email:'faiscas@jesusmarcouto.pt'}};
+const AB=[
+ {id:'amox',nome:'Amoxicilina + ácido clavulânico 875/125 mg',toma:'1 comprimido de 12 em 12 horas',dur:'8 dias',on:true,x:1},
+ {id:'amox1',nome:'Amoxicilina 1 g',toma:'1 comprimido de 12 em 12 horas',dur:'8 dias',on:false,x:1},
+ {id:'clari',nome:'Claritromicina',toma:'1 comprimido de 12 em 12 horas',dur:'8 dias',on:false,x:1},
+ {id:'metro',nome:'Metronidazol 250 mg',toma:'1 comprimido de 8 em 8 horas',dur:'5 dias',on:false}];
+const AN=[
+ {id:'ibu',nome:'Ibuprofeno 600 mg',toma:'1 comprimido de 8 em 8 horas',dur:'3 dias; depois só em caso de dor (SOS)',on:true},
+ {id:'para',nome:'Paracetamol 1 g',toma:'1 comprimido entre as tomas do ibuprofeno, em caso de dor (SOS)',dur:'SOS',on:true},
+ {id:'clonix',nome:'Clonix 300 mg',toma:'1 comprimido de 12 em 12 horas, em caso de dor (SOS)',dur:'SOS',on:false}];
+const OU=[
+ {id:'aerius',nome:'Aerius (desloratadina) 5 mg',toma:'1 comprimido por dia, ao final do dia',dur:'5 dias',on:false},
+ {id:'omep',nome:'Omeprazol 20 mg',toma:'1 cápsula por dia, em jejum, antes do pequeno-almoço',dur:'Enquanto tomar o anti-inflamatório e o antibiótico',on:false,x:1},
+ {id:'omep40',nome:'Omeprazol 40 mg',toma:'1 cápsula por dia, em jejum, antes do pequeno-almoço',dur:'Enquanto tomar o anti-inflamatório e o antibiótico',on:false,x:1}];
+const S={tipos:['simples'],clx:true,uni:'aveiro',editing:false,lang:'pt',view:'pt',sendMode:'lang',ed:{}};
+$('data').value=new Date().toISOString().slice(0,10);
+
+function chips(el,list){
+ const draw=()=>{el.innerHTML=list.map(m=>`<button type="button" class="chip" data-id="${m.id}" aria-pressed="${m.on}">${esc(m.nome)}${m.custom?'<span class="x" data-del="'+m.id+'" title="Retirar da lista">×</span>':''}</button>`).join('')+
+  `<button type="button" class="chip add" data-add="1">＋ Outro</button>`+
+  (el.dataset.open?`<div class="addbox"><label class="f">Medicamento e dose</label><input type="text" class="a-n" placeholder="Ex.: Nimesulida 100 mg"><label class="f">Método de administração</label><input type="text" class="a-t" placeholder="Ex.: 1 comprimido de 12 em 12 horas"><label class="f">Duração</label><input type="text" class="a-d" placeholder="Ex.: 5 dias"><div class="row"><button type="button" class="btn primary" data-ok="1">Acrescentar</button><button type="button" class="btn" data-cancel="1">Cancelar</button></div></div>`:'');
+  if(el.dataset.open) el.querySelector('.a-n').focus();};
+ el.onclick=e=>{
+  const del=e.target.closest('[data-del]'); if(del){const i=list.findIndex(x=>x.id===del.dataset.del);list.splice(i,1);draw();render();return;}
+  if(e.target.closest('[data-add]')){el.dataset.open='1';draw();return;}
+  if(e.target.closest('[data-cancel]')){delete el.dataset.open;draw();return;}
+  if(e.target.closest('[data-ok]')){const n=el.querySelector('.a-n').value.trim();if(!n){el.querySelector('.a-n').focus();return;}
+   list.push({id:'c'+Date.now(),nome:n,toma:el.querySelector('.a-t').value.trim(),dur:el.querySelector('.a-d').value.trim(),on:true,custom:true});delete el.dataset.open;draw();render();return;}
+  const b=e.target.closest('.chip[data-id]');if(!b)return;const m=list.find(x=>x.id===b.dataset.id);const prev=S.bump||[];S.bump=[];m.on=!m.on;if(m.on&&m.x&&!prev.includes(m.id))list.forEach(o=>{if(o!==m&&o.x&&o.on){o.on=false;S.bump.push(o.id);}});[...el.querySelectorAll('.chip[data-id]')].forEach(c=>c.setAttribute('aria-pressed',list.find(x=>x.id===c.dataset.id).on));render();};
+ draw();}
+document.addEventListener('click',e=>{if(!e.target.closest('.chip[data-id]'))S.bump=[];},true);
+// Lê a ficha copiada do iMED (reutilizável nos outros documentos)
+function parseIMED(t){
+ // Rótulos tolerantes a cópias mal feitas («ome:», «ata nasc.:», «Esdo:»): compara com os rótulos conhecidos por semelhança
+ const K={nome:'nome',datanasc:'nasc',profissao:'prof',local:'local',estado:'estado',nif:'nif',cartaodecidadao:'cc',nutente:'utente',utente:'utente',entidade:'entidade',nbenef:'benef',morada:'morada',telemovel:'tel',telefone:'tel',email:'email'};
+ const norm=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,'');
+ const lev=(a,b)=>{const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const q=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=q;}}return d[b.length];};
+ const key=l=>{const n=norm(l);if(n.length<2)return '';let best='',bd=9;
+  for(const k in K){const dd=k===n?0:(k.endsWith(n)||k.startsWith(n))&&n.length>=3?1:lev(n,k);if(dd<bd){bd=dd;best=K[k];}}
+  return bd<=Math.max(1,Math.floor(norm(l).length/3))?best:'';};
+ const o={}, lines=t.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
+ lines.forEach((ln,i)=>{
+  // separa rótulos na mesma linha («… Profissão: …», «… Cartão de Cidadão: …»)
+  const parts=ln.split(/\s+(?=(?:Profiss\S*|Cart\S* de Cidad\S*)\s*:)/);
+  parts.forEach(pt=>{const c=pt.indexOf(':');if(c<0||c>25){if(i===0&&!o.nome&&!o._first)o._first=pt;return;}
+   const k=key(pt.slice(0,c)),v=pt.slice(c+1).replace(/\s+/g,' ').trim();
+   if(k&&!o[k])o[k]=v;else if(i===0&&!o._first)o._first=v;});});
+ if(!o.nome&&o._first&&/^[A-Za-zÀ-ÿ'’. -]{3,}$/.test(o._first)&&o._first.split(' ').length>=2)o.nome=o._first;
+ if(!o.email){const e=t.match(/[^\s@:]+@[^\s@]+\.[a-z]{2,}/i);if(e)o.email=e[0];}
+ if(!o.local){const u=t.match(/Jesus Mar Couto\s*-\s*(Aveiro|Fa[ií]scas)/i);if(u)o.local=u[0];}
+ const r={};
+ if(o.nome)r.nome=o.nome;
+ if(o.nasc)r.nasc=(o.nasc.match(/\d{4}-\d{2}-\d{2}/)||[''])[0];
+ if(o.nif)r.nif=o.nif.replace(/\D/g,'');
+ if(o.cc)r.cc=o.cc.replace(/\s/g,'');
+ if(o.utente)r.utente=o.utente.replace(/\D/g,'');
+ if(o.morada)r.morada=o.morada;
+ if(o.tel)r.tel=o.tel.replace(/\s/g,'');
+ if(o.email)r.email=(o.email.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)||[''])[0];
+ if(o.local)r.unidade=/fa[ií]scas/i.test(o.local)?'faiscas':/aveiro/i.test(o.local)?'aveiro':'';
+ return r;}
+$('paste').addEventListener('input',()=>{const r=parseIMED($('paste').value),done=[];
+ if(r.nome){$('nome').value=r.nome;done.push('nome «'+r.nome+'»');}
+ if(r.email){$('email').value=r.email;done.push('email');}
+ if(r.unidade){S.uni=r.unidade;[...$('uni').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.u===r.unidade));done.push('unidade');}
+ if(!done.length)return;
+ $('paste').value='';$('paste').blur();$('pasteOk').hidden=false;$('pasteOk').textContent='✓ Preenchido: '+done.join(', ')+(r.nome?'':' — falta o nome, escreva-o abaixo')+'. Confirme antes de enviar.';render();});
+chips($('ab'),AB);chips($('an'),AN);chips($('ou'),OU);
+$('extra').addEventListener('input',()=>render());
+function editState(){const ed=!!S.ed[S.view];$('editNote').hidden=!(S.editing||ed);$('editNote').textContent=S.editing?'Modo de edição: escreva diretamente no documento à direita. As alterações ficam guardadas no rascunho e no PDF.':'O texto foi editado à mão: as escolhas à esquerda já não alteram o documento. Use «Repor texto original» para voltar ao texto automático.';$('resetBtn').hidden=!(S.editing||ed);}
+$('doc').addEventListener('input',()=>{if(S.editing)S.ed[S.view]=$('doc').innerHTML;});
+$('editBtn').onclick=()=>{S.editing=!S.editing;$('doc').contentEditable=S.editing;$('doc').classList.toggle('editing',S.editing);$('editBtn').textContent=S.editing?'Terminar edição':'Editar texto do documento';editState();if(S.editing)$('doc').focus();};
+$('resetBtn').onclick=()=>{S.editing=false;delete S.ed[S.view];$('doc').contentEditable=false;$('doc').classList.remove('editing');$('editBtn').textContent='Editar texto do documento';editState();render(true);};
+$('lang').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(S.editing)stopEditing();S.lang=b.dataset.l;S.view=S.lang;langUi();editState();render();};
+$('view').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(S.editing)stopEditing();S.view=b.dataset.v;langUi();editState();render();};
+$('sendMode').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.sendMode=b.dataset.s;langUi();renderMail();};
+$('clx').onclick=()=>{S.clx=!S.clx;$('clx').setAttribute('aria-pressed',S.clx);render();};
+function seg(el,key,attr){el.onclick=e=>{const b=e.target.closest('button');if(!b)return;S[key]=b.dataset[attr];[...el.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render();};}
+$('tipo').onclick=e=>{const b=e.target.closest('button');if(!b)return;const t=b.dataset.t;let T=S.tipos.slice();
+ if(T.includes(t)){if(T.length>1)T=T.filter(x=>x!==t);}else{if(t==='simples')T=T.filter(x=>x!=='fixos');if(t==='fixos')T=T.filter(x=>x!=='simples');T.push(t);}
+ S.tipos=T;[...$('tipo').children].forEach(x=>x.setAttribute('aria-pressed',T.includes(x.dataset.t)));
+ $('outroBox').hidden=!T.includes('outro');if(t==='outro'&&T.includes('outro'))$('outroTxt').focus();render();};$('outroTxt').addEventListener('input',()=>render());$('email').addEventListener('input',()=>render());seg($('uni'),'uni','u');
+['nome','data'].forEach(id=>$(id).addEventListener('input',()=>render()));
+
+/* ---------- idiomas: PT sempre; EN/FR para pacientes estrangeiros (a clínica recebe as duas versões) ---------- */
+const LANGS={pt:'Português',en:'English',fr:'Français',es:'Español',de:'Deutsch'};
+const MED_I18N={
+ amox:{en:['Amoxicillin + clavulanic acid 875/125 mg','1 tablet every 12 hours','8 days'],fr:['Amoxicilline + acide clavulanique 875/125 mg','1 comprimé toutes les 12 heures','8 jours'],es:["Amoxicilina + ácido clavulánico 875/125 mg", "1 comprimido cada 12 horas", "8 días"],de:["Amoxicillin + Clavulansäure 875/125 mg", "1 Tablette alle 12 Stunden", "8 Tage"]},
+ amox1:{en:['Amoxicillin 1 g','1 tablet every 12 hours','8 days'],fr:['Amoxicilline 1 g','1 comprimé toutes les 12 heures','8 jours'],es:["Amoxicilina 1 g", "1 comprimido cada 12 horas", "8 días"],de:["Amoxicillin 1 g", "1 Tablette alle 12 Stunden", "8 Tage"]},
+ clari:{en:['Clarithromycin','1 tablet every 12 hours','8 days'],fr:['Clarithromycine','1 comprimé toutes les 12 heures','8 jours'],es:["Claritromicina", "1 comprimido cada 12 horas", "8 días"],de:["Clarithromycin", "1 Tablette alle 12 Stunden", "8 Tage"]},
+ metro:{en:['Metronidazole 250 mg','1 tablet every 8 hours','5 days'],fr:['Métronidazole 250 mg','1 comprimé toutes les 8 heures','5 jours'],es:["Metronidazol 250 mg", "1 comprimido cada 8 horas", "5 días"],de:["Metronidazol 250 mg", "1 Tablette alle 8 Stunden", "5 Tage"]},
+ ibu:{en:['Ibuprofen 600 mg','1 tablet every 8 hours','3 days; then only if in pain (as needed)'],fr:['Ibuprofène 600 mg','1 comprimé toutes les 8 heures','3 jours ; ensuite uniquement en cas de douleur (si besoin)'],es:["Ibuprofeno 600 mg", "1 comprimido cada 8 horas", "3 días; después, solo si hay dolor (si lo necesita)"],de:["Ibuprofen 600 mg", "1 Tablette alle 8 Stunden", "3 Tage; danach nur bei Schmerzen (bei Bedarf)"]},
+ para:{en:['Paracetamol 1 g','1 tablet between ibuprofen doses, if in pain (as needed)','As needed'],fr:['Paracétamol 1 g',"1 comprimé entre les prises d'ibuprofène, en cas de douleur (si besoin)",'Si besoin'],es:["Paracetamol 1 g", "1 comprimido entre las tomas de ibuprofeno, si hay dolor (si lo necesita)", "Si lo necesita"],de:["Paracetamol 1 g", "1 Tablette zwischen den Ibuprofen-Einnahmen, bei Schmerzen (bei Bedarf)", "Bei Bedarf"]},
+ clonix:{en:['Clonix 300 mg','1 tablet every 12 hours, if in pain (as needed)','As needed'],fr:['Clonix 300 mg','1 comprimé toutes les 12 heures, en cas de douleur (si besoin)','Si besoin'],es:["Clonix 300 mg", "1 comprimido cada 12 horas, si hay dolor (si lo necesita)", "Si lo necesita"],de:["Clonix 300 mg", "1 Tablette alle 12 Stunden, bei Schmerzen (bei Bedarf)", "Bei Bedarf"]},
+ aerius:{en:['Aerius (desloratadine) 5 mg','1 tablet a day, in the evening','5 days'],fr:['Aerius (desloratadine) 5 mg','1 comprimé par jour, le soir','5 jours'],es:["Aerius (desloratadina) 5 mg", "1 comprimido al día, por la noche", "5 días"],de:["Aerius (Desloratadin) 5 mg", "1 Tablette täglich, abends", "5 Tage"]},
+ omep:{en:['Omeprazole 20 mg','1 capsule a day, on an empty stomach, before breakfast','While taking the anti-inflammatory and the antibiotic'],fr:['Oméprazole 20 mg','1 gélule par jour, à jeun, avant le petit-déjeuner',"Pendant la prise de l'anti-inflammatoire et de l'antibiotique"],es:["Omeprazol 20 mg", "1 cápsula al día, en ayunas, antes del desayuno", "Mientras tome el antiinflamatorio y el antibiótico"],de:["Omeprazol 20 mg", "1 Kapsel täglich, nüchtern, vor dem Frühstück", "Während der Einnahme des Entzündungshemmers und des Antibiotikums"]},
+ omep40:{en:['Omeprazole 40 mg','1 capsule a day, on an empty stomach, before breakfast','While taking the anti-inflammatory and the antibiotic'],fr:['Oméprazole 40 mg','1 gélule par jour, à jeun, avant le petit-déjeuner',"Pendant la prise de l'anti-inflammatoire et de l'antibiotique"],es:["Omeprazol 40 mg", "1 cápsula al día, en ayunas, antes del desayuno", "Mientras tome el antiinflamatorio y el antibiótico"],de:["Omeprazol 40 mg", "1 Kapsel täglich, nüchtern, vor dem Frühstück", "Während der Einnahme des Entzündungshemmers und des Antibiotikums"]}};
+const medTxt=(m,lang)=>{const t=!m.custom&&MED_I18N[m.id]&&MED_I18N[m.id][lang];return t?{nome:t[0],toma:t[1],dur:t[2]}:{nome:m.nome,toma:m.toma,dur:m.dur};};
+function table(list,lang){const X=(pt,en,fr,es,de)=>lang==='en'?en:lang==='fr'?fr:lang==='es'?es:lang==='de'?de:pt;const on=list.filter(m=>m.on);
+ return `<div class="tblwrap"><table class="med"><thead><tr><th>${X('Medicamento','Medication','Médicament','Medicamento','Medikament')}</th><th>${X('Método de administração','How to take','Mode de prise','Cómo tomarlo','Einnahme')}</th><th>${X('Duração','Duration','Durée','Duración','Dauer')}</th></tr></thead><tbody>${
+  on.map(m=>{const t=medTxt(m,lang);return `<tr><td><b>${esc(t.nome)}</b></td><td>${esc(t.toma)}</td><td>${esc(t.dur)}</td></tr>`;}).join('')}</tbody></table></div>`;}
+function mailTxt(lang){const U=UNI[S.uni],d=$('data').value?$('data').value.split('-').reverse().join('/'):'';const X=(pt,en,fr,es,de)=>lang==='en'?en:lang==='fr'?fr:lang==='es'?es:lang==='de'?de:pt;
+ return {subject:(window.JMC_TESTE?'[TESTE] ':'')+X('Importante: cuidados após a sua cirurgia','Important: care after your surgery','Important : soins après votre chirurgie','Importante: cuidados después de su cirugía','Wichtig: Verhalten nach Ihrer Operation')+(d?X(' de ',' on ',' du ',' del ',' vom ')+d:'')};}
+function renderMail(){const U=UNI[S.uni],pl=S.lang,foreign=pl!=='pt';
+ const att=foreign?(S.sendMode==='both'?'Português + '+LANGS[pl]:'só '+LANGS[pl]):'Português';
+ $('mail').innerHTML=`<b>Email ao paciente (pré-visualização)</b><br>Para: <b>${esc($('email').value.trim())||'—'}</b><br>Assunto: <b>${esc(mailTxt(pl).subject)}</b><br>De: Jesus Mar Couto &lt;${U.email}&gt; · cópia oculta para a clínica<br>Anexo: PDF dos cuidados pós-operatórios (${att})${foreign?'<br>A clínica recebe sempre as duas versões (português e '+LANGS[pl]+').':''}`;}
+function docHtml(lang){
+ const X=(pt,en,fr,es,de)=>lang==='en'?en:lang==='fr'?fr:lang==='es'?es:lang==='de'?de:pt;
+ const it=(t,b)=>`<p class="item"><b>${t}${lang==='fr'?' :':':'}</b> ${b}</p>`;
+ const T=S.tipos, fixos=T.includes('fixos'), impl=T.includes('simples')||fixos, osseo=T.includes('osseo'), geng=T.includes('gengival'), graft=osseo||geng;
+ const outroT=T.includes('outro')?(esc($('outroTxt').value.trim())||X('Outra cirurgia','Other surgery','Autre chirurgie','Otra cirugía','Andere Operation')):'';
+ const extras=[osseo&&X('Enxerto Ósseo','Bone Graft','Greffe Osseuse','Injerto óseo','Knochenaufbau'),geng&&X('Enxerto Gengival','Gum Graft','Greffe Gingivale','Injerto gingival','Zahnfleischtransplantat'),outroT].filter(Boolean);
+ const and=X(' e ',' and ',' et ',' y ',' und '), eList=a=>a.length>1?a.slice(0,-1).join(', ')+and+a[a.length-1]:(a[0]||'');
+ const subT=impl?(fixos?X('Cirurgia de Dentes Fixos em Um Dia','Fixed Teeth in One Day Surgery','Chirurgie Dents Fixes en un Jour','Cirugía de dientes fijos en un día','Feste Zähne an einem Tag'):X('Cirurgia de Implantes Dentários','Dental Implant Surgery',"Chirurgie d'Implants Dentaires",'Cirugía de implantes dentales','Zahnimplantat-Operation'))+(extras.length?X(' com ',' with ',' avec ',' con ',' mit ')+eList(extras):fixos?X(' — Implantes com Carga Imediata',' — Immediately Loaded Implants',' — Implants à Mise en Charge Immédiate',' — Implantes con carga inmediata',' — Implantate mit Sofortbelastung'):''):eList(extras);
+ const alvo=impl&&graft?X('dos implantes e do enxerto','of the implants and the graft','des implants et de la greffe','de los implantes y del injerto','der Implantate und des Transplantats'):impl?X('dos implantes','of the implants','des implants','de los implantes','der Implantate'):graft?X('do enxerto','of the graft','de la greffe','del injerto','des Transplantats'):X('da cirurgia','of the surgery','de la chirurgie','de la cirugía','der Operation');
+ const U=UNI[S.uni], d=$('data').value?$('data').value.split('-').reverse().join('/'):'';
+ let n=0; const sec=(title,body)=>`<section><h2 class="s"><span class="n">${String(++n).padStart(2,'0')}</span>${title}</h2>${body}</section>`;
+ let h=`<header class="top"><img src="${LOGO}" alt="Jesus Mar Couto"></header>
+ <div class="eyebrow">${X('CUIDADOS PÓS-OPERATÓRIOS','POST-OPERATIVE CARE','SOINS POST-OPÉRATOIRES','CUIDADOS POSTOPERATORIOS','POSTOPERATIVE PFLEGE')}</div>
+ <h1>${X('Cuidados Pós-Operatórios','Post-Operative Care','Soins Post-Opératoires','Cuidados postoperatorios','Verhalten nach der Operation')}</h1>
+ <p class="sub">${subT}</p>
+ <p class="for">${X('Preparado para','Prepared for','Préparé pour','Preparado para','Erstellt für')} <b>${esc($('nome').value)||'—'}</b>${d?`<br>${X('Cirurgia de','Surgery on','Chirurgie du','Cirugía del','Operation am')} ${d}`:''}</p>`;
+ if(impl) h+=X(
+  `<p class="intro">Para o sucesso do seu tratamento, é essencial que cumpra os cuidados pós-operatórios recomendados. O paciente desempenha um papel ativo e determinante no sucesso do tratamento com implantes dentários: os cuidados que tiver nos primeiros dias e semanas influenciam diretamente a cicatrização e a correta integração ${alvo}.</p>
+ <p class="intro">Após a realização da cirurgia, é normal sentir algum desconforto, inchaço e um ligeiro sangramento, que tendem a diminuir progressivamente ao longo dos primeiros dias. Durante o período de cicatrização e integração dos implantes ao osso (osteointegração), que decorre habitualmente até aos 6 meses após a cirurgia, as instruções seguintes devem ser cumpridas de forma rigorosa. O incumprimento destas recomendações pode causar dor, infeção, atraso na cicatrização e, no limite, a perda ${alvo}.</p>`,
+  `<p class="intro">For your treatment to succeed, it is essential that you follow the recommended post-operative care. The patient plays an active and decisive role in the success of dental implant treatment: the care you take in the first days and weeks directly influences healing and the correct integration ${alvo}.</p>
+ <p class="intro">After the surgery, it is normal to feel some discomfort, swelling and slight bleeding, which tend to decrease gradually over the first days. During the period of healing and integration of the implants into the bone (osseointegration), which usually lasts up to 6 months after surgery, the following instructions must be followed strictly. Failure to follow these recommendations may cause pain, infection, delayed healing and, ultimately, the loss ${alvo}.</p>`,
+  `<p class="intro">Pour la réussite de votre traitement, il est essentiel de respecter les soins post-opératoires recommandés. Le patient joue un rôle actif et déterminant dans la réussite du traitement par implants dentaires : les soins apportés pendant les premiers jours et les premières semaines influencent directement la cicatrisation et la bonne intégration ${alvo}.</p>
+ <p class="intro">Après la chirurgie, il est normal de ressentir une certaine gêne, un gonflement et un léger saignement, qui diminuent progressivement au cours des premiers jours. Pendant la période de cicatrisation et d'intégration des implants dans l'os (ostéo-intégration), qui dure généralement jusqu'à 6 mois après la chirurgie, les instructions suivantes doivent être rigoureusement respectées. Le non-respect de ces recommandations peut entraîner des douleurs, une infection, un retard de cicatrisation et, à terme, la perte ${alvo}.</p>`,`<p class="intro">Para el éxito de su tratamiento, es esencial que cumpla los cuidados postoperatorios recomendados. El paciente desempeña un papel activo y determinante en el éxito del tratamiento con implantes dentales: los cuidados que tenga en los primeros días y semanas influyen directamente en la cicatrización y en la correcta integración ${alvo}.</p>
+ <p class="intro">Después de la cirugía, es normal sentir algunas molestias, inflamación y un ligero sangrado, que tienden a disminuir progresivamente a lo largo de los primeros días. Durante el periodo de cicatrización e integración de los implantes en el hueso (oseointegración), que suele durar hasta 6 meses después de la cirugía, las siguientes instrucciones deben cumplirse de forma rigurosa. El incumplimiento de estas recomendaciones puede causar dolor, infección, retraso en la cicatrización y, en último término, la pérdida ${alvo}.</p>`,`<p class="intro">Für den Erfolg Ihrer Behandlung ist es unerlässlich, dass Sie die empfohlenen Verhaltensregeln nach der Operation einhalten. Als Patient(in) tragen Sie aktiv und entscheidend zum Erfolg der Behandlung mit Zahnimplantaten bei: Ihr Verhalten in den ersten Tagen und Wochen beeinflusst unmittelbar die Wundheilung und die korrekte Einheilung ${alvo}.</p>
+ <p class="intro">Nach der Operation sind leichte Beschwerden, eine Schwellung und eine leichte Blutung normal; sie nehmen in den ersten Tagen allmählich ab. Während der Heilung und der Einheilung der Implantate in den Knochen (Osseointegration), die in der Regel bis zu 6 Monate nach der Operation dauert, müssen die folgenden Anweisungen genau befolgt werden. Werden diese Empfehlungen nicht eingehalten, kann es zu Schmerzen, Infektionen, verzögerter Heilung und im äußersten Fall zum Verlust ${alvo} kommen.</p>`);
+ else h+=X(
+  `<p class="intro">Para o sucesso do seu tratamento, é essencial que cumpra os cuidados pós-operatórios recomendados. O paciente desempenha um papel ativo e determinante no resultado da cirurgia: os cuidados que tiver nos primeiros dias e semanas influenciam diretamente a cicatrização${graft?' e a correta integração do enxerto':''}.</p>
+ <p class="intro">Após a realização da cirurgia, é normal sentir algum desconforto, inchaço e um ligeiro sangramento, que tendem a diminuir progressivamente ao longo dos primeiros dias. ${osseo?'Durante o período de cicatrização e integração do enxerto ósseo, que decorre habitualmente ao longo de vários meses':geng?'Durante o período de cicatrização e integração do enxerto gengival, sobretudo nas primeiras semanas':'Durante o período de cicatrização'}, as instruções seguintes devem ser cumpridas de forma rigorosa. O incumprimento destas recomendações pode causar dor, infeção, atraso na cicatrização${graft?' e, no limite, a perda do enxerto':' e comprometer o resultado da cirurgia'}.</p>`,
+  `<p class="intro">For your treatment to succeed, it is essential that you follow the recommended post-operative care. The patient plays an active and decisive role in the outcome of the surgery: the care you take in the first days and weeks directly influences healing${graft?' and the correct integration of the graft':''}.</p>
+ <p class="intro">After the surgery, it is normal to feel some discomfort, swelling and slight bleeding, which tend to decrease gradually over the first days. ${osseo?'During the period of healing and integration of the bone graft, which usually takes several months':geng?'During the period of healing and integration of the gum graft, especially in the first weeks':'During the healing period'}, the following instructions must be followed strictly. Failure to follow these recommendations may cause pain, infection, delayed healing${graft?' and, ultimately, the loss of the graft':' and compromise the outcome of the surgery'}.</p>`,
+  `<p class="intro">Pour la réussite de votre traitement, il est essentiel de respecter les soins post-opératoires recommandés. Le patient joue un rôle actif et déterminant dans le résultat de la chirurgie : les soins apportés pendant les premiers jours et les premières semaines influencent directement la cicatrisation${graft?' et la bonne intégration de la greffe':''}.</p>
+ <p class="intro">Après la chirurgie, il est normal de ressentir une certaine gêne, un gonflement et un léger saignement, qui diminuent progressivement au cours des premiers jours. ${osseo?"Pendant la période de cicatrisation et d'intégration de la greffe osseuse, qui dure généralement plusieurs mois":geng?"Pendant la période de cicatrisation et d'intégration de la greffe gingivale, surtout pendant les premières semaines":'Pendant la période de cicatrisation'}, les instructions suivantes doivent être rigoureusement respectées. Le non-respect de ces recommandations peut entraîner des douleurs, une infection, un retard de cicatrisation${graft?' et, à terme, la perte de la greffe':' et compromettre le résultat de la chirurgie'}.</p>`,`<p class="intro">Para el éxito de su tratamiento, es esencial que cumpla los cuidados postoperatorios recomendados. El paciente desempeña un papel activo y determinante en el resultado de la cirugía: los cuidados que tenga en los primeros días y semanas influyen directamente en la cicatrización${graft?' y en la correcta integración del injerto':''}.</p>
+ <p class="intro">Después de la cirugía, es normal sentir algunas molestias, inflamación y un ligero sangrado, que tienden a disminuir progresivamente a lo largo de los primeros días. ${osseo?'Durante el periodo de cicatrización e integración del injerto óseo, que suele prolongarse durante varios meses':geng?'Durante el periodo de cicatrización e integración del injerto gingival, sobre todo en las primeras semanas':'Durante el periodo de cicatrización'}, las siguientes instrucciones deben cumplirse de forma rigurosa. El incumplimiento de estas recomendaciones puede causar dolor, infección, retraso en la cicatrización${graft?' y, en último término, la pérdida del injerto':' y comprometer el resultado de la cirugía'}.</p>`,`<p class="intro">Für den Erfolg Ihrer Behandlung ist es unerlässlich, dass Sie die empfohlenen Verhaltensregeln nach der Operation einhalten. Als Patient(in) tragen Sie aktiv und entscheidend zum Ergebnis der Operation bei: Ihr Verhalten in den ersten Tagen und Wochen beeinflusst unmittelbar die Wundheilung${graft?' und die korrekte Einheilung des Transplantats':''}.</p>
+ <p class="intro">Nach der Operation sind leichte Beschwerden, eine Schwellung und eine leichte Blutung normal; sie nehmen in den ersten Tagen allmählich ab. ${osseo?'Während der Heilung und Einheilung des Knochenaufbaus, die in der Regel mehrere Monate dauert,':geng?'Während der Heilung und Einheilung des Zahnfleischtransplantats, vor allem in den ersten Wochen,':'Während der Heilungsphase'} müssen die folgenden Anweisungen genau befolgt werden. Werden diese Empfehlungen nicht eingehalten, kann es zu Schmerzen, Infektionen und verzögerter Heilung kommen${graft?' und im äußersten Fall zum Verlust des Transplantats':', und das Ergebnis der Operation kann gefährdet werden'}.</p>`);
+
+ h+=sec(X('Primeira semana pós-cirurgia','First week after surgery','Première semaine après la chirurgie','Primera semana después de la cirugía','Erste Woche nach der Operation'),
+  it(X('Hemorragia','Bleeding','Saignement','Sangrado','Blutung'),X('é normal um ligeiro exsudado de sangue (saliva levemente rosada) durante as primeiras 48 a 72 horas. Caso surja um sangramento mais ativo, coloque uma compressa de gaze limpa sobre a zona e pressione com o dedo, de forma firme e contínua, durante 30 minutos. Se necessário, repita com uma gaze nova. É fundamental manter a pressão sem interrupções durante todo esse período: se retirar a compressa antes do tempo — ainda que apenas para observar a zona — impede a formação do coágulo sanguíneo, que é o que permite estancar a hemorragia. Caso isso aconteça, volte a pressionar novamente durante 30 minutos. Nas primeiras 24 horas, não cuspa, não use palhinhas e não faça bochechos vigorosos, para não desalojar o coágulo.',
+   'slight oozing of blood (slightly pink saliva) is normal during the first 48 to 72 hours. If more active bleeding occurs, place a clean gauze pad over the area and press with your finger, firmly and continuously, for 30 minutes. If necessary, repeat with a new gauze pad. It is essential to keep the pressure without interruption for the whole period: removing the gauze too early — even just to look at the area — prevents the blood clot from forming, and the clot is what stops the bleeding. If this happens, press again for another 30 minutes. In the first 24 hours, do not spit, do not use straws and do not rinse vigorously, so as not to dislodge the clot.',
+   "un léger suintement de sang (salive légèrement rosée) est normal pendant les premières 48 à 72 heures. En cas de saignement plus actif, placez une compresse de gaze propre sur la zone et appuyez avec le doigt, de manière ferme et continue, pendant 30 minutes. Si nécessaire, recommencez avec une nouvelle compresse. Il est essentiel de maintenir la pression sans interruption pendant toute cette durée : retirer la compresse trop tôt — même seulement pour regarder la zone — empêche la formation du caillot sanguin, qui permet d'arrêter le saignement. Si cela se produit, appuyez de nouveau pendant 30 minutes. Pendant les premières 24 heures, ne crachez pas, n'utilisez pas de paille et ne faites pas de bains de bouche vigoureux, afin de ne pas déloger le caillot.",'es normal un ligero rezumado de sangre (saliva ligeramente rosada) durante las primeras 48 a 72 horas. Si aparece un sangrado más activo, coloque una gasa limpia sobre la zona y presione con el dedo, de forma firme y continua, durante 30 minutos. Si es necesario, repita con una gasa nueva. Es fundamental mantener la presión sin interrupciones durante todo ese tiempo: si retira la gasa antes de tiempo — aunque solo sea para mirar la zona — impide que se forme el coágulo, que es lo que permite detener el sangrado. Si esto ocurre, vuelva a presionar durante otros 30 minutos. En las primeras 24 horas, no escupa, no use pajitas (sorbetes) y no haga enjuagues vigorosos, para no desprender el coágulo.','ein leichtes Nachsickern von Blut (leicht rosafarbener Speichel) ist in den ersten 48 bis 72 Stunden normal. Bei stärkerer Blutung legen Sie eine saubere Mullkompresse auf die Stelle und drücken 30 Minuten lang fest und ununterbrochen mit dem Finger darauf. Wiederholen Sie dies bei Bedarf mit einer neuen Kompresse. Es ist entscheidend, den Druck während der gesamten Zeit ohne Unterbrechung aufrechtzuerhalten: Wenn Sie die Kompresse zu früh entfernen — auch nur, um nachzusehen —, verhindern Sie die Bildung des Blutgerinnsels, das die Blutung stillt. Drücken Sie in diesem Fall erneut 30 Minuten lang. In den ersten 24 Stunden nicht ausspucken, keine Strohhalme benutzen und nicht kräftig spülen, damit sich das Blutgerinnsel nicht löst.'))+
+  it(X('Inchaço (edema)','Swelling (oedema)','Gonflement (oedème)','Inflamación (edema)','Schwellung (Ödem)'),X('aplique gelo no exterior da face, sobre a zona operada, em ciclos de 20 minutos com gelo e 20 minutos sem gelo, durante as primeiras 72 horas. A aplicação de gelo é muito importante e deve ser feita de forma rigorosa. Nos intervalos sem gelo, faça movimentos suaves de abertura e fecho da boca, que ajudam a alongar a musculatura e a prevenir o trismo (dificuldade em abrir a boca). No período da noite, enquanto dorme, mantenha a cabeça elevada. É normal que, ao acordar, o inchaço esteja mais marcado, por ter passado um longo período deitado e sem aplicação de gelo; este edema vai diminuindo ao longo do dia, à medida que retoma o gelo e se mantém numa posição mais vertical. O inchaço atinge o pico ao 2.º–3.º dia e só depois começa a diminuir — é esperado.',
+   'apply ice to the outside of the face, over the operated area, in cycles of 20 minutes with ice and 20 minutes without ice, for the first 72 hours. Applying ice is very important and should be done strictly. During the breaks without ice, gently open and close your mouth: this helps stretch the muscles and prevent trismus (difficulty opening the mouth). At night, while you sleep, keep your head raised. It is normal for the swelling to be more pronounced when you wake up, after a long period lying down without ice; it goes down during the day as you resume the ice and stay in a more upright position. Swelling peaks on the 2nd–3rd day and only then starts to go down — this is expected.',
+   "appliquez de la glace sur l'extérieur du visage, au niveau de la zone opérée, par cycles de 20 minutes avec glace et 20 minutes sans glace, pendant les premières 72 heures. L'application de glace est très importante et doit être faite rigoureusement. Pendant les pauses sans glace, ouvrez et fermez doucement la bouche : cela aide à étirer les muscles et à prévenir le trismus (difficulté à ouvrir la bouche). La nuit, pendant votre sommeil, gardez la tête surélevée. Il est normal que le gonflement soit plus marqué au réveil, après une longue période allongé sans glace ; il diminue au cours de la journée, à mesure que vous reprenez la glace et restez en position plus verticale. Le gonflement atteint son maximum le 2e–3e jour et ne commence à diminuer qu'ensuite — c'est normal.",'aplique hielo en el exterior de la cara, sobre la zona operada, en ciclos de 20 minutos con hielo y 20 minutos sin hielo, durante las primeras 72 horas. La aplicación de hielo es muy importante y debe hacerse de forma rigurosa. En los intervalos sin hielo, abra y cierre la boca suavemente, lo que ayuda a estirar la musculatura y a prevenir el trismo (dificultad para abrir la boca). Por la noche, mientras duerme, mantenga la cabeza elevada. Es normal que, al despertar, la inflamación sea más marcada, por haber pasado mucho tiempo acostado y sin hielo; esta inflamación va disminuyendo a lo largo del día, a medida que retoma el hielo y se mantiene en una posición más vertical. La inflamación alcanza su máximo al 2.º–3.º día y solo después empieza a disminuir — es lo esperado.','kühlen Sie die Wange von außen über dem operierten Bereich in den ersten 72 Stunden im Wechsel: 20 Minuten mit Eis, 20 Minuten ohne Eis. Das Kühlen ist sehr wichtig und sollte konsequent erfolgen. Öffnen und schließen Sie in den Pausen ohne Eis sanft den Mund; das dehnt die Muskulatur und beugt einer Kieferklemme (Schwierigkeit, den Mund zu öffnen) vor. Halten Sie nachts im Schlaf den Kopf erhöht. Es ist normal, dass die Schwellung morgens nach dem langen Liegen ohne Kühlung stärker ist; sie geht im Laufe des Tages zurück, wenn Sie wieder kühlen und aufrechter sind. Die Schwellung erreicht am 2.–3. Tag ihren Höhepunkt und nimmt erst danach ab — das ist zu erwarten.'))+
+  it(X('Hematomas','Bruising','Hématomes','Hematomas','Blutergüsse'),X('poderão surgir hematomas (manchas arroxeadas) na face no período pós-operatório, habitualmente nos dias seguintes à cirurgia. É normal que mudem de cor ao longo dos dias — passando do arroxeado para tons esverdeados e amarelados — e que se desloquem na face ou pescoço à medida que vão sendo reabsorvidos pelo organismo. Tendem a desaparecer de forma progressiva, podendo permanecer durante uma semana ou mais após a cirurgia.',
+   'bruises (purplish marks) may appear on the face after surgery, usually in the following days. It is normal for them to change colour over the days — from purple to greenish and yellowish tones — and to move across the face or neck as the body reabsorbs them. They fade gradually and may last for a week or more after surgery.',
+   "des hématomes (taches violacées) peuvent apparaître sur le visage après la chirurgie, généralement dans les jours qui suivent. Il est normal qu'ils changent de couleur au fil des jours — du violacé vers des tons verdâtres et jaunâtres — et qu'ils se déplacent sur le visage ou le cou à mesure que l'organisme les résorbe. Ils disparaissent progressivement et peuvent persister une semaine ou plus après la chirurgie.",'pueden aparecer hematomas (manchas moradas) en la cara en el periodo postoperatorio, habitualmente en los días siguientes a la cirugía. Es normal que cambien de color con los días — pasando del morado a tonos verdosos y amarillentos — y que se desplacen por la cara o el cuello a medida que el organismo los va reabsorbiendo. Tienden a desaparecer progresivamente y pueden durar una semana o más después de la cirugía.','nach der Operation können im Gesicht Blutergüsse (bläulich-violette Flecken) auftreten, meist in den Tagen nach dem Eingriff. Es ist normal, dass sie im Laufe der Tage die Farbe wechseln — von violett zu grünlichen und gelblichen Tönen — und an Gesicht oder Hals nach unten wandern, während der Körper sie abbaut. Sie verschwinden allmählich und können eine Woche oder länger sichtbar sein.'))+
+  it(X('Posição da cabeça','Head position','Position de la tête','Posición de la cabeza','Kopfhaltung'),X('durante os primeiros dias, durma com a cabeça elevada (2 almofadas). Não se deite completamente na horizontal.','during the first days, sleep with your head raised (2 pillows). Do not lie completely flat.','pendant les premiers jours, dormez la tête surélevée (2 oreillers). Ne vous allongez pas complètement à plat.','durante los primeros días, duerma con la cabeza elevada (2 almohadas). No se acueste completamente en horizontal.','schlafen Sie in den ersten Tagen mit erhöhtem Kopf (2 Kissen). Legen Sie sich nicht ganz flach hin.'))+
+  it(X('Repouso','Rest','Repos','Reposo','Schonung'),X('evite esforços físicos, exercício e levantamento de pesos durante pelo menos uma semana. O esforço aumenta a tensão arterial e pode provocar hemorragia e mais inchaço. Após esse período, poderá retomar progressivamente a sua atividade normal, evitando esforços físicos intensos durante as primeiras duas semanas. Em qualquer caso, siga sempre a indicação do seu médico.',
+   "avoid physical effort, exercise and lifting weights for at least one week. Effort raises blood pressure and may cause bleeding and more swelling. After that period, you may gradually resume your normal activity, avoiding intense physical effort during the first two weeks. In any case, always follow your dentist's advice.",
+   "évitez les efforts physiques, le sport et le port de charges pendant au moins une semaine. L'effort augmente la tension artérielle et peut provoquer un saignement et davantage de gonflement. Après cette période, vous pourrez reprendre progressivement votre activité normale, en évitant les efforts physiques intenses pendant les deux premières semaines. Dans tous les cas, suivez toujours les indications de votre dentiste.",'evite esfuerzos físicos, ejercicio y levantar peso durante al menos una semana. El esfuerzo aumenta la presión arterial y puede provocar sangrado y más inflamación. Pasado ese periodo, podrá retomar progresivamente su actividad normal, evitando esfuerzos físicos intensos durante las dos primeras semanas. En cualquier caso, siga siempre la indicación de su odontólogo.','vermeiden Sie mindestens eine Woche lang körperliche Anstrengung, Sport und das Heben schwerer Lasten. Anstrengung erhöht den Blutdruck und kann zu Blutungen und stärkerer Schwellung führen. Danach können Sie Ihre gewohnten Tätigkeiten schrittweise wieder aufnehmen, sollten aber in den ersten zwei Wochen starke körperliche Anstrengung vermeiden. Folgen Sie in jedem Fall stets den Anweisungen Ihres Zahnarztes bzw. Ihrer Zahnärztin.'))+
+  it(X('Anestesia','Anaesthesia','Anesthésie','Anestesia','Betäubung'),X('enquanto a boca estiver adormecida, tenha cuidado para não morder os lábios, a língua ou a bochecha, e não ingira líquidos nem alimentos quentes. Evite tocar na boca com a mão e não passe a língua pela zona operada nem pelos restantes locais da cavidade oral. Durante todo o período de recuperação, deve ingerir apenas alimentos líquidos e moles. Este cuidado é ainda mais importante enquanto a anestesia se mantém, pois a falta de sensibilidade pode impedi-lo de se aperceber de lesões ou de alimentos demasiado quentes.',
+   'while your mouth is numb, be careful not to bite your lips, tongue or cheek, and do not have hot drinks or food. Avoid touching your mouth with your hand and do not run your tongue over the operated area or the rest of your mouth. Throughout the recovery period, you should only have liquid and soft foods. This is even more important while the anaesthesia lasts, as the lack of sensation may prevent you from noticing an injury or food that is too hot.',
+   "tant que la bouche est anesthésiée, faites attention à ne pas vous mordre les lèvres, la langue ou la joue, et ne consommez ni boissons ni aliments chauds. Évitez de toucher votre bouche avec la main et ne passez pas la langue sur la zone opérée ni sur le reste de la bouche. Pendant toute la période de récupération, vous ne devez consommer que des aliments liquides et mous. Cette précaution est d'autant plus importante tant que l'anesthésie persiste, car l'absence de sensibilité peut vous empêcher de remarquer une blessure ou un aliment trop chaud.",'mientras la boca esté dormida, tenga cuidado de no morderse los labios, la lengua o la mejilla, y no tome líquidos ni alimentos calientes. Evite tocarse la boca con la mano y no pase la lengua por la zona operada ni por el resto de la boca. Durante todo el periodo de recuperación, debe tomar solo alimentos líquidos y blandos. Este cuidado es aún más importante mientras dure la anestesia, ya que la falta de sensibilidad puede impedirle darse cuenta de una lesión o de alimentos demasiado calientes.','solange der Mund noch betäubt ist, achten Sie darauf, sich nicht auf Lippen, Zunge oder Wange zu beißen, und nehmen Sie keine heißen Getränke oder Speisen zu sich. Berühren Sie den Mund nicht mit der Hand und fahren Sie nicht mit der Zunge über den operierten Bereich oder den übrigen Mundraum. Während der gesamten Erholungsphase sollten Sie nur flüssige und weiche Nahrung zu sich nehmen. Dies ist besonders wichtig, solange die Betäubung anhält, da Sie wegen des fehlenden Gefühls Verletzungen oder zu heiße Speisen nicht bemerken könnten.')));
+
+ const anyMed=[AB,AN,OU].some(l=>l.some(m=>m.on));
+ if(anyMed||S.clx) h+=sec(X('Medicação','Medication','Médicaments','Medicación','Medikamente'),
+  (anyMed?`<p>${X('Tome toda a medicação exatamente como foi prescrita pelo médico dentista, sempre acompanhada de água e de alimentos para evitar náuseas.','Take all medication exactly as prescribed by your dentist, always with water and food to avoid nausea.',"Prenez tous les médicaments exactement comme prescrits par votre dentiste, toujours avec de l'eau et de la nourriture pour éviter les nausées.",'Tome toda la medicación exactamente como se la ha recetado el odontólogo, siempre con agua y con alimentos para evitar náuseas.','Nehmen Sie alle Medikamente genau so ein, wie vom Zahnarzt bzw. von der Zahnärztin verordnet, immer mit Wasser und zu einer Mahlzeit, um Übelkeit zu vermeiden.')}</p>`:'')+
+  (AB.some(m=>m.on)?it(X('Antibiótico','Antibiotic','Antibiotique','Antibiótico','Antibiotikum'),X('complete sempre a totalidade do tratamento, mesmo que se sinta bem.','always complete the full course of treatment, even if you feel well.','terminez toujours la totalité du traitement, même si vous vous sentez bien.','complete siempre el tratamiento completo, aunque se sienta bien.','nehmen Sie es immer bis zum Ende der Verordnung ein, auch wenn Sie sich gut fühlen.'))+table(AB,lang):'')+
+  (AN.some(m=>m.on)?it(X('Analgésico / anti-inflamatório','Painkiller / anti-inflammatory','Antalgique / anti-inflammatoire','Analgésico / antiinflamatorio','Schmerzmittel / Entzündungshemmer'),X('tome conforme indicado para controlar a dor e a inflamação. Não associe outros anti-inflamatórios por iniciativa própria.','take as instructed to control pain and inflammation. Do not add other anti-inflammatories on your own initiative.',"prenez-le comme indiqué pour contrôler la douleur et l'inflammation. N'associez pas d'autres anti-inflammatoires de votre propre initiative.",'tómelo según lo indicado para controlar el dolor y la inflamación. No añada otros antiinflamatorios por iniciativa propia.','nehmen Sie es wie angegeben ein, um Schmerzen und Entzündung zu kontrollieren. Nehmen Sie nicht eigenmächtig zusätzliche Entzündungshemmer ein.'))+table(AN,lang):'')+
+  (OU.some(m=>m.on)?`<p class="item"><b>${X('Outra medicação:','Other medication:','Autres médicaments :','Otra medicación:','Weitere Medikamente:')}</b></p>${table(OU,lang)}`:'')+
+  (S.clx?it(X('Colutório de clorohexidina (0,2%) e gel','Chlorhexidine mouthwash (0.2%) and gel','Bain de bouche (0,2 %) et gel à la chlorhexidine','Colutorio de clorhexidina (0,2 %) y gel','Chlorhexidin-Mundspülung (0,2 %) und Gel'),X(`inicie no dia seguinte à cirurgia. Comece por limpar suavemente ${fixos?'a prótese e ':''}a zona envolvente com uma escova pós-cirúrgica (ultra-macia), com movimentos muito delicados, apenas para remover os resíduos alimentares, sem traumatizar a ferida nem as suturas. De seguida, faça um bochecho com colutório de clorohexidina a 0,2%, sem diluir, durante cerca de 1 minuto — 2 a 3 vezes por dia. Por fim, aplique o gel de clorohexidina sobre a área cirúrgica e não passe por água. Após a aplicação do gel, evite comer, beber ou bochechar durante pelo menos 30 minutos, para preservar o seu efeito. Mantenha esta rotina até à remoção das suturas ou até indicação do médico.`,
+   `start the day after surgery. First gently clean ${fixos?'the prosthesis and ':''}the surrounding area with a post-surgical (ultra-soft) toothbrush, using very gentle movements, only to remove food debris, without damaging the wound or the stitches. Then rinse with 0.2% chlorhexidine mouthwash, undiluted, for about 1 minute — 2 to 3 times a day. Finally, apply the chlorhexidine gel to the surgical area and do not rinse with water. After applying the gel, avoid eating, drinking or rinsing for at least 30 minutes to preserve its effect. Keep this routine until the stitches are removed or until your dentist advises otherwise.`,
+   `commencez le lendemain de la chirurgie. Nettoyez d'abord doucement ${fixos?'la prothèse et ':''}la zone environnante avec une brosse à dents post-chirurgicale (ultra-souple), par des mouvements très délicats, uniquement pour retirer les résidus alimentaires, sans traumatiser la plaie ni les points de suture. Faites ensuite un bain de bouche à la chlorhexidine 0,2 %, non dilué, pendant environ 1 minute — 2 à 3 fois par jour. Enfin, appliquez le gel à la chlorhexidine sur la zone opérée, sans rincer à l'eau. Après l'application du gel, évitez de manger, de boire ou de vous rincer la bouche pendant au moins 30 minutes, afin de préserver son effet. Maintenez cette routine jusqu'au retrait des points de suture ou jusqu'à indication contraire de votre dentiste.`,`comience al día siguiente de la cirugía. Primero, limpie suavemente ${fixos?'la prótesis y ':''}la zona circundante con un cepillo posquirúrgico (ultrasuave), con movimientos muy delicados, solo para eliminar los restos de comida, sin dañar la herida ni los puntos. A continuación, haga un enjuague con colutorio de clorhexidina al 0,2 %, sin diluir, durante aproximadamente 1 minuto — 2 a 3 veces al día. Por último, aplique el gel de clorhexidina sobre la zona operada y no se enjuague con agua. Después de aplicar el gel, evite comer, beber o enjuagarse durante al menos 30 minutos, para conservar su efecto. Mantenga esta rutina hasta la retirada de los puntos o hasta que el odontólogo le indique.`,`beginnen Sie am Tag nach der Operation. Reinigen Sie zuerst ${fixos?'die Prothese und ':''}den umliegenden Bereich vorsichtig mit einer postoperativen (ultraweichen) Zahnbürste mit sehr sanften Bewegungen, nur um Speisereste zu entfernen, ohne die Wunde oder die Nähte zu verletzen. Spülen Sie anschließend etwa 1 Minute lang mit unverdünnter 0,2 %-Chlorhexidin-Mundspülung — 2- bis 3-mal täglich. Tragen Sie zum Schluss das Chlorhexidin-Gel auf den operierten Bereich auf und spülen Sie nicht mit Wasser nach. Nach dem Auftragen des Gels mindestens 30 Minuten lang nicht essen, trinken oder spülen, damit die Wirkung erhalten bleibt. Behalten Sie diese Routine bis zur Nahtentfernung bzw. bis zur Anweisung Ihres Zahnarztes bzw. Ihrer Zahnärztin bei.`))+
+  `<p>${X('É normal que a clorohexidina cause uma coloração temporária dos dentes e ligeira alteração do paladar, que desaparecem após terminar a utilização.','Chlorhexidine may cause temporary staining of the teeth and a slight change in taste, which disappear once you stop using it.',"Il est normal que la chlorhexidine provoque une coloration temporaire des dents et une légère altération du goût, qui disparaissent à l'arrêt du traitement.",'Es normal que la clorhexidina produzca una tinción temporal de los dientes y una ligera alteración del gusto, que desaparecen al terminar su uso.','Chlorhexidin kann vorübergehende Zahnverfärbungen und eine leichte Geschmacksveränderung verursachen; beides verschwindet nach Ende der Anwendung.')}</p>`:''));
+
+ const gengLi=geng?`<li>${X('Não puxe o lábio nem a bochecha para observar a zona operada: esse movimento pode deslocar o enxerto.','Do not pull your lip or cheek to look at the operated area: this movement may displace the graft.','Ne tirez pas sur la lèvre ou la joue pour regarder la zone opérée : ce mouvement peut déplacer la greffe.','No se estire el labio ni la mejilla para mirar la zona operada: ese movimiento puede desplazar el injerto.','Ziehen Sie nicht an Lippe oder Wange, um den operierten Bereich anzusehen: Diese Bewegung kann das Transplantat verschieben.')}</li>`:'';
+ const hyg=X('Higiene oral','Oral hygiene','Hygiène bucco-dentaire','Higiene oral','Mundhygiene');
+ if(impl)h+=sec(hyg,X(
+  `<ul><li>Nas primeiras 24 horas, não escove nem bocheche a zona operada.</li>
+  <li>A partir do 2.º dia, retome a escovagem com uma escova de cerdas ultra-macias, de forma suave, evitando a zona da cirurgia e as suturas. Não escove diretamente as gengivas operadas.</li>${gengLi}
+  <li>Não utilize escova elétrica durante, no mínimo, 2 semanas (ou até autorização do médico).</li>
+  <li>O irrigador oral (jato de água) só deve ser usado após indicação do médico dentista — geralmente a partir do primeiro mês, se a cicatrização o permitir. Quando autorizado, comece a usá-lo a baixa pressão, pelo menos 3 vezes por dia, para remover os resíduos que se acumulam entre a prótese e a gengiva. Nesta fase, já pode também escovar a prótese para remover os resíduos alimentares.</li></ul>
+  <p>A higiene oral diária é o método essencial — e o principal ao seu alcance — para prevenir as doenças dos implantes, como a peri-implantite. Uma higiene rigorosa por baixo da prótese fixa é fundamental para evitar a inflamação e a infeção dos implantes.</p>
+  ${it('Fio dentário próprio para implantes','é o método mais eficaz de higiene dos implantes. Só pode ser utilizado depois de os tecidos estarem cicatrizados. A partir daí, é fundamental passar o fio pelo menos três vezes por dia, fazendo-o passar entre os implantes e deslizá-lo sobre os pilares com um movimento de esfregar. O irrigador oral é apenas um método auxiliar e não substitui o fio dentário, que deve ser sempre utilizado.')}
+  <p>Caso não consiga utilizar corretamente o fio dentário, peça ao médico dentista que lhe ensine a melhor forma de o fazer.</p>
+  <p class="item"><b>Após colocação das próteses fixas definitivas:</b></p>
+  <ul><li>Controlo periódico em consultório;</li><li>Higiene oral diária: escovagem das próteses com escova dentária + fio dentário para implantes${fixos?' + irrigador oral':''} (3x por dia).</li></ul>`,
+  `<ul><li>In the first 24 hours, do not brush or rinse the operated area.</li>
+  <li>From the 2nd day, resume brushing with an ultra-soft toothbrush, gently, avoiding the surgical area and the stitches. Do not brush the operated gums directly.</li>${gengLi}
+  <li>Do not use an electric toothbrush for at least 2 weeks (or until your dentist allows it).</li>
+  <li>The water flosser (oral irrigator) should only be used when your dentist advises — usually from the first month, if healing allows. When allowed, start using it at low pressure, at least 3 times a day, to remove the debris that builds up between the prosthesis and the gum. At this stage you may also brush the prosthesis to remove food debris.</li></ul>
+  <p>Daily oral hygiene is the essential method — and the main one within your reach — to prevent implant diseases such as peri-implantitis. Thorough hygiene under the fixed prosthesis is essential to prevent inflammation and infection of the implants.</p>
+  ${it('Implant floss','this is the most effective way to clean implants. It can only be used once the tissues have healed. From then on, it is essential to floss at least three times a day, passing the floss between the implants and sliding it over the abutments with a rubbing motion. The water flosser is only an aid and does not replace floss, which must always be used.')}
+  <p>If you cannot use the floss correctly, ask your dentist to show you the best way to do it.</p>
+  <p class="item"><b>After the definitive fixed prostheses are placed:</b></p>
+  <ul><li>Regular check-ups at the clinic;</li><li>Daily oral hygiene: brushing the prostheses with a toothbrush + implant floss${fixos?' + water flosser':''} (3 times a day).</li></ul>`,
+  `<ul><li>Pendant les premières 24 heures, ne brossez pas et ne rincez pas la zone opérée.</li>
+  <li>À partir du 2e jour, reprenez le brossage avec une brosse à dents ultra-souple, en douceur, en évitant la zone opérée et les points de suture. Ne brossez pas directement les gencives opérées.</li>${gengLi}
+  <li>N'utilisez pas de brosse à dents électrique pendant au moins 2 semaines (ou jusqu'à autorisation de votre dentiste).</li>
+  <li>L'hydropulseur (jet dentaire) ne doit être utilisé que sur indication de votre dentiste — généralement à partir du premier mois, si la cicatrisation le permet. Une fois autorisé, commencez à basse pression, au moins 3 fois par jour, pour éliminer les résidus qui s'accumulent entre la prothèse et la gencive. À ce stade, vous pouvez également brosser la prothèse pour retirer les résidus alimentaires.</li></ul>
+  <p>L'hygiène bucco-dentaire quotidienne est la méthode essentielle — et la principale à votre portée — pour prévenir les maladies des implants, comme la péri-implantite. Une hygiène rigoureuse sous la prothèse fixe est indispensable pour éviter l'inflammation et l'infection des implants.</p>
+  ${it('Fil dentaire spécial implants',"c'est la méthode la plus efficace pour nettoyer les implants. Il ne peut être utilisé qu'une fois les tissus cicatrisés. À partir de là, il est essentiel de passer le fil au moins trois fois par jour, entre les implants, en le faisant glisser sur les piliers avec un mouvement de frottement. L'hydropulseur n'est qu'une aide et ne remplace pas le fil dentaire, qui doit toujours être utilisé.")}
+  <p>Si vous n'arrivez pas à utiliser correctement le fil dentaire, demandez à votre dentiste de vous montrer la meilleure façon de le faire.</p>
+  <p class="item"><b>Après la pose des prothèses fixes définitives :</b></p>
+  <ul><li>Contrôles réguliers au cabinet ;</li><li>Hygiène quotidienne : brossage des prothèses avec une brosse à dents + fil dentaire spécial implants${fixos?' + hydropulseur':''} (3 fois par jour).</li></ul>`,`<ul><li>En las primeras 24 horas, no cepille ni enjuague la zona operada.</li>
+  <li>A partir del 2.º día, retome el cepillado con un cepillo de cerdas ultrasuaves, de forma suave, evitando la zona de la cirugía y los puntos. No cepille directamente las encías operadas.</li>${gengLi}
+  <li>No utilice cepillo eléctrico durante, como mínimo, 2 semanas (o hasta que el odontólogo lo autorice).</li>
+  <li>El irrigador bucal (chorro de agua) solo debe utilizarse cuando lo indique el odontólogo — generalmente a partir del primer mes, si la cicatrización lo permite. Cuando se autorice, empiece a usarlo a baja presión, al menos 3 veces al día, para eliminar los restos que se acumulan entre la prótesis y la encía. En esta fase, ya puede también cepillar la prótesis para eliminar los restos de comida.</li></ul>
+  <p>La higiene oral diaria es el método esencial — y el principal a su alcance — para prevenir las enfermedades de los implantes, como la periimplantitis. Una higiene rigurosa por debajo de la prótesis fija es fundamental para evitar la inflamación y la infección de los implantes.</p>
+  ${it('Hilo dental específico para implantes','es el método más eficaz de higiene de los implantes. Solo puede utilizarse cuando los tejidos hayan cicatrizado. A partir de entonces, es fundamental pasar el hilo al menos tres veces al día, haciéndolo pasar entre los implantes y deslizándolo sobre los pilares con un movimiento de frotado. El irrigador bucal es solo un método auxiliar y no sustituye al hilo dental, que debe utilizarse siempre.')}
+  <p>Si no consigue utilizar correctamente el hilo dental, pida al odontólogo que le enseñe la mejor forma de hacerlo.</p>
+  <p class="item"><b>Después de la colocación de las prótesis fijas definitivas:</b></p>
+  <ul><li>Control periódico en la consulta;</li><li>Higiene oral diaria: cepillado de las prótesis con cepillo dental + hilo dental para implantes${fixos?' + irrigador bucal':''} (3 veces al día).</li></ul>`,`<ul><li>In den ersten 24 Stunden den operierten Bereich weder putzen noch spülen.</li>
+  <li>Ab dem 2. Tag wieder sanft mit einer ultraweichen Zahnbürste putzen und dabei den Operationsbereich und die Nähte aussparen. Das operierte Zahnfleisch nicht direkt putzen.</li>${gengLi}
+  <li>Mindestens 2 Wochen lang (bzw. bis zur Freigabe durch den Zahnarzt bzw. die Zahnärztin) keine elektrische Zahnbürste verwenden.</li>
+  <li>Die Munddusche (Wasserstrahl) erst nach Anweisung des Zahnarztes bzw. der Zahnärztin verwenden — in der Regel ab dem ersten Monat, wenn die Heilung es zulässt. Nach Freigabe mit niedrigem Druck beginnen, mindestens 3-mal täglich, um die Ablagerungen zwischen Prothese und Zahnfleisch zu entfernen. In dieser Phase können Sie auch die Prothese putzen, um Speisereste zu entfernen.</li></ul>
+  <p>Die tägliche Mundhygiene ist die wichtigste Maßnahme — und die wichtigste, die Sie selbst in der Hand haben —, um Erkrankungen der Implantate wie Periimplantitis vorzubeugen. Eine gründliche Reinigung unter der festsitzenden Prothese ist entscheidend, um Entzündungen und Infektionen der Implantate zu vermeiden.</p>
+  ${it('Implantat-Zahnseide','die wirksamste Methode zur Reinigung der Implantate. Sie darf erst verwendet werden, wenn das Gewebe abgeheilt ist. Ab dann ist es wichtig, mindestens dreimal täglich Zahnseide zu verwenden, sie zwischen den Implantaten hindurchzuführen und mit reibender Bewegung über die Aufbauten zu ziehen. Die Munddusche ist nur ein Hilfsmittel und ersetzt die Zahnseide nicht, die immer verwendet werden muss.')}
+  <p>Wenn Sie die Zahnseide nicht richtig anwenden können, lassen Sie sich die beste Technik vom Zahnarzt bzw. von der Zahnärztin zeigen.</p>
+  <p class="item"><b>Nach dem Einsetzen des definitiven festsitzenden Zahnersatzes:</b></p>
+  <ul><li>Regelmäßige Kontrollen in der Praxis;</li><li>Tägliche Mundhygiene: Putzen der Prothesen mit der Zahnbürste + Implantat-Zahnseide${fixos?' + Munddusche':''} (3-mal täglich).</li></ul>`));
+ else h+=sec(hyg,X(
+  `<ul><li>Nas primeiras 24 horas, não escove nem bocheche a zona operada.</li>
+  <li>A partir do 2.º dia, escove os restantes dentes normalmente, com uma escova de cerdas ultra-macias, evitando a zona da cirurgia e as suturas.</li>
+  <li>Não utilize escova elétrica nem irrigador oral (jato de água) durante, no mínimo, 2 semanas (ou até autorização do médico).</li>${gengLi}</ul>
+  <p>Manter a restante boca limpa reduz o risco de infeção e favorece a cicatrização. Retome a escovagem da zona operada apenas quando o médico dentista o indicar, geralmente após a remoção das suturas.</p>`,
+  `<ul><li>In the first 24 hours, do not brush or rinse the operated area.</li>
+  <li>From the 2nd day, brush your other teeth normally, with an ultra-soft toothbrush, avoiding the surgical area and the stitches.</li>
+  <li>Do not use an electric toothbrush or a water flosser for at least 2 weeks (or until your dentist allows it).</li>${gengLi}</ul>
+  <p>Keeping the rest of your mouth clean reduces the risk of infection and helps healing. Only resume brushing the operated area when your dentist tells you to, usually after the stitches are removed.</p>`,
+  `<ul><li>Pendant les premières 24 heures, ne brossez pas et ne rincez pas la zone opérée.</li>
+  <li>À partir du 2e jour, brossez normalement les autres dents, avec une brosse à dents ultra-souple, en évitant la zone opérée et les points de suture.</li>
+  <li>N'utilisez ni brosse à dents électrique ni hydropulseur pendant au moins 2 semaines (ou jusqu'à autorisation de votre dentiste).</li>${gengLi}</ul>
+  <p>Garder le reste de la bouche propre réduit le risque d'infection et favorise la cicatrisation. Ne reprenez le brossage de la zone opérée que lorsque votre dentiste vous l'indique, généralement après le retrait des points de suture.</p>`,`<ul><li>En las primeras 24 horas, no cepille ni enjuague la zona operada.</li>
+  <li>A partir del 2.º día, cepille el resto de los dientes con normalidad, con un cepillo de cerdas ultrasuaves, evitando la zona de la cirugía y los puntos.</li>
+  <li>No utilice cepillo eléctrico ni irrigador bucal (chorro de agua) durante, como mínimo, 2 semanas (o hasta que el odontólogo lo autorice).</li>${gengLi}</ul>
+  <p>Mantener el resto de la boca limpio reduce el riesgo de infección y favorece la cicatrización. Retome el cepillado de la zona operada solo cuando el odontólogo se lo indique, generalmente después de retirar los puntos.</p>`,`<ul><li>In den ersten 24 Stunden den operierten Bereich weder putzen noch spülen.</li>
+  <li>Ab dem 2. Tag die übrigen Zähne normal mit einer ultraweichen Zahnbürste putzen und dabei den Operationsbereich und die Nähte aussparen.</li>
+  <li>Mindestens 2 Wochen lang (bzw. bis zur Freigabe durch den Zahnarzt bzw. die Zahnärztin) weder eine elektrische Zahnbürste noch eine Munddusche (Wasserstrahl) verwenden.</li>${gengLi}</ul>
+  <p>Wenn der übrige Mund sauber bleibt, sinkt das Infektionsrisiko und die Heilung wird gefördert. Putzen Sie den operierten Bereich erst wieder, wenn der Zahnarzt bzw. die Zahnärztin es Ihnen sagt, in der Regel nach der Nahtentfernung.</p>`));
+
+ if(impl)h+=sec(X('Alimentação — dieta mole obrigatória','Diet — soft diet required','Alimentation — régime mou obligatoire','Alimentación — dieta blanda obligatoria','Ernährung — weiche Kost unbedingt erforderlich'),X(
+  `<p>Esta é uma das recomendações mais importantes para o sucesso do tratamento. A prótese fixa colocada no dia da cirurgia é provisória e os implantes ainda não estão integrados no osso. Mastigar alimentos duros transmite forças que provocam micromovimentos dos implantes e podem comprometer a osteointegração.</p>
+  <dl class="phase"><dt>Primeiros 7 dias</dt><dd>Dieta líquida e fria (sopas frias, iogurtes, batidos, purés líquidos). Estão totalmente contraindicados os alimentos e bebidas quentes.</dd>
+  <dt>7.º ao 14.º dia</dt><dd>Dieta líquida e pastosa, à temperatura ambiente (sopas, batidos, iogurtes, purés, ovos mexidos e comida completamente triturada e passada, que não exija qualquer mastigação).</dd>
+  <dt>14.º ao 30.º dia</dt><dd>Dieta mole e pastosa, sem mastigar. Esta dieta mole deve ser mantida de forma rigorosa durante todo o período de integração dos implantes (no mínimo os primeiros meses, conforme indicação do médico). Regra prática: nada mais duro do que ovos mexidos.</dd></dl>
+  ${it('Permitido','sopas e cremes mornos, purés, iogurtes, ovos mexidos, peixe cozido desfeito, massa bem cozida, fruta esmagada ou batidos.')}
+  ${it('A evitar em absoluto','alimentos duros, crocantes ou pegajosos — pão com côdea, tostas, frutos secos, pipocas, sementes, batatas fritas de pacote, carne dura ou rija. Estes alimentos podem deslocar os implantes e ficar retidos na ferida.')}
+  <p>Não mastigue diretamente sobre a zona frontal da prótese. Distribua os alimentos e prefira o lado oposto sempre que possível. Evite também cortar alimentos — ou qualquer outro objeto — com os dentes.</p>
+  <p>Mantenha-se bem hidratado e com uma alimentação equilibrada e rica em proteína, que favorece a cicatrização.</p>`,
+  `<p>This is one of the most important recommendations for the success of the treatment. The fixed prosthesis placed on the day of surgery is temporary and the implants are not yet integrated into the bone. Chewing hard food transmits forces that cause micromovements of the implants and may compromise osseointegration.</p>
+  <dl class="phase"><dt>First 7 days</dt><dd>Liquid, cold diet (cold soups, yoghurts, smoothies, liquid purées). Hot food and drinks are strictly contraindicated.</dd>
+  <dt>Days 7 to 14</dt><dd>Liquid and puréed diet, at room temperature (soups, smoothies, yoghurts, purées, scrambled eggs and fully blended, sieved food that requires no chewing at all).</dd>
+  <dt>Days 14 to 30</dt><dd>Soft, mushy diet, without chewing. This soft diet must be followed strictly throughout the implant integration period (at least the first months, as advised by your dentist). Rule of thumb: nothing harder than scrambled eggs.</dd></dl>
+  ${it('Allowed','warm soups and creams, purées, yoghurts, scrambled eggs, flaked boiled fish, well-cooked pasta, mashed fruit or smoothies.')}
+  ${it('Strictly avoid','hard, crunchy or sticky foods — crusty bread, toast, nuts, popcorn, seeds, crisps, tough or chewy meat. These foods may displace the implants and get stuck in the wound.')}
+  <p>Do not chew directly on the front of the prosthesis. Spread the food around and use the opposite side whenever possible. Also avoid cutting food — or any other object — with your teeth.</p>
+  <p>Stay well hydrated and eat a balanced, protein-rich diet, which helps healing.</p>`,
+  `<p>C'est l'une des recommandations les plus importantes pour la réussite du traitement. La prothèse fixe posée le jour de la chirurgie est provisoire et les implants ne sont pas encore intégrés dans l'os. Mâcher des aliments durs transmet des forces qui provoquent des micromouvements des implants et peuvent compromettre l'ostéo-intégration.</p>
+  <dl class="phase"><dt>Les 7 premiers jours</dt><dd>Alimentation liquide et froide (soupes froides, yaourts, smoothies, purées liquides). Les aliments et boissons chauds sont formellement contre-indiqués.</dd>
+  <dt>Du 7e au 14e jour</dt><dd>Alimentation liquide et en purée, à température ambiante (soupes, smoothies, yaourts, purées, oeufs brouillés et aliments entièrement mixés et passés, ne nécessitant aucune mastication).</dd>
+  <dt>Du 14e au 30e jour</dt><dd>Alimentation molle et en purée, sans mâcher. Ce régime mou doit être rigoureusement maintenu pendant toute la période d'intégration des implants (au minimum les premiers mois, selon l'indication de votre dentiste). Règle pratique : rien de plus dur que des oeufs brouillés.</dd></dl>
+  ${it('Autorisé','soupes et veloutés tièdes, purées, yaourts, oeufs brouillés, poisson poché émietté, pâtes bien cuites, fruits écrasés ou smoothies.')}
+  ${it('À éviter absolument','aliments durs, croquants ou collants — pain avec croûte, biscottes, fruits secs, pop-corn, graines, chips, viande dure ou coriace. Ces aliments peuvent déplacer les implants et rester coincés dans la plaie.')}
+  <p>Ne mâchez pas directement sur la partie avant de la prothèse. Répartissez les aliments et privilégiez le côté opposé autant que possible. Évitez aussi de couper des aliments — ou tout autre objet — avec les dents.</p>
+  <p>Restez bien hydraté et adoptez une alimentation équilibrée et riche en protéines, qui favorise la cicatrisation.</p>`,`<p>Esta es una de las recomendaciones más importantes para el éxito del tratamiento. La prótesis fija colocada el día de la cirugía es provisional y los implantes todavía no están integrados en el hueso. Masticar alimentos duros transmite fuerzas que provocan micromovimientos de los implantes y pueden comprometer la oseointegración.</p>
+  <dl class="phase"><dt>Primeros 7 días</dt><dd>Dieta líquida y fría (sopas frías, yogures, batidos, purés líquidos). Están totalmente contraindicados los alimentos y bebidas calientes.</dd>
+  <dt>Del 7.º al 14.º día</dt><dd>Dieta líquida y pastosa, a temperatura ambiente (sopas, batidos, yogures, purés, huevos revueltos y comida completamente triturada y pasada, que no requiera masticar en absoluto).</dd>
+  <dt>Del 14.º al 30.º día</dt><dd>Dieta blanda y pastosa, sin masticar. Esta dieta blanda debe mantenerse de forma rigurosa durante todo el periodo de integración de los implantes (como mínimo los primeros meses, según indique el odontólogo). Regla práctica: nada más duro que unos huevos revueltos.</dd></dl>
+  ${it('Permitido','sopas y cremas templadas, purés, yogures, huevos revueltos, pescado cocido desmenuzado, pasta bien cocida, fruta triturada o batidos.')}
+  ${it('Evitar por completo','alimentos duros, crujientes o pegajosos — pan con corteza, tostadas, frutos secos, palomitas, semillas, patatas fritas de bolsa, carne dura o fibrosa. Estos alimentos pueden desplazar los implantes y quedarse retenidos en la herida.')}
+  <p>No mastique directamente sobre la parte frontal de la prótesis. Reparta los alimentos y prefiera el lado opuesto siempre que sea posible. Evite también cortar alimentos — o cualquier otro objeto — con los dientes.</p>
+  <p>Manténgase bien hidratado y con una alimentación equilibrada y rica en proteínas, que favorece la cicatrización.</p>`,`<p>Dies ist eine der wichtigsten Empfehlungen für den Behandlungserfolg. Die am Operationstag eingesetzte festsitzende Prothese ist provisorisch, und die Implantate sind noch nicht in den Knochen eingeheilt. Das Kauen harter Speisen überträgt Kräfte, die Mikrobewegungen der Implantate verursachen und die Osseointegration gefährden können.</p>
+  <dl class="phase"><dt>Erste 7 Tage</dt><dd>Flüssige, kalte Kost (kalte Suppen, Joghurt, Shakes, flüssige Pürees). Heiße Speisen und Getränke sind streng verboten.</dd>
+  <dt>7. bis 14. Tag</dt><dd>Flüssige und breiige Kost bei Raumtemperatur (Suppen, Shakes, Joghurt, Pürees, Rührei und vollständig pürierte, passierte Speisen, die keinerlei Kauen erfordern).</dd>
+  <dt>14. bis 30. Tag</dt><dd>Weiche, breiige Kost, ohne zu kauen. Diese weiche Kost muss während der gesamten Einheilungsphase der Implantate konsequent eingehalten werden (mindestens in den ersten Monaten, nach Anweisung des Zahnarztes bzw. der Zahnärztin). Faustregel: nichts Härteres als Rührei.</dd></dl>
+  ${it('Erlaubt','lauwarme Suppen und Cremesuppen, Pürees, Joghurt, Rührei, gekochter zerdrückter Fisch, weich gekochte Nudeln, zerdrücktes Obst oder Shakes.')}
+  ${it('Unbedingt vermeiden','harte, knusprige oder klebrige Speisen — Brot mit Kruste, Toast, Nüsse, Popcorn, Samen, Chips, zähes oder faseriges Fleisch. Diese Speisen können die Implantate verschieben und in der Wunde stecken bleiben.')}
+  <p>Kauen Sie nicht direkt mit dem vorderen Teil der Prothese. Verteilen Sie die Speisen und nutzen Sie nach Möglichkeit die Gegenseite. Beißen Sie auch keine Speisen — oder andere Gegenstände — mit den Zähnen ab.</p>
+  <p>Trinken Sie ausreichend und ernähren Sie sich ausgewogen und eiweißreich; das fördert die Wundheilung.</p>`));
+ else h+=sec(X('Alimentação','Diet','Alimentation','Alimentación','Ernährung'),X(
+  `<dl class="phase"><dt>Primeiras 48 horas</dt><dd>Dieta líquida e fria (sopas frias, iogurtes, batidos, purés líquidos). Evite alimentos e bebidas quentes.</dd>
+  <dt>Até à remoção das suturas</dt><dd>Dieta mole, morna ou à temperatura ambiente, mastigando do lado oposto à cirurgia.</dd></dl>
+  ${it('A evitar','alimentos duros, crocantes, picantes ou com pequenas partículas — pão com côdea, tostas, frutos secos, pipocas, sementes — que podem ferir a zona operada e ficar retidos na ferida.')}
+  <p>Mantenha-se bem hidratado e com uma alimentação equilibrada e rica em proteína, que favorece a cicatrização.</p>`,
+  `<dl class="phase"><dt>First 48 hours</dt><dd>Liquid, cold diet (cold soups, yoghurts, smoothies, liquid purées). Avoid hot food and drinks.</dd>
+  <dt>Until the stitches are removed</dt><dd>Soft diet, lukewarm or at room temperature, chewing on the side opposite the surgery.</dd></dl>
+  ${it('Avoid','hard, crunchy or spicy foods, or foods with small particles — crusty bread, toast, nuts, popcorn, seeds — which may injure the operated area and get stuck in the wound.')}
+  <p>Stay well hydrated and eat a balanced, protein-rich diet, which helps healing.</p>`,
+  `<dl class="phase"><dt>Les premières 48 heures</dt><dd>Alimentation liquide et froide (soupes froides, yaourts, smoothies, purées liquides). Évitez les aliments et boissons chauds.</dd>
+  <dt>Jusqu'au retrait des points</dt><dd>Alimentation molle, tiède ou à température ambiante, en mâchant du côté opposé à la chirurgie.</dd></dl>
+  ${it('À éviter','aliments durs, croquants, épicés ou contenant de petites particules — pain avec croûte, biscottes, fruits secs, pop-corn, graines — qui peuvent blesser la zone opérée et rester coincés dans la plaie.')}
+  <p>Restez bien hydraté et adoptez une alimentation équilibrée et riche en protéines, qui favorise la cicatrisation.</p>`,`<dl class="phase"><dt>Primeras 48 horas</dt><dd>Dieta líquida y fría (sopas frías, yogures, batidos, purés líquidos). Evite alimentos y bebidas calientes.</dd>
+  <dt>Hasta la retirada de los puntos</dt><dd>Dieta blanda, templada o a temperatura ambiente, masticando del lado opuesto a la cirugía.</dd></dl>
+  ${it('Evitar','alimentos duros, crujientes, picantes o con partículas pequeñas — pan con corteza, tostadas, frutos secos, palomitas, semillas — que pueden lesionar la zona operada y quedarse retenidos en la herida.')}
+  <p>Manténgase bien hidratado y con una alimentación equilibrada y rica en proteínas, que favorece la cicatrización.</p>`,`<dl class="phase"><dt>Erste 48 Stunden</dt><dd>Flüssige, kalte Kost (kalte Suppen, Joghurt, Shakes, flüssige Pürees). Heiße Speisen und Getränke vermeiden.</dd>
+  <dt>Bis zur Nahtentfernung</dt><dd>Weiche Kost, lauwarm oder bei Raumtemperatur, auf der der Operation gegenüberliegenden Seite kauen.</dd></dl>
+  ${it('Vermeiden','harte, knusprige oder scharfe Speisen oder solche mit kleinen Partikeln — Brot mit Kruste, Toast, Nüsse, Popcorn, Samen —, die den operierten Bereich verletzen und in der Wunde stecken bleiben können.')}
+  <p>Trinken Sie ausreichend und ernähren Sie sich ausgewogen und eiweißreich; das fördert die Wundheilung.</p>`));
+
+ if(fixos) h+=sec(X('Prótese provisória','Temporary prosthesis','Prothèse provisoire','Prótesis provisional','Provisorische Prothese'),X(
+  `<p>A prótese fixa provisória destina-se ao conforto estético e a permitir-lhe falar e sorrir. Não foi concebida para mastigação intensa.</p>
+  <ul><li>Não force, não bata nem use a prótese para abrir embalagens ou trincar alimentos duros.</li>
+  <li>Se sentir a prótese ou algum implante a mover-se, ou notar qualquer peça solta, não mastigue nessa zona e contacte de imediato a clínica.</li></ul>`,
+  `<p>The temporary fixed prosthesis is intended for aesthetic comfort and to allow you to speak and smile. It was not designed for heavy chewing.</p>
+  <ul><li>Do not force or knock the prosthesis, and do not use it to open packages or bite into hard food.</li>
+  <li>If you feel the prosthesis or an implant moving, or notice any loose part, do not chew on that area and contact the clinic immediately.</li></ul>`,
+  `<p>La prothèse fixe provisoire est destinée au confort esthétique et à vous permettre de parler et de sourire. Elle n'a pas été conçue pour une mastication intense.</p>
+  <ul><li>Ne forcez pas et ne heurtez pas la prothèse, et ne l'utilisez pas pour ouvrir des emballages ou croquer des aliments durs.</li>
+  <li>Si vous sentez la prothèse ou un implant bouger, ou si vous remarquez une pièce desserrée, ne mâchez pas de ce côté et contactez immédiatement la clinique.</li></ul>`,`<p>La prótesis fija provisional tiene como fin la comodidad estética y permitirle hablar y sonreír. No está diseñada para una masticación intensa.</p>
+  <ul><li>No la fuerce, no la golpee ni la use para abrir envases o morder alimentos duros.</li>
+  <li>Si nota que la prótesis o algún implante se mueve, o alguna pieza suelta, no mastique en esa zona y contacte de inmediato con la clínica.</li></ul>`,`<p>Die provisorische festsitzende Prothese dient dem ästhetischen Komfort und ermöglicht Ihnen zu sprechen und zu lächeln. Sie ist nicht für kräftiges Kauen ausgelegt.</p>
+  <ul><li>Belasten Sie die Prothese nicht mit Kraft, stoßen Sie nicht dagegen und benutzen Sie sie nicht zum Öffnen von Verpackungen oder zum Abbeißen harter Speisen.</li>
+  <li>Wenn Sie spüren, dass sich die Prothese oder ein Implantat bewegt, oder ein loses Teil bemerken, kauen Sie nicht auf dieser Seite und kontaktieren Sie sofort die Praxis.</li></ul>`));
+
+ h+=sec(X('Tabaco e álcool','Smoking and alcohol','Tabac et alcool','Tabaco y alcohol','Rauchen und Alkohol'),
+  it(X('Não fume','Do not smoke','Ne fumez pas','No fume','Nicht rauchen'),X(`o tabaco está fortemente contraindicado durante toda a fase de cicatrização: aumenta a hemorragia, atrasa a cicatrização, favorece a infeção e aumenta de forma significativa o risco de falha ${alvo}.`,
+   `smoking is strongly contraindicated throughout the healing phase: it increases bleeding, delays healing, promotes infection and significantly increases the risk of failure ${alvo}.`,
+   `le tabac est fortement contre-indiqué pendant toute la phase de cicatrisation : il augmente le saignement, retarde la cicatrisation, favorise l'infection et augmente de façon importante le risque d'échec ${alvo}.`,`el tabaco está totalmente desaconsejado durante toda la fase de cicatrización: aumenta el sangrado, retrasa la cicatrización, favorece la infección y aumenta significativamente el riesgo de fracaso ${alvo}.`,`Rauchen ist während der gesamten Heilungsphase streng zu vermeiden: Es verstärkt Blutungen, verzögert die Heilung, begünstigt Infektionen und erhöht das Risiko eines Misserfolgs ${alvo} erheblich.`))+
+  `<p>${X('Não consuma bebidas alcoólicas durante os primeiros dias e enquanto estiver a tomar medicação.','Do not drink alcohol during the first days and while you are taking medication.',"Ne consommez pas d'alcool pendant les premiers jours et tant que vous prenez des médicaments.",'No tome bebidas alcohólicas durante los primeros días ni mientras esté tomando medicación.','Trinken Sie in den ersten Tagen und während der Einnahme von Medikamenten keinen Alkohol.')}</p>`);
+
+ const hygLi=X('Mantenha uma higiene oral diária rigorosa e cumpra as consultas de manutenção e higienização periódicas.','Keep up rigorous daily oral hygiene and attend your regular maintenance and professional cleaning appointments.',"Maintenez une hygiène bucco-dentaire quotidienne rigoureuse et respectez les rendez-vous réguliers d'entretien et de détartrage.",'Mantenga una higiene oral diaria rigurosa y acuda a las consultas periódicas de mantenimiento y limpieza.','Halten Sie eine gründliche tägliche Mundhygiene ein und nehmen Sie die regelmäßigen Nachsorge- und Reinigungstermine wahr.');
+ if(impl)h+=sec(X('Cuidados a longo prazo','Long-term care','Soins à long terme','Cuidados a largo plazo','Langfristige Pflege'),
+  `<ul><li>${hygLi}</li>
+  <li>${X('Se tem hábito de ranger ou apertar os dentes (bruxismo), poderá ser indicada uma goteira de proteção noturna.','If you grind or clench your teeth (bruxism), a night guard may be recommended.',"Si vous avez l'habitude de grincer ou de serrer les dents (bruxisme), une gouttière de protection nocturne pourra être indiquée.",'Si tiene el hábito de rechinar o apretar los dientes (bruxismo), podría indicársele una férula de protección nocturna.','Wenn Sie mit den Zähnen knirschen oder pressen (Bruxismus), kann eine Aufbissschiene für die Nacht empfohlen werden.')}</li>
+  <li>${X(`Os implantes e ${fixos?'a prótese':'as coroas'} são um sistema que exige manutenção contínua para garantir durabilidade a longo prazo.`,`The implants and ${fixos?'the prosthesis':'the crowns'} are a system that requires ongoing maintenance to ensure long-term durability.`,`Les implants et ${fixos?'la prothèse':'les couronnes'} forment un système qui exige un entretien continu pour garantir leur durabilité à long terme.`,`Los implantes y ${fixos?'la prótesis':'las coronas'} son un sistema que exige un mantenimiento continuo para garantizar su durabilidad a largo plazo.`,`Die Implantate und ${fixos?'die Prothese':'die Kronen'} bilden ein System, das kontinuierliche Pflege erfordert, um langfristig haltbar zu sein.`)}</li></ul>`);
+ else h+=sec(X('Consultas de controlo','Follow-up appointments','Rendez-vous de contrôle','Consultas de control','Kontrolltermine'),
+  `<ul><li>${X('Compareça às consultas de controlo e de remoção das suturas marcadas pelo médico dentista.','Attend the follow-up and stitch-removal appointments scheduled by your dentist.','Présentez-vous aux rendez-vous de contrôle et de retrait des points fixés par votre dentiste.','Acuda a las consultas de control y de retirada de los puntos programadas por el odontólogo.','Nehmen Sie die vom Zahnarzt bzw. von der Zahnärztin vereinbarten Kontroll- und Nahtentfernungstermine wahr.')}</li>
+  <li>${hygLi}</li></ul>`);
+
+ const ex=$('extra').value.trim();
+ if(ex) h+=sec(X('Indicações adicionais','Additional instructions','Indications complémentaires','Indicaciones adicionales','Zusätzliche Hinweise'), ex.split(/\n+/).map(l=>`<p>${esc(l)}</p>`).join(''));
+ h+=`<p class="sign"><em>${X('Atenciosamente,','Kind regards,','Cordialement,','Atentamente,','Mit freundlichen Grüßen')}</em>${X('A equipa Jesus Mar Couto','The Jesus Mar Couto team',"L'équipe Jesus Mar Couto",'El equipo de Jesus Mar Couto','Ihr Team von Jesus Mar Couto')}<span>${X('MEDICINA DENTÁRIA','DENTAL MEDICINE','MÉDECINE DENTAIRE','ODONTOLOGÍA','ZAHNMEDIZIN')}</span></p>
+ <p class="contact">${X('Em caso de dúvida ou urgência, contacte a clínica:','If you have any questions or in case of emergency, please contact the clinic:',"En cas de doute ou d'urgence, contactez la clinique :",'En caso de duda o urgencia, contacte con la clínica:','Bei Fragen oder im Notfall kontaktieren Sie bitte die Praxis:')} ${U.nome} · ${lang==='pt'?'':'+351 '}${U.tel}</p>`;
+ return h;
+}
+function render(force){
+ renderMail();
+ if(S.editing&&!force)return;
+ $('doc').innerHTML=S.ed[S.view]||docHtml(S.view);
+ $('doc').lang=S.view;
+}
+function langUi(){
+ [...$('lang').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.l===S.lang));
+ const f=S.lang!=='pt';$('langBox').hidden=!f;
+ if(f){$('view').innerHTML=`<button type="button" data-v="pt" aria-pressed="${S.view==='pt'}">Português</button><button type="button" data-v="${S.lang}" aria-pressed="${S.view===S.lang}">${LANGS[S.lang]}</button>`;
+  $('sendMode').innerHTML=`<button type="button" data-s="lang" aria-pressed="${S.sendMode!=='both'}">Só ${LANGS[S.lang]}</button><button type="button" data-s="both" aria-pressed="${S.sendMode==='both'}">Português + ${LANGS[S.lang]}</button>`;}
+}
+
+render();
+/* ================= Integração na app: unidade, rascunhos, PDF e envio ================= */
+const U0=(typeof window.JMC_UNIDADE==='string'&&window.JMC_UNIDADE)||(()=>{try{return localStorage.getItem('jmc_unidade')||''}catch(e){return ''}})();
+try{if(window.JMC_UNIDADE&&UNI[window.JMC_UNIDADE])localStorage.setItem('jmc_unidade',window.JMC_UNIDADE);}catch(e){}
+if(UNI[U0]){S.uni=U0;[...$('uni').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.u===U0));}
+if(window.JMC_TESTE)$('testBar').hidden=false;
+const DKEY=()=>window.JMC_TESTE?'posop_teste':'posop';
+const uuid=()=>(crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g,()=>(Math.random()*16|0).toString(16)));
+function rpc(name,p){return new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(rej)[name](p));}
+const pack=v=>Array.isArray(v)?v.reduce((o,x,i)=>(o[i]=pack(x),o),{_a:true}):(v&&typeof v==='object')?Object.fromEntries(Object.entries(v).filter(([,x])=>x!==undefined).map(([k,x])=>[k,pack(x)])):v;
+const unpack=v=>(v&&typeof v==='object')?(v._a?Object.keys(v).filter(k=>k!=='_a').sort((a,b)=>a-b).map(k=>unpack(v[k])):Object.fromEntries(Object.entries(v).map(([k,x])=>[k,unpack(x)]))):v;
+const fmtDT=s=>{try{const d=new Date(s);return d.toLocaleDateString('pt-PT')+' '+d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});}catch(e){return ''}};
+function msg(t,cls){const m=$('msg');m.textContent=t;m.className='msg '+(cls||'');}
+let draftId=null,draftRev=0,opId=null,busy=false;
+document.addEventListener('input',()=>{opId=null;});
+document.addEventListener('click',e=>{if(e.target.closest('.panel button:not(.act)'))opId=null;},true);
+const medState=l=>l.map(m=>({id:m.id,nome:m.nome,toma:m.toma,dur:m.dur,on:!!m.on,custom:!!m.custom,x:m.x?1:0}));
+function snapshotData(){
+ const ed={};Object.keys(S.ed).forEach(k=>{if(S.ed[k])ed[k]=S.ed[k].split(LOGO).join('%%LOGO%%');});
+ return {fields:{nome:$('nome').value,email:$('email').value,data:$('data').value,outro:$('outroTxt').value,extra:$('extra').value,unidade:S.uni,lang:S.lang,sendMode:S.sendMode},ed,
+  tipos:pack(S.tipos),ab:pack(medState(AB)),an:pack(medState(AN)),ou:pack(medState(OU)),clx:!!S.clx,
+  editedHtml:''};
+}
+async function save(quiet){
+ if(busy)return false;busy=true;if(!quiet)msg('A guardar o rascunho na Drive…');
+ try{if(!draftId){draftId=uuid();draftRev=0;}
+  const r=await rpc('saveClinicalDraft',{key:DKEY(),id:draftId,writeToken:uuid(),revision:draftRev,data:snapshotData()});
+  draftRev=r.revision;if(!quiet){msg('Rascunho guardado na Drive da clínica.','ok');
+   const id=draftId;if(!window.__jmcNext)window.__jmcNext={};
+   if(!window.__jmcNext[id]&&S.tipos.some(t=>t==='simples'||t==='fixos')&&$('nome').value.trim()){window.__jmcNext[id]=1;
+    setTimeout(()=>{if(!confirm('Deseja criar também o rascunho do guia de implantes?'))return;
+     rpc('createNextDrafts',{from:'posop',draftId:id,nome:$('nome').value,email:$('email').value,data:$('data').value,unidade:S.uni,lang:S.lang,teste:!!window.JMC_TESTE})
+      .then(()=>msg('Rascunho guardado. Criado também o rascunho do guia de implantes.','ok')).catch(e=>msg('O rascunho do guia não foi criado: '+(e.message||e),'err'));},60);}}
+  return true;
+ }catch(e){msg('Não foi possível guardar o rascunho: '+(e.message||e),'err');return false;}finally{busy=false;}
+}
+function setList(list,saved){if(!Array.isArray(saved)||!saved.length)return;list.splice(0,list.length,...saved.map(m=>Object.assign({},m,{on:!!m.on,custom:!!m.custom,x:m.x?1:0})));}
+function applyUi(){
+ [...$('tipo').children].forEach(x=>x.setAttribute('aria-pressed',S.tipos.includes(x.dataset.t)));$('outroBox').hidden=!S.tipos.includes('outro');
+ [...$('uni').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.u===S.uni));$('clx').setAttribute('aria-pressed',S.clx);
+ chips($('ab'),AB);chips($('an'),AN);chips($('ou'),OU);
+}
+function stopEditing(){S.editing=false;$('doc').contentEditable=false;$('doc').classList.remove('editing');$('editBtn').textContent='Editar texto do documento';}
+function restoreDraft(d){
+ const f=d.data.fields||{};
+ $('nome').value=f.nome||'';$('email').value=f.email||'';$('data').value=f.data||'';$('outroTxt').value=f.outro||'';$('extra').value=f.extra||'';
+ if(UNI[f.unidade])S.uni=f.unidade;
+ const t=unpack(d.data.tipos);if(Array.isArray(t)&&t.length)S.tipos=t;
+ setList(AB,unpack(d.data.ab));setList(AN,unpack(d.data.an));setList(OU,unpack(d.data.ou));
+ if(typeof d.data.clx==='boolean')S.clx=d.data.clx;
+ S.ed={};if(d.data.editedHtml)S.ed.pt=d.data.editedHtml;if(d.data.ed&&typeof d.data.ed==='object')Object.keys(d.data.ed).forEach(k=>{if(LANGS[k]&&d.data.ed[k])S.ed[k]=d.data.ed[k];});
+ Object.keys(S.ed).forEach(k=>{S.ed[k]=S.ed[k].split('%%LOGO%%').join(LOGO);});
+ S.lang=LANGS[f.lang]?f.lang:'pt';S.view=S.lang;S.sendMode=f.sendMode==='both'?'both':'lang';
+ stopEditing();applyUi();langUi();render(true);editState();
+ draftId=d.id;draftRev=d.revision;opId=null;
+ msg(f.origem?f.origem+'. Confirme a data da cirurgia e a medicação antes de enviar.':'Rascunho retomado: '+(d.patient||''),'ok');
+}
+async function openDrafts(){
+ $('draftModal').hidden=false;$('draftList').textContent='A carregar…';
+ try{const list=await rpc('listClinicalDrafts',{key:DKEY(),refresh:true});
+  if(!list.length){$('draftList').textContent='Não há rascunhos por concluir.';return;}
+  $('draftList').innerHTML=list.map(d=>`<div class="draft-row2"><button type="button" class="draft-item" data-id="${esc(d.id)}"><span>${esc(d.patient||'Sem nome')}</span><small>${esc(fmtDT(d.updatedAt))}</small></button><button type="button" class="btn small act draft-del" data-del="${esc(d.id)}" data-name="${esc(d.patient||'Sem nome')}">Remover</button></div>`).join('');
+ }catch(e){$('draftList').textContent='Não foi possível carregar: '+(e.message||e);}
+}
+$('draftList').addEventListener('click',async e=>{const del=e.target.closest('.draft-del');if(del){if(!confirm('Deseja remover o rascunho de '+del.dataset.name+'?'))return;del.disabled=true;try{await rpc('deleteClinicalDraft',{key:DKEY(),id:del.dataset.del});if(draftId===del.dataset.del){draftId=null;draftRev=0;}openDrafts();}catch(err){del.disabled=false;alert('Não foi possível remover: '+(err.message||err));}return;}const b=e.target.closest('.draft-item');if(!b)return;$('draftList').textContent='A abrir…';
+ try{restoreDraft(await rpc('loadClinicalDraft',{key:DKEY(),id:b.dataset.id}));$('draftModal').hidden=true;$('draftBanner').hidden=true;}
+ catch(err){$('draftList').textContent='Não foi possível abrir: '+(err.message||err);}});
+$('btnDrafts').onclick=openDrafts;
+$('draftClose').onclick=()=>{$('draftModal').hidden=true;};
+$('btnSave').onclick=()=>save(false);
+
+/* ---------- PDF a partir do documento à direita (respeita o texto editado) ---------- */
+const pdfTxt=s=>String(s??'').replace(/[—–]/g,'-').replace(/[‘’]/g,"'").replace(/[“”«»]/g,'"').replace(/…/g,'...').replace(/[^\x00-\xFF]/g,'');
+function logoImg(){return new Promise(r=>{const im=new Image();im.onload=()=>r(im);im.onerror=()=>r(null);im.src=LOGO;});}
+async function buildPdfB64(lang){
+ lang=lang||S.view;
+ if(!window.jspdf)throw Error('O gerador de PDF não carregou. Verifique a ligação e recarregue a página.');
+ const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
+ const PW=210,PH=297,M=18,W=PW-2*M;let y=M;
+ const green=[37,62,53],gold=[173,141,75],muted=[124,130,119],ink=[47,58,51];
+ const ensure=n=>{if(y+n>PH-M-6){doc.addPage();y=M;}};
+ const font=(fam,b,i)=>doc.setFont(fam,b&&i?'bolditalic':b?'bold':i?'italic':'normal');
+ function runsOf(el,st,out){out=out||[];st=st||{b:false,i:false};
+  el.childNodes.forEach(n=>{if(n.nodeType===3){out.push({t:n.nodeValue,b:st.b,i:st.i});return;}if(n.nodeType!==1)return;
+   const tg=n.tagName;if(tg==='BR'){out.push({br:true});return;}
+   runsOf(n,{b:st.b||tg==='B'||tg==='STRONG',i:st.i||tg==='EM'||tg==='I'},out);});return out;}
+ // escreve texto com negritos/itálicos, com quebra de linha e mudança de página
+ function rich(runs,o){
+  const fam=o.fam||'helvetica',size=o.size||9.5,lh=o.lh||size*.47,x=o.x??M,w=o.w??W,align=o.align||'left';
+  doc.setFontSize(size);const toks=[];
+  runs.forEach(r=>{if(r.br){toks.push({br:true});return;}pdfTxt(r.t).replace(/\s+/g,' ').split(/(\s)/).forEach(p=>{if(p)toks.push({t:p,b:r.b,i:r.i});});});
+  const lines=[];let cur=[],cw=0;
+  const push=()=>{while(cur.length&&cur[cur.length-1].t===' ')cur.pop();while(cur.length&&cur[0].t===' ')cur.shift();lines.push(cur);cur=[];cw=0;};
+  toks.forEach(t=>{if(t.br){push();return;}if(t.t===' '&&!cur.length)return;font(fam,t.b,t.i);const tw=doc.getTextWidth(t.t);
+   if(cw+tw>w&&t.t!==' '&&cur.length){push();}if(t.t===' '&&!cur.length)return;cur.push(Object.assign({w:tw},t));cw+=tw;});
+  if(cur.length)push();
+  lines.forEach(L=>{if(!L.length){y+=lh;return;}ensure(lh);const tot=L.reduce((a,t)=>a+t.w,0);let xx=align==='center'?x+(w-tot)/2:x;
+   L.forEach(t=>{font(fam,t.b,t.i);doc.setTextColor(...(t.b&&o.boldColor?o.boldColor:o.color||ink));doc.text(t.t,xx,y+lh*.72);xx+=t.w;});y+=lh;});
+ }
+ function block(el){
+  const tg=el.tagName,cl=el.classList;
+  if(tg==='HEADER'){return;}
+  if(cl.contains('eyebrow')){ensure(8);doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...gold);doc.text(pdfTxt(el.textContent.trim()),PW/2,y+3,{align:'center',charSpace:.8});y+=7;return;}
+  if(tg==='H1'){rich(runsOf(el),{fam:'times',size:22,lh:9,align:'center',color:green});y+=1;return;}
+  if(cl.contains('sub')){rich(runsOf(el),{fam:'times',size:13,lh:5.8,align:'center',color:[75,90,79]});y+=3;return;}
+  if(cl.contains('for')){rich(runsOf(el),{size:10,lh:5,align:'center',color:muted,boldColor:ink});y+=5;return;}
+  if(tg==='SECTION'){y+=3;[...el.children].forEach(block);return;}
+  if(tg==='H2'){ensure(16);y+=2;const n=el.querySelector('.n'),num=n?n.textContent.trim():'',title=pdfTxt((el.textContent||'').replace(num,'').trim());
+   doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...gold);let xx=M;if(num){doc.text(num,xx,y+5,{charSpace:.5});xx+=doc.getTextWidth(num)+4;}
+   doc.setFont('times','bold');doc.setFontSize(14.5);doc.setTextColor(...green);doc.text(title,xx,y+5);y+=7.5;doc.setDrawColor(217,218,209);doc.setLineWidth(.25);doc.line(M,y,PW-M,y);y+=3;return;}
+  if(tg==='UL'||tg==='OL'){[...el.children].forEach(li=>{ensure(5);doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(...gold);doc.text('•',M+1,y+3.4);rich(runsOf(li),{x:M+5,w:W-5,boldColor:green});y+=1;});y+=1.5;return;}
+  if(tg==='DL'){const kids=[...el.children];for(let k=0;k<kids.length;k++){const dt=kids[k];if(dt.tagName!=='DT')continue;const dd=kids[k+1]&&kids[k+1].tagName==='DD'?kids[k+1]:null;
+    ensure(10);const y0=y;rich(runsOf(dt),{w:32,size:9.5,color:green,boldColor:green});const y1=y;y=y0;if(dd)rich(runsOf(dd),{x:M+36,w:W-36});y=Math.max(y,y1)+2;}y+=1;return;}
+  if(tg==='TABLE'||el.querySelector&&el.querySelector('table')&&tg==='DIV'&&!el.querySelector('p')){const t=tg==='TABLE'?el:el.querySelector('table');table(t);return;}
+  if(cl.contains('sign')){y+=6;ensure(22);[...el.childNodes].forEach(n=>{const txt=pdfTxt((n.textContent||'').trim());if(!txt)return;
+    if(n.nodeType===1&&n.tagName==='EM'){doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(...muted);doc.text(txt,PW/2,y+3,{align:'center'});y+=6;}
+    else if(n.nodeType===1&&n.tagName==='SPAN'){doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...muted);doc.text(txt,PW/2,y+2.5,{align:'center',charSpace:.8});y+=5;}
+    else{doc.setFont('times','bold');doc.setFontSize(14);doc.setTextColor(...green);doc.text(txt,PW/2,y+4,{align:'center'});y+=6;}});return;}
+  if(cl.contains('contact')){y+=3;rich(runsOf(el),{size:9,lh:4.4,align:'center',color:muted});return;}
+  if([...el.children].some(c=>/^(P|DIV|UL|OL|DL|TABLE|SECTION|H1|H2|H3)$/.test(c.tagName))){[...el.children].forEach(block);return;}
+  if(!el.textContent.trim())return;
+  rich(runsOf(el),{boldColor:green});y+=2.2;
+ }
+ function table(t){
+  const cw=[W*.36,W*.40,W*.24],pad=2;
+  const head=[...t.querySelectorAll('thead th')].map(th=>pdfTxt(th.textContent.trim().toUpperCase()));
+  const drawHead=()=>{doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...muted);let xx=M;head.forEach((h,i)=>{doc.text(h,xx+pad,y+3.5,{charSpace:.4});xx+=cw[i];});y+=5;doc.setDrawColor(217,218,209);doc.line(M,y,PW-M,y);y+=1;};
+  ensure(14);drawHead();
+  [...t.querySelectorAll('tbody tr')].forEach(tr=>{const tds=[...tr.children];
+   const measure=(td,i)=>{doc.setFontSize(9);const txt=pdfTxt(td.textContent.replace(/\s+/g,' ').trim());font('helvetica',i===0||!!td.querySelector('b'),td.classList.contains('empty'));return doc.splitTextToSize(txt,(td.colSpan>1?W:cw[i])-2*pad);};
+   const cells=tds.map(measure),h=Math.max(...cells.map(c=>c.length))*4.2+3;
+   if(y+h>PH-M-6){doc.addPage();y=M;drawHead();}
+   let xx=M;cells.forEach((c,i)=>{const td=tds[i];font('helvetica',i===0||!!td.querySelector('b'),td.classList.contains('empty'));doc.setFontSize(9);doc.setTextColor(...(td.classList.contains('empty')?[170,174,165]:i===0?green:ink));doc.text(c,xx+pad,y+4);xx+=cw[i];});
+   y+=h;doc.setDrawColor(236,236,230);doc.line(M,y,PW-M,y);});
+  y+=4;
+ }
+ const lg=await logoImg();
+ if(lg){const w=52,h=w*lg.height/lg.width;doc.addImage(LOGO,'PNG',(PW-w)/2,y,w,h);y+=h+4;}
+ doc.setDrawColor(...gold);doc.setLineWidth(.3);doc.line(M,y,PW-M,y);y+=6;
+ const box=lang===S.view?$('doc'):(()=>{const b=document.createElement('div');b.innerHTML=S.ed[lang]||docHtml(lang);return b;})();
+ [...box.children].forEach(block);
+ const pages=doc.getNumberOfPages();
+ for(let p=1;p<=pages;p++){doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...muted);
+  doc.text({pt:'Jesus Mar Couto · Medicina Dentária · Cuidados pós-operatórios',en:'Jesus Mar Couto · Dental Medicine · Post-operative care',fr:'Jesus Mar Couto · Médecine dentaire · Soins post-opératoires',es:'Jesus Mar Couto · Odontología · Cuidados postoperatorios',de:'Jesus Mar Couto · Zahnmedizin · Postoperative Pflege'}[lang]+(window.JMC_TESTE?' · TESTE':''),M,PH-10);doc.text(`${p}/${pages}`,PW-M,PH-10,{align:'right'});}
+ return doc;
+}
+window.__posopPdf=buildPdfB64;
+
+/* ---------- guardar / enviar ---------- */
+let armed=null,armTimer=null;
+function arm(btn,label,fn){if(armed===btn){clearTimeout(armTimer);armed=null;btn.textContent=btn.dataset.l;fn();return;}
+ if(armed){armed.textContent=armed.dataset.l;}armed=btn;btn.dataset.l=btn.dataset.l||btn.textContent;btn.textContent=label;clearTimeout(armTimer);armTimer=setTimeout(()=>{btn.textContent=btn.dataset.l;armed=null;},5000);}
+function finalize(send){
+ const nome=$('nome').value.trim(),data=$('data').value,mail=$('email').value.trim();
+ if(!nome||!data){msg('Preencha o nome do paciente e a data da cirurgia.','err');return;}
+ if(send&&!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)){msg('Escreva um email válido do paciente para enviar.','err');return;}
+ if(S.editing)stopEditing(),editState();
+ const go=async()=>{if(busy)return;
+  msg(send?'A preparar o PDF e a enviar ao paciente…':'A preparar o PDF e a guardar na Drive…');
+  try{if(!(await save(true)))return;busy=true;
+   const langs=S.lang==='pt'?['pt']:['pt',S.lang],pdfs=[];
+   for(const L of langs)pdfs.push({lang:L,b64:(await buildPdfB64(L)).output('datauristring').split(',')[1]});const suf=send?'-s':'-g';opId=(opId&&opId.endsWith(suf))?opId:uuid()+suf;
+   const r=await rpc('savePosOpDoc',{teste:!!window.JMC_TESTE,unidade:S.uni,nome,data,email:send?mail:'',tipo:(()=>{const b=document.createElement('div');b.innerHTML=docHtml('pt');const x=b.querySelector('.sub');return x?x.textContent.trim():'';})(),pdfs,lang:S.lang,sendMode:S.sendMode,hasMed:[AB,AN,OU].some(l=>l.some(m=>m.on)),tipos:S.tipos.slice(),draftId,operation:opId});
+   draftId=null;draftRev=0;opId=null;
+   const m=$('msg');m.className='msg '+(send&&!r.emailSent?'err':'ok');
+   m.innerHTML=(send?(r.emailSent?`Enviado a ${esc(r.to)} a partir de ${esc(r.sender)}, com cópia para a clínica. `:`O PDF foi guardado, mas o email não foi enviado: ${esc(r.emailError)} `):'PDF guardado na Drive. ')+`<a href="${esc(r.url)}" target="_blank" rel="noopener">Abrir PDF</a>`;
+  }catch(e){msg('Não foi possível concluir: '+(e.message||e),'err');}finally{busy=false;}};
+ go();
+}
+$('btnSend').onclick=e=>{const mail=$('email').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)){msg('Escreva um email válido do paciente para enviar.','err');return;}arm(e.currentTarget,'Confirmar envio para '+mail,()=>finalize(true));};
+$('btnPreviewPdf').onclick=async()=>{try{const d=await buildPdfB64(S.view);window.open(d.output('bloburl'),'_blank');}catch(e){msg(String(e.message||e),'err');}};
+
+// Rascunhos à espera (criados a partir do consentimento de implantologia)
+if(window.google&&google.script)rpc('listClinicalDrafts',{key:DKEY(),refresh:true}).then(list=>{
+ if(!list.length)return;const b=$('draftBanner');b.hidden=false;
+ b.innerHTML=`Há ${list.length} rascunho${list.length>1?'s':''} por concluir${list[0].patient?' (o mais recente: '+esc(list[0].patient)+')':''}. <button class="btn small act" type="button" id="bannerOpen">Abrir</button>`;
+ $('bannerOpen').onclick=openDrafts;}).catch(()=>{});
+
+render();
+})();
+</script>
+<script>
+/* Unidade por aparelho: ?unidade=aveiro|faiscas fixa; senão, o valor guardado neste aparelho; a lista continua editável para exceções. */
+(()=>{
+ const MAP={aveiro:'Aveiro',faiscas:'Faíscas'};
+ const fromUrl=(typeof window.JMC_UNIDADE==='string'&&window.JMC_UNIDADE)||'';
+ const stored=localStorage.getItem('jmc_unidade')||'';
+ if(fromUrl&&MAP[fromUrl]&&fromUrl!==stored){try{localStorage.setItem('jmc_unidade',fromUrl);}catch(e){}} // o link fixa a unidade deste aparelho
+ const key=fromUrl||stored;
+ window.jmcUnidade=()=>{const sel=document.getElementById('unidade')||document.getElementById('local');const txt=sel?String(sel.value||''):'';const k=txt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');return MAP[k]?k:(key||'aveiro')};
+ function apply(){const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel||!key||!MAP[key])return;
+   const opt=[...sel.options].find(o=>o.value===MAP[key]||o.text===MAP[key]);if(opt){sel.value=opt.value;sel.dispatchEvent(new Event('change'));}
+   let tag=document.getElementById('jmcUnidTag');if(!tag){tag=document.createElement('div');tag.id='jmcUnidTag';tag.style.cssText='font-size:11px;color:#6b7280;margin-top:4px';sel.insertAdjacentElement('afterend',tag);}
+   tag.innerHTML=(fromUrl?'Unidade fixa por link: ':'Este aparelho: ')+'<b>'+MAP[key]+'</b>'+(fromUrl?'':' · <a href="#" id="jmcUnidSet" style="color:#0f6b5c">definir este aparelho</a>');
+   const a=document.getElementById('jmcUnidSet');if(a)a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
+ // Sem unidade definida: oferecer definir
+ if(!key){document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel)return;const tag=document.createElement('div');tag.style.cssText='font-size:11px;color:#b7791f;margin-top:4px';tag.innerHTML='Este aparelho ainda não tem unidade definida · <a href="#" style="color:#0f6b5c">definir agora</a>';sel.insertAdjacentElement('afterend',tag);tag.querySelector('a').addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});});}
+ // Acrescenta a unidade a todos os pedidos savePdf feitos via google.script.run
+ const wrap=()=>{if(!window.google||!google.script||!google.script.run||google.script.run.__jmc)return;const run=google.script.run;const proto=Object.getPrototypeOf(run);
+   const patch=obj=>{if(typeof obj.savePdf!=='function'||obj.savePdf.__jmc)return;const orig=obj.savePdf;obj.savePdf=function(p){if(p&&typeof p==='object'&&!p.unidade)p=Object.assign({},p,{unidade:window.jmcUnidade()});return orig.call(this,p)};obj.savePdf.__jmc=true;};
+   patch(run);if(proto&&proto!==Object.prototype)patch(proto);
+   ['withSuccessHandler','withFailureHandler','withUserObject'].forEach(m=>{const o=run[m];if(typeof o!=='function'||o.__jmc)return;run[m]=function(){const r=o.apply(this,arguments);patch(r);return r};run[m].__jmc=true;});
+   run.__jmc=true;};
+ wrap();document.addEventListener('DOMContentLoaded',wrap);
+})();
+</script>
+<style>
+.jmc-paste{margin:0 0 12px}
+.jmc-paste textarea{width:100%;box-sizing:border-box;font:inherit;font-size:12px;border:1px dashed #c9b88f;background:#f5eedc;border-radius:8px;padding:7px 9px;height:36px;resize:none;color:#2f3a33}
+.jmc-paste textarea:focus{outline:none;border-style:solid;height:90px}
+.jmc-paste p{font-size:11px;color:#3d6b4f;margin:4px 0 0}
+</style>
+<script>
+/* Colar a ficha do paciente copiada do iMED: preenche automaticamente os campos que existirem nesta página */
+(()=>{
+ if(document.getElementById('paste'))return; // os cuidados pós-operatórios já têm o seu próprio campo
+ function parseIMED(t){
+ // Rótulos tolerantes a cópias mal feitas («ome:», «ata nasc.:», «Esdo:»): compara com os rótulos conhecidos por semelhança
+ const K={nome:'nome',datanasc:'nasc',profissao:'prof',local:'local',estado:'estado',nif:'nif',cartaodecidadao:'cc',nutente:'utente',utente:'utente',entidade:'entidade',nbenef:'benef',morada:'morada',telemovel:'tel',telefone:'tel',email:'email'};
+ const norm=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,'');
+ const lev=(a,b)=>{const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const q=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=q;}}return d[b.length];};
+ const key=l=>{const n=norm(l);if(n.length<2)return '';let best='',bd=9;
+  for(const k in K){const dd=k===n?0:(k.endsWith(n)||k.startsWith(n))&&n.length>=3?1:lev(n,k);if(dd<bd){bd=dd;best=K[k];}}
+  return bd<=Math.max(1,Math.floor(norm(l).length/3))?best:'';};
+ const o={}, lines=t.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
+ lines.forEach((ln,i)=>{
+  // separa rótulos na mesma linha («… Profissão: …», «… Cartão de Cidadão: …»)
+  const parts=ln.split(/\s+(?=(?:Profiss\S*|Cart\S* de Cidad\S*)\s*:)/);
+  parts.forEach(pt=>{const c=pt.indexOf(':');if(c<0||c>25){if(i===0&&!o.nome&&!o._first)o._first=pt;return;}
+   const k=key(pt.slice(0,c)),v=pt.slice(c+1).replace(/\s+/g,' ').trim();
+   if(k&&!o[k])o[k]=v;else if(i===0&&!o._first)o._first=v;});});
+ if(!o.nome&&o._first&&/^[A-Za-zÀ-ÿ'’. -]{3,}$/.test(o._first)&&o._first.split(' ').length>=2)o.nome=o._first;
+ if(!o.email){const e=t.match(/[^\s@:]+@[^\s@]+\.[a-z]{2,}/i);if(e)o.email=e[0];}
+ if(!o.local){const u=t.match(/Jesus Mar Couto\s*-\s*(Aveiro|Fa[ií]scas)/i);if(u)o.local=u[0];}
+ const r={};
+ if(o.nome)r.nome=o.nome;
+ if(o.nasc)r.nasc=(o.nasc.match(/\d{4}-\d{2}-\d{2}/)||[''])[0];
+ if(o.nif)r.nif=o.nif.replace(/\D/g,'');
+ if(o.cc)r.cc=o.cc.replace(/\s/g,'');
+ if(o.utente)r.utente=o.utente.replace(/\D/g,'');
+ if(o.morada)r.morada=o.morada;
+ if(o.tel)r.tel=o.tel.replace(/\s/g,'');
+ if(o.email)r.email=(o.email.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)||[''])[0];
+ if(o.local)r.unidade=/fa[ií]scas/i.test(o.local)?'faiscas':/aveiro/i.test(o.local)?'aveiro':'';
+ return r;}
+ const q=id=>document.getElementById(id);
+ const first=ids=>ids.map(q).find(Boolean);
+ const nameEl=first(['nome','nomeF','patient']);
+ if(!nameEl)return;
+ const fire=el=>{el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};
+ const set=(el,v)=>{if(!el||!v)return false;el.value=v;fire(el);return true;};
+ const box=document.createElement('div');box.className='jmc-paste';
+ box.innerHTML='<textarea placeholder="Colar informação do paciente (iMED)" aria-label="Colar informação do paciente"></textarea><p hidden></p>';
+ const sec=nameEl.closest('section'),h2=sec&&sec.querySelector(':scope > h2');
+ if(h2)h2.after(box);else if(sec)sec.before(box);else(nameEl.closest('form')||nameEl.closest('label')||nameEl).before(box);
+ const ta=box.querySelector('textarea'),ok=box.querySelector('p');
+ ta.addEventListener('input',()=>{
+  const r=parseIMED(ta.value),done=[];
+  if(set(nameEl,r.nome))done.push('nome «'+r.nome+'»');
+  if(set(q('email'),r.email))done.push('email');
+  if(r.nasc&&q('nasc')&&set(q('nasc'),r.nasc))done.push('data de nascimento');
+  if(q('tel')&&set(q('tel'),r.tel))done.push('telemóvel');
+  if(q('nif')&&set(q('nif'),r.nif))done.push('NIF');
+  if(q('cc')&&set(q('cc'),r.cc))done.push('cartão de cidadão');
+  if(r.morada&&q('rua')){ // contrato: morada do iMED «Localidade, Concelho, rua…, Nº. X, 1234-567»
+   const cp=(r.morada.match(/\d{4}-\d{3}/)||[''])[0];
+   const parts=r.morada.replace(cp,'').split(',').map(x=>x.trim()).filter(Boolean);
+   const local=parts[0]||'',rua=parts.slice(parts.length>2?2:1).join(', ');
+   if(set(q('rua'),rua))done.push('morada');set(q('cp'),cp);if(q('loc')&&q('loc').tagName==='INPUT')set(q('loc'),local);
+  }
+  const uSel=[q('unidade'),q('local'),q('location')].find(e=>e&&e.tagName==='SELECT');
+  if(r.unidade&&uSel){const want=r.unidade==='faiscas'?'Faíscas':'Aveiro';const o=[...uSel.options].find(o=>o.value===want||o.text===want||o.value===r.unidade);if(o){uSel.value=o.value;fire(uSel);done.push('unidade');}}
+  // ortodontia: a morada vai depois da unidade (mudar a unidade repõe a morada da clínica)
+  if(r.morada&&!q('rua')&&q('address')&&set(q('address'),r.morada))done.push('morada');
+  if(!done.length)return;
+  ta.value='';ta.blur();ok.hidden=false;
+  ok.textContent='✓ Preenchido: '+done.join(', ')+(r.nome?'':' — falta o nome, escreva-o abaixo')+'. Confirme antes de assinar.';
+ });
+})();
+</script>
+</body></html>

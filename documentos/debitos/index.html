@@ -15,7 +15,7 @@ button,input,select{font:inherit;color:inherit}
 .seg button{border:0;background:none;padding:7px 14px;border-radius:9px;font-size:13px;font-weight:500;color:#5d5a52;cursor:pointer;white-space:nowrap}
 .seg button.on{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.1)}
 .sp{flex:1}
-.wrap{max-width:1240px;margin:0 auto;padding:22px}
+.wrap{max-width:1420px;margin:0 auto;padding:22px}
 .card{background:var(--card);border-radius:18px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 6px 24px rgba(40,30,10,.04);padding:20px}
 h2{font:500 22px 'Cormorant Garamond',serif;margin:0 0 4px}
 .hint{color:var(--mut);font-size:12.5px;margin:0}
@@ -146,6 +146,10 @@ table{border-collapse:collapse;width:100%}
 .tp .d{font:600 9.5px Montserrat;letter-spacing:.18em;text-transform:uppercase;color:var(--g);margin-top:9px}
 .tp b{display:block;font-size:13px;margin-top:3px}.tp span{display:block;font-size:11.5px;color:var(--mut);margin-top:2px;line-height:1.35}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.trio{display:grid;grid-template-columns:1fr 1.12fr 1.12fr;gap:16px;align-items:start}.trio .box.cur{box-shadow:0 0 0 1.5px #c6a755,0 6px 24px rgba(40,30,10,.06)}
+#bxAN .rw,#bxLA .rw{grid-template-columns:1fr!important}#bxAN .rw>div:last-child,#bxLA .rw>div:last-child{text-align:left!important}
+.xtra{margin-top:12px;border:1px solid #ecd9a8;background:#fdf8ec;border-radius:12px;padding:10px 12px;font-size:12.5px}.xtra .rw{border-bottom-color:#f1e6c8}
+.plano{margin:10px 0 2px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:12.5px;background:#fbfaf7}.plano div{display:flex;justify-content:space-between;gap:10px;padding:3px 0}.plano .e{color:#8a6d1f}
 .box{background:#fff;border-radius:18px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 6px 24px rgba(40,30,10,.04);padding:18px 18px 10px;min-width:0}
 .box .bh{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
 .box .k{font:600 9.5px Montserrat;letter-spacing:.2em;text-transform:uppercase;color:var(--g)}
@@ -166,6 +170,7 @@ table{border-collapse:collapse;width:100%}
 .vok{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:#23784c;font-weight:600}
 .st.sm2 button{padding:4px 7px;font-size:11px}
 .minik{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 6px}.minik div{background:#faf8f3;border-radius:11px;padding:8px 10px}.minik small{display:block;font-size:10.5px;color:var(--mut)}.minik b{font-size:15px;font-weight:600}
+@media(max-width:1100px){.trio{grid-template-columns:1fr}}
 @media(max-width:980px){.duo{grid-template-columns:1fr}.tl{grid-template-columns:1fr 1fr 1fr}.tl:before,.tl:after{display:none}}
 .st.sm2 button.lk{cursor:pointer}.lock{display:inline-block;width:9px;height:9px;margin-left:3px;vertical-align:-1px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z'/%3E%3C/svg%3E") center/contain no-repeat;opacity:.6}
 .hist{font-size:11px;color:#8a877e;margin-top:3px}.hist b{color:#a06a00;font-weight:600}
@@ -213,8 +218,9 @@ table{border-collapse:collapse;width:100%}
  <div class="card newc" id="novos"></div>
 
  <section id="v-mes">
-  <div class="duo">
-   <div class="box" id="bxLA"></div>
+  <div class="trio">
+   <div class="box" id="bxAN"></div>
+   <div class="box cur" id="bxLA"></div>
    <div class="box" id="bxAL"></div>
   </div>
  </section>
@@ -268,8 +274,8 @@ async function guardar(){if(SAVING){PEND=true;return}const d=estadoAtual(),js=JS
 function sync(t){const e=$('syncInfo');if(e){e.textContent=t;e.style.opacity=1;clearTimeout(e._t);if(/✓/.test(t))e._t=setTimeout(()=>e.style.opacity=.55,1500)}}
 async function carregar(){PRONTO=false;sync('A carregar…');const r=await jmcApi('ddLer',{});S=r;C=r.data.contratos||[];NOVOS=r.data.novos||[];
  S.verif=r.data.verif||{};S.ret=r.data.ret||{};S.envios=r.data.envios||{};S.arquivados=r.data.arquivados||[];
- VERIF=S.verif[AL]||null;RET=S.ret[AL]||{};LAST=JSON.stringify(estadoAtual());PRONTO=true;draw();sync('Atualizado ✓');if(!C.length&&!NOVOS.length)importarInicial()}
-function importarInicial(){const w=document.querySelector('.wrap');if($('impC'))return;w.insertAdjacentHTML('afterbegin',`<div class="card" id="impC" style="margin-bottom:18px"><h2>Importar dados iniciais</h2><p class="hint">Só uma vez: escolha o ficheiro <b>jmc-debitos-inicial.json</b> (nas Transferências). Só a supervisão (Dr. Gonçalo / Dra. Catarina) pode importar.</p><input type="file" id="impF" accept=".json" style="margin-top:10px"></div>`);
+ VERIF=S.verif[AL]||null;RET=S.ret[AL]||{};LAST=JSON.stringify(estadoAtual());PRONTO=true;draw();sync('Atualizado ✓');if(!C.length)importarInicial()}
+function importarInicial(){const w=document.querySelector('.wrap');if($('impC'))return;w.insertAdjacentHTML('afterbegin',`<div class="card" id="impC" style="margin-bottom:18px"><h2>Importar dados iniciais</h2><p class="hint">Só uma vez: escolha o ficheiro <b>jmc-debitos-inicial.json</b> (nas Transferências). Só a supervisão (Dr. Gonçalo / Dra. Catarina) pode importar. Os contratos novos que já estão à espera de confirmação mantêm-se.</p><input type="file" id="impF" accept=".json" style="margin-top:10px"></div>`);
  $('impF').onchange=async()=>{const f=$('impF').files[0];if(!f)return;try{const d=JSON.parse(await f.text());delete d.v;const r=await jmcApi('ddImportar',{data:d});toast(r.n+' contratos importados.');$('impC').remove();await carregar()}catch(e){alert('Não foi possível importar: '+(e.message||e))}}}
 let MES=hojeM(), UN='', TAB='mes', FE='at', FM='at', CUR=null;
 /* contratos (importados do Excel). A unidade dos antigos fica "por confirmar" até alguém a indicar. */
@@ -292,9 +298,16 @@ function draw(){ agendaGuardar(); drawLotes();
  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===TAB));
  ['mes','ct','mapa'].forEach(v=>$('v-'+v).hidden=v!==TAB);
  drawNovos(); if(TAB==='mes')drawMes(); if(TAB==='ct')drawCt(); if(TAB==='mapa')drawMapa(); }
+
+/* plano do contrato: entrada (partes por débito direto) + prestações. Contratos antigos sem marcação: a entrada são os primeiros valores diferentes da prestação. */
+function planoGrupos(pl){pl=pl||[];if(!pl.length)return [];let fl;if(pl.some(x=>x.e))fl=pl.map(x=>!!x.e);else{const ref=pl.length>1?pl[pl.length-2].v:pl[0].v;let k=0;while(k<pl.length-1&&Math.abs(pl[k].v-ref)>0.011)k++;fl=pl.map((x,i)=>i<k)}
+ const G=[];pl.forEach((x,i)=>{const m=String(x.d).slice(0,7),g=G[G.length-1];if(g&&g.e===fl[i]){g.n++;g.ate=m;g.tot+=x.v;g.vs.push(x.v)}else G.push({e:fl[i],n:1,de:m,ate:m,tot:x.v,vs:[x.v]})});
+ G.forEach(g=>{g.v=g.vs[0];g.tot=Math.round(g.tot*100)/100});return G}
+const mesesTxt=g=>g.de===g.ate?mLab(g.de):mCurto(g.de)+' – '+mCurto(g.ate);
+function resumoPlano(n){const G=planoGrupos(n.plano);if(!G.length)return n.n+' × '+eur(n.men);return G.map(g=>(g.e?'entrada ':'')+g.n+' × '+eur(g.v)).join(' + ')}
 function drawNovos(){ const el=$('novos'); if(!NOVOS.length){el.hidden=true;return;} el.hidden=false;
  el.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><h2 style="margin:0">Novos contratos a confirmar</h2><span class="badge">${NOVOS.length}</span></div><p class="hint" style="margin-bottom:8px">Gerados na app dos contratos. Os débitos só começam depois de confirmares que o contrato foi assinado.</p>`+
- NOVOS.map(n=>`<div class="row"><div class="who" style="flex:1"><b>${esc(n.nome)}</b><span>${esc(n.ref)} · ${eur(n.fin)} · ${n.n} × ${eur(n.men)} · gerado a ${new Date(n.gerado).toLocaleDateString('pt-PT')}</span></div>${uniTag(n.uniDoc)}<button class="btn g sm" onclick="abreConf('${n.id}')">Verificar e confirmar</button></div>`).join(''); }
+ NOVOS.map(n=>`<div class="row"><div class="who" style="flex:1"><b>${esc(n.nome)}</b><span>${esc(n.ref)} · ${eur(n.fin)} por débito direto · ${resumoPlano(n)} · gerado a ${new Date(n.gerado).toLocaleDateString('pt-PT')}</span></div>${uniTag(n.uniDoc)}<button class="btn g sm" onclick="abreConf('${n.id}')">Verificar e confirmar</button></div>`).join(''); }
 function drawMes(){ $('mesT').textContent=mLab(MES).replace(/^./,c=>c.toUpperCase());
  const rows=[]; C.filter(okU).forEach(c=>c.deb.forEach((d,i)=>{ if(d.m===MES) rows.push({c,d,i}); }));
  rows.sort((a,b)=>a.c.dia-b.c.dia||a.c.nome.localeCompare(b.c.nome));
@@ -367,19 +380,31 @@ function abreConf(id){ const n=NOVOS.find(x=>x.id===id); const ass=new Date(); c
  <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="f">N.º de prestações<input id="cN" type="number" min="1" value="${n.n}" oninput="prevConf('${id}')"></label><label class="f">Dia do débito<input id="cDia" type="number" min="1" max="28" value="${n.dia}" oninput="prevConf('${id}')"></label></div>
  <label class="chk"><input type="checkbox" id="k1"> <span><b>O contrato foi assinado</b> pelo paciente (e pelo terceiro outorgante, se houver).</span></label>
  <label class="chk"><input type="checkbox" id="k2"> <span><b>Autorização de débito direto (SEPA)</b> assinada, com IBAN.</span></label>
- <label class="chk"><input type="checkbox" id="k3"> <span><b>Entrada e consulta do contrato (75 €)</b> pagas.</span></label>
+ ${chkClinica(n)}
  <div class="prev" id="cP"></div>
  <div class="acts" style="justify-content:space-between"><div style="display:flex;gap:8px"><button class="btn del" onclick="naoAvancou('${id}')">Não avançou</button><button class="btn" onclick="$('mConf').classList.remove('on')">Mais tarde</button></div><button class="btn p" onclick="confirma('${id}')">Confirmar e iniciar débitos</button></div>`;
  $('mConf').classList.add('on'); prevConf(id); }
+function chkClinica(n){const it=[];if(+n.entClin>0)it.push('entrada inicial de <b>'+eur(n.entClin)+'</b>');if(+n.adm>0)it.push('consulta do contrato (<b>'+eur(n.adm)+'</b>)');
+ const fora=+n.entFora>0?`<div class="mini" style="margin:2px 0 8px">Fora do débito direto (transferência ou na clínica, mais tarde): ${eur(n.entFora)}.</div>`:'';
+ if(n.entClin===undefined&&n.adm===undefined)return `<label class="chk"><input type="checkbox" id="k3"> <span><b>Pagamentos feitos na clínica na assinatura</b> (entrada inicial / consulta), se o contrato os previa. <span class="mini">Contrato gerado antes desta informação ser guardada.</span></span></label>`;
+ if(!it.length)return `<div class="mini" style="margin:6px 0 8px">Na assinatura não havia nada a pagar na clínica — a entrada e as prestações vão por débito direto.</div>`+fora;
+ return `<label class="chk"><input type="checkbox" id="k3" data-req="1"> <span><b>Pago na clínica na assinatura:</b> ${it.join(' e ')}.</span></label>`+fora}
 function primeiroMes(iso,dia){ const d=new Date(iso); let m=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); return addM(m,1); }
+function usaPlano(n,F,N,dia){const pl=n.plano||[];return pl.length===N&&Math.abs(pl.reduce((a,x)=>a+x.v,0)-F)<0.01&&dia===n.dia}
 function prevConf(id){ const F=parseFloat($('cF').value)||0, N=parseInt($('cN').value)||1, dia=parseInt($('cDia').value)||10, m0=primeiroMes($('cD').value,dia);
+ const n=NOVOS.find(x=>x.id===id);
+ if(n&&usaPlano(n,F,N,dia)){const G=planoGrupos(n.plano),m1=String(n.plano[0].d).slice(0,7),tarde=n.plano.filter(x=>String(x.d).slice(0,7)<=LA);
+  $('cP').innerHTML=`<div class="plano">${G.map(g=>`<div class="${g.e?'e':''}"><span><b>${g.e?'Entrada (restante)':'Prestações'}</b> · ${g.n} × ${eur(g.v)}${g.vs.some(v=>Math.abs(v-g.v)>0.004)?' <span class="mini">(com acerto de cêntimos)</span>':''}</span><span>${mesesTxt(g)}</span></div>`).join('')}</div>
+  1.º débito a <b>${dia} de ${mLab(m1)}</b> · lido do contrato (Anexo II). <span class="mini">(+1 € por débito, como diz o contrato)</span>`+
+  (tarde.length?`<div class="xtra" style="margin-top:8px">O ficheiro de ${mLab(LA).split(' ')[0]} já foi gerado: ${tarde.length>1?'os débitos de '+tarde.map(x=>mLab(String(x.d).slice(0,7)).split(' ')[0]).join(', ')+' vão':'o débito de '+mLab(String(tarde[0].d).slice(0,7)).split(' ')[0]+' vai'} num <b>ficheiro extra</b>, que se gera no quadro de ${mLab(LA).split(' ')[0]} depois de confirmar.</div>`:'');return}
  $('cP').innerHTML=`1.º débito a <b>${dia} de ${mLab(m0)}</b> · ${N} × <b>${eur(Math.floor(F/N*100)/100)}</b> · último em ${mLab(addM(m0,N-1))}. <span class="mini">(+1 € por débito, como diz o contrato)</span>`; }
-function confirma(id){ if(!$('k1').checked) return toast('Confirma primeiro que o contrato foi assinado.'); if(!$('k2').checked) return toast('Falta a autorização de débito direto.');
+function confirma(id){ if(!$('k1').checked) return toast('Confirma primeiro que o contrato foi assinado.'); if(!$('k2').checked) return toast('Falta a autorização de débito direto.'); if($('k3')&&$('k3').dataset.req&&!$('k3').checked) return toast('Confirma o que foi pago na clínica na assinatura.');
  const n=NOVOS.find(x=>x.id===id); const F=parseFloat($('cF').value)||0, N=parseInt($('cN').value)||1, dia=parseInt($('cDia').value)||10, m0=primeiroMes($('cD').value,dia);
  const base=Math.floor(F/N*100)/100; let acc=0; let deb=[]; for(let j=0;j<N;j++){ const v=j<N-1?base:Math.round((F-acc)*100)/100; acc+=v; deb.push({m:addM(m0,j),v,s:''}); }
- const pl=n.plano||[]; if(pl.length===N&&Math.abs(pl.reduce((a,x)=>a+x.v,0)-F)<0.01&&dia===n.dia) deb=pl.map(x=>({m:String(x.d).slice(0,7),v:x.v,s:''}));
+ const pl=n.plano||[]; if(usaPlano(n,F,N,dia)){const G=planoGrupos(pl),fl=[];G.forEach(g=>{for(let j=0;j<g.n;j++)fl.push(g.e)});deb=pl.map((x,j)=>Object.assign({m:String(x.d).slice(0,7),v:x.v,s:''},fl[j]?{e:1}:{}));}
+ deb.forEach(d=>{if(d.m<=LA)d.ext=1});
  C.unshift({id:'c'+Date.now(),ref:n.ref,aut:n.aut||n.ref,nome:n.nome,devedor:n.devedor||n.nome,iban:n.iban||'',adc:($('cD').value||'').replace(/-/g,''),fin:F,total:F,dia,uni:$('cU').value,deb,pag:[],estado:'ativo',assinado:$('cD').value,confirmadoPor:jmcNome()});
- NOVOS=NOVOS.filter(x=>x.id!==id); $('mConf').classList.remove('on'); draw(); toast('Contrato confirmado · débitos a partir de '+mLab(m0)); }
+ NOVOS=NOVOS.filter(x=>x.id!==id); $('mConf').classList.remove('on'); draw(); toast('Contrato confirmado · débitos a partir de '+mLab(deb[0]?deb[0].m:m0)+(deb.some(d=>d.ext)?' (ficheiro extra no quadro do mês atual)':'')); }
 function naoAvancou(id){ if(!confirm('Marcar este contrato como não avançou? Não serão criados débitos.')) return; const n0=NOVOS.find(x=>x.id===id); NOVOS=NOVOS.filter(x=>x.id!==id); (S.arquivados=S.arquivados||[]).push(Object.assign({},n0,{em:new Date().toISOString(),por:jmcNome()})); $('mConf').classList.remove('on'); draw(); toast('Contrato arquivado sem débitos'); }
 /* ---- navegação ---- */
 $('tabs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; TAB=b.dataset.v; draw(); };
@@ -398,6 +423,7 @@ function refNum(r){const m=String(r).match(/(\d+)(?:\s+(\d+))?\s*\/\s*(\d{4})/);
 const HOJE=new Date();const DIA=HOJE.getDate();
 const AL=DIA<=4?hojeM():addM(hojeM(),1);           // débitos a lançar
 const LA=DIA<=4?addM(hojeM(),-1):hojeM();           // débitos lançados (verificar até ao fim do mês)
+const AN=addM(LA,-1);                               // mês anterior: confirmar falhados e o que falta faturar
 let LT=0; const VER={}; let RET={};
 function ultDia(m){const [y,mm]=m.split('-').map(Number);return new Date(y,mm,0).getDate();}
 function drawLotes(){if(!window.DDSEPA){setTimeout(drawLotes,30);return}
@@ -426,7 +452,7 @@ function lotesDoMes(){return lotesDe(AL)}
 function infoDe(c){return c.iban?{aut:c.aut,iban:c.iban,dev:c.devedor||c.nome,adc:c.adc}:null}
 function agrupa(L){const m=new Map();L.forEach(x=>{const k=x.c.id;if(!m.has(k))m.set(k,{c:x.c,inf:x.inf,v:0,n:0,partes:[]});const g=m.get(k);g.v=Math.round((g.v+x.d.v)*100)/100;g.n++;g.partes.push(x)});return [...m.values()]}
 const fdt=d=>String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
-function drawMes(){drawAL();drawLA();}
+function drawMes(){drawAL();drawLanc(LA,'bxLA',0);drawLanc(AN,'bxAN',1);}
 let VERIF=null; function mexe(){if(VERIF){VERIF=null;toast('Houve alterações — é preciso verificar de novo antes de descarregar.')}}
 function drawAL(){const LS=lotesDe(AL);
  let h=`<div class="bh"><div><div class="k">Débitos a lançar</div><h2>${mLab(AL).replace(/^./,c=>c.toUpperCase())}</h2><p class="hint">Verificar até dia 3. No dia 4 o documento é gerado e enviado.</p></div></div>`;
@@ -464,7 +490,7 @@ function okAdd(){mexe();const cid=$('adc').value,v=+String($('adv').value).repla
  c.deb.push({m:AL,v:Math.round(v*100)/100,s:'',extra:tag});c.deb.sort((a,b)=>a.m<b.m?-1:a.m>b.m?1:0);
  document.getElementById('mx').classList.remove('on');drawMes();toast('Adicionado aos débitos a lançar de '+mLab(AL)+'.')}
 const HOJE_ISO=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
-let LA_ABERTO=false;
+const ABERTO={};
 const fdl=x=>x.split('-').reverse().slice(0,2).join('/');
 function segLA(c,i){const d=c.deb[i];const lk=d.s&&d.sd&&d.sd<HOJE_ISO;
  return `<div class="st sm2">${['','fat','ok','falta'].map(k=>`<button class="${d.s===k?'on ':''}k-${ST[k].c}" onclick="mudaLA('${c.id}',${i},'${k}')"><i class="dot d-${ST[k].c}"></i>${k?ST[k].t:'Por verificar'}${d.s===k&&lk?'<span class="lock" title="Marcado a '+fdl(d.sd)+' — alterar pede justificação"></span>':''}</button>`).join('')}</div>`}
@@ -477,27 +503,39 @@ function mudaLA(cid,i,k){const c=C.find(x=>x.id===cid),d=c.deb[i];if(d.s===k)ret
 function okJust(cid,i,k){const m=$('jm').value.trim();if(m.length<5){$('jm').style.borderColor='#d2513f';$('jm').placeholder='Escreva o motivo (obrigatório)';$('jm').focus();return}
  const d=C.find(x=>x.id===cid).deb[i];aplicaLA(d,k,m);document.getElementById('mx').classList.remove('on');draw();toast('Alterado e registado.')}
 function aplicaLA(d,k,mot){(d.hist=d.hist||[]).push({de:d.s,para:k,data:HOJE_ISO,quem:jmcNome()||'—',mot});d.s=k;d.sd=k?HOJE_ISO:'';}
-function todosSairam(){const rows=[];C.forEach(c=>c.deb.forEach((d,i)=>{if(d.m===LA&&!d.s&&!d.pd)rows.push(d)}));rows.forEach(d=>aplicaLA(d,'fat',''));draw();toast(rows.length+' marcados como Saiu.')}
-function drawLA(){const rows=[];C.filter(okU).forEach(c=>c.deb.forEach((d,i)=>{if(d.m===LA)rows.push({c,d,i})}));rows.sort((a,b)=>a.c.nome.localeCompare(b.c.nome));
- const sum=f=>rows.filter(f).reduce((a,r)=>a+r.d.v,0),cnt=f=>rows.filter(f).length;const ul=ultDia(LA);
- const fechado=rows.length&&rows.every(r=>r.d.s==='ok'||r.d.s==='falta');const porVer=cnt(r=>!r.d.s);
- let h=`<div class="bh"><div><div class="k">Débitos lançados</div><h2>${mLab(LA).replace(/^./,c=>c.toUpperCase())}</h2><p class="hint">Verificar e faturar até dia ${ul}. Depois do dia em que se marca, alterar pede justificação.</p></div></div>
+function todosSairam(mes){mes=mes||LA;const rows=[];C.forEach(c=>c.deb.forEach((d,i)=>{if(d.m===mes&&!d.s&&!d.pd&&!(d.ext&&!d.lx))rows.push(d)}));rows.forEach(d=>aplicaLA(d,'fat',''));draw();toast(rows.length+' marcados como Saiu.')}
+function drawLanc(mes,bx,ant){const rows=[];C.filter(okU).forEach(c=>c.deb.forEach((d,i)=>{if(d.m===mes)rows.push({c,d,i})}));rows.sort((a,b)=>a.c.nome.localeCompare(b.c.nome));
+ const sum=f=>rows.filter(f).reduce((a,r)=>a+r.d.v,0),cnt=f=>rows.filter(f).length;const ul=ultDia(mes);
+ const fechado=rows.length&&rows.every(r=>r.d.s==='ok'||r.d.s==='falta');const porVer=cnt(r=>!r.d.s&&!(r.d.ext&&!r.d.lx));
+ let h=`<div class="bh"><div><div class="k">${ant?'Mês anterior · confirmar':'Mês atual · débitos lançados'}</div><h2>${mLab(mes).replace(/^./,c=>c.toUpperCase())}</h2><p class="hint">${ant?'Confirmar os que falharam e o que ainda falta faturar.':'Verificar e faturar até dia '+ul+'. Depois do dia em que se marca, alterar pede justificação.'}</p></div></div>
  <div class="minik"><div><small>Lançado</small><b>${eur0(sum(()=>1))}</b></div><div><small><i class="dot d-fat"></i> Saiu</small><b>${cnt(r=>r.d.s==='fat')}</b></div><div><small><i class="dot d-ok"></i> Faturado</small><b>${cnt(r=>r.d.s==='ok')}</b></div><div><small><i class="dot d-ko"></i> Falhou</small><b>${cnt(r=>r.d.s==='falta')}</b></div></div>
  <div class="bar" style="margin:4px 0 2px"><i style="width:${rows.length?cnt(r=>r.d.s==='ok')/rows.length*100:0}%;background:var(--ok)"></i><i style="width:${rows.length?cnt(r=>r.d.s==='fat')/rows.length*100:0}%;background:var(--fat)"></i><i style="width:${rows.length?cnt(r=>r.d.s==='falta')/rows.length*100:0}%;background:var(--ko)"></i></div>`;
- if(fechado&&!LA_ABERTO){h+=`<div class="closed"><div class="ck">✓</div><div style="flex:1"><b>${mLab(LA).replace(/^./,c=>c.toUpperCase())} fechado</b><div class="mini">${cnt(r=>r.d.s==='ok')} faturados · ${cnt(r=>r.d.s==='falta')} falharam</div></div><button class="btn sm" onclick="LA_ABERTO=true;drawLA()">Ver detalhes</button></div>`;$('bxLA').innerHTML=h;return}
- h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="mini">${rows.length-porVer} de ${rows.length} verificados</span>${porVer?`<button class="btn sm" onclick="todosSairam()">Marcar os ${porVer} restantes como Saiu</button>`:fechado?`<button class="btn sm" onclick="LA_ABERTO=false;drawLA()">Fechar</button>`:''}</div>
- <div class="rows">${rows.map(({c,d,i})=>{const hs=(d.hist||[]).filter(x=>x.mot).slice(-1)[0];return `<div class="rw" style="grid-template-columns:1fr auto"><div class="nm"><b>${esc(c.nome)}</b>${c.nota?`<small style="color:#a06a00">${esc(c.nota)}</small>`:""}<small>${uniTag(c.uni)} &nbsp;${c.meio==="transferencia"?"transferência · ":""}${eur(d.v)}${d.pd?' · pago na clínica ('+esc(d.pd.t)+')':''}${d.relan?` · <span style="color:#a06a00">volta a lançar em ${MN[+d.relan.split('-')[1]-1]}</span>`:d.dism?' · <span class="mini">não volta a lançar (aviso ao paciente)</span>':''}</small>${hs?`<div class="hist">Alterado a ${fdl(hs.data)} de <b>${hs.de?ST[hs.de].t:'Por verificar'}</b> para <b>${hs.para?ST[hs.para].t:'Por verificar'}</b>: ${esc(hs.mot)}</div>`:''}</div>
+ if(fechado&&!ABERTO[mes]){h+=`<div class="closed"><div class="ck">✓</div><div style="flex:1"><b>${mLab(mes).replace(/^./,c=>c.toUpperCase())} fechado</b><div class="mini">${cnt(r=>r.d.s==='ok')} faturados · ${cnt(r=>r.d.s==='falta')} falharam</div></div><button class="btn sm" onclick="ABERTO['${mes}']=true;drawMes()">Ver detalhes</button></div>`;$(bx).innerHTML=h+xtraHtml(mes);return}
+ h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="mini">${rows.length-porVer} de ${rows.length} verificados</span>${porVer?`<button class="btn sm" onclick="todosSairam('${mes}')">Marcar os ${porVer} restantes como Saiu</button>`:fechado?`<button class="btn sm" onclick="ABERTO['${mes}']=false;drawMes()">Fechar</button>`:''}</div>
+ <div class="rows">${rows.map(({c,d,i})=>{const hs=(d.hist||[]).filter(x=>x.mot).slice(-1)[0];return `<div class="rw" style="grid-template-columns:1fr auto"><div class="nm"><b>${esc(c.nome)}</b>${c.nota?`<small style="color:#a06a00">${esc(c.nota)}</small>`:""}<small>${uniTag(c.uni)} &nbsp;${c.meio==="transferencia"?"transferência · ":""}${eur(d.v)}${d.pd?' · pago na clínica ('+esc(d.pd.t)+')':''}${d.lx?' · <span style="color:#8a6d1f">ficheiro extra '+esc(d.lx.ficheiro||'')+'</span>':d.ext?' · <span style="color:#a06a00">por lançar (ficheiro extra)</span>':''}${d.relan?` · <span style="color:#a06a00">volta a lançar em ${MN[+d.relan.split('-')[1]-1]}</span>`:d.dism?' · <span class="mini">não volta a lançar (aviso ao paciente)</span>':''}</small>${hs?`<div class="hist">Alterado a ${fdl(hs.data)} de <b>${hs.de?ST[hs.de].t:'Por verificar'}</b> para <b>${hs.para?ST[hs.para].t:'Por verificar'}</b>: ${esc(hs.mot)}</div>`:''}</div>
   <div style="text-align:right">${segLA(c,i)}${d.s==='falta'&&!d.relan&&!d.dism?`<div><button class="ic2" style="color:#a8392a" onclick="relancar('${c.id}',${i})">Voltar a lançar em ${MN[+AL.split('-')[1]-1]} →</button></div>`:''}</div></div>`}).join('')}</div>
  <div class="legend" style="margin:10px 0 4px"><span><i class="dot d-fat"></i>Saiu — falta faturar</span><span><i class="dot d-ok"></i>Faturado</span><span><i class="dot d-ko"></i>Falhou</span><span><span class="lock" style="opacity:1"></span>&nbsp;marcado noutro dia</span></div>`;
- $('bxLA').innerHTML=h}
+ $(bx).innerHTML=h+xtraHtml(mes)}
+
+/* débitos de um mês cujo ficheiro já tinha sido gerado (ex.: contrato confirmado depois do dia 4): vão num ficheiro extra */
+function porExtra(mes){const out=[];C.forEach(c=>c.deb.forEach((d,i)=>{if(d.m===mes&&d.ext&&!d.lx&&!d.s&&!d.pd&&d.v>0)out.push({c,d,i})}));return out}
+function xtraHtml(mes){const L=porExtra(mes);if(!L.length)return '';const t=L.reduce((a,x)=>a+x.d.v,0);
+ return `<div class="xtra"><b>Por lançar em ${mLab(mes)}</b> — o ficheiro de ${mLab(mes).split(' ')[0]} já tinha sido gerado quando ${L.length>1?'estes contratos foram confirmados':'este contrato foi confirmado'}.
+ <div class="rows">${L.map(x=>`<div class="rw" style="grid-template-columns:1fr auto"><div class="nm"><b>${esc(x.c.nome)}</b><small>${esc(String(x.c.ref).replace('FIN JESUS MAR COUTO','FIN JMC'))} · dia ${x.c.dia}${x.d.e?' · entrada':''}${x.c.iban?'':' · <span style="color:#a8392a">sem IBAN</span>'}</small></div><b>${eur(x.d.v)}</b></div>`).join('')}</div>
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px"><span class="mini">${L.length} débito${L.length>1?'s':''} · ${eur(t)}</span><button class="btn sm g" onclick="enviarExtra('${mes}')">Gerar ficheiro extra e enviar à contabilidade</button></div></div>`}
+async function enviarExtra(mes){const L=porExtra(mes);if(!L.length)return;if(L.some(x=>!x.c.iban))return toast('Há débitos sem IBAN — complete primeiro o contrato.');
+ if(!confirm('Gerar o ficheiro extra de '+mLab(mes)+' ('+L.length+' débito'+(L.length>1?'s':'')+', '+eur(L.reduce((a,x)=>a+x.d.v,0))+') e enviá-lo já à contabilidade para anexar no Santander?'))return;
+ try{clearTimeout(window.__gT);await guardar();sync('A gerar o ficheiro…');const r=await jmcApi('ddEnviarExtra',{mes});await carregar();
+  toast(r.ok?'Enviado à contabilidade: '+r.ficheiro+' · débito a '+String(r.data).replace(/(\d{4})(\d{2})(\d{2})/,'$3/$2/$1'):'Não enviado: '+(r.erro||''))}
+ catch(e){alert('Não foi possível gerar o ficheiro extra: '+(e.message||e));sync('')}}
 /* falhas por decidir: todas as que foram marcadas como Falhou antes do mês a lançar (agrupadas por contrato) */
 function falhasPend(){const out=[];C.forEach(c=>{const ds=c.deb.filter(d=>d.m<AL&&d.s==='falta'&&(d.m===LA||d.sd)&&!d.relan&&!d.dism);if(ds.length)out.push({c,ds,tot:Math.round(ds.reduce((a,d)=>a+d.v,0)*100)/100})});return out}
 function relancarC(cid){mexe();const c=C.find(x=>x.id===cid);const ds=c.deb.filter(d=>d.m<AL&&d.s==='falta'&&(d.m===LA||d.sd)&&!d.relan&&!d.dism);
- ds.forEach(d=>{c.deb.push({m:AL,v:d.v,s:'',extra:'falhou em '+MN[+d.m.split('-')[1]-1]});d.relan=AL});c.deb.sort((a,b)=>a.m<b.m?-1:a.m>b.m?1:0);LA_ABERTO=true;draw();
+ ds.forEach(d=>{c.deb.push({m:AL,v:d.v,s:'',extra:'falhou em '+MN[+d.m.split('-')[1]-1]});d.relan=AL});c.deb.sort((a,b)=>a.m<b.m?-1:a.m>b.m?1:0);ABERTO[LA]=true;draw();
  toast(c.nome+': '+ds.length+' débito'+(ds.length>1?'s':'')+' falhado'+(ds.length>1?'s':'')+' adicionado'+(ds.length>1?'s':'')+' a '+mLab(AL)+'.')}
 function dispensaC(cid){const c=C.find(x=>x.id===cid);c.deb.filter(d=>d.m<AL&&d.s==='falta'&&(d.m===LA||d.sd)&&!d.relan&&!d.dism).forEach(d=>d.dism=HOJE_ISO);draw();toast('Não adicionado — fica o aviso ao paciente.')}
 function dispensa(cid,i){const c=C.find(x=>x.id===cid);c.deb[i].dism=HOJE_ISO;draw();toast('Fica só no aviso ao paciente — não é adicionado.')}
-function relancar(cid,i){const c=C.find(x=>x.id===cid),d=c.deb[i];LA_ABERTO=true;c.deb.push({m:AL,v:d.v,s:'',extra:'falhou em '+MN[+d.m.split('-')[1]-1]});c.deb.sort((a,b)=>a.m<b.m?-1:a.m>b.m?1:0);d.relan=AL;draw();toast(c.nome+' entra nos débitos a lançar de '+mLab(AL)+'.')}
+function relancar(cid,i){const c=C.find(x=>x.id===cid),d=c.deb[i];ABERTO[LA]=true;c.deb.push({m:AL,v:d.v,s:'',extra:'falhou em '+MN[+d.m.split('-')[1]-1]});c.deb.sort((a,b)=>a.m<b.m?-1:a.m>b.m?1:0);d.relan=AL;draw();toast(c.nome+' entra nos débitos a lançar de '+mLab(AL)+'.')}
 function modalHtml(h){let m=document.getElementById('mx');if(!m){m=document.createElement('div');m.id='mx';m.className='modal';document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.classList.remove('on')}}
  m.innerHTML=`<div class="card" style="width:min(640px,100%)">${h}<div style="text-align:right;margin-top:14px"><button class="btn p" onclick="document.getElementById('mx').classList.remove('on')">Fechar</button></div></div>`;m.classList.add('on')}
 

@@ -797,5 +797,79 @@ async function jmcRascunhos(){let lista=[];try{lista=await rpc('listClinicalDraf
   $('jmcDescartar').onclick=()=>{if(confirm('Descartar o contrato que ficou a meio?')){jmcLimparAuto();bar.remove()}};})();
 
 (function(){const hb=$('btnReset').parentElement;hb.insertAdjacentHTML('afterbegin','<a class="btn secondary" id="btnDD" href="../debitos/'+(TESTE?'?teste=1':'')+'" style="text-decoration:none">Débitos diretos</a>')})();
-jmcWho();</script></body>
+jmcWho();</script><style>
+.jmc-paste{margin:0 0 12px}
+.jmc-paste textarea{width:100%;box-sizing:border-box;font:inherit;font-size:12px;border:1px dashed #c9b88f;background:#f5eedc;border-radius:8px;padding:7px 9px;height:36px;resize:none;color:#2f3a33}
+.jmc-paste textarea:focus{outline:none;border-style:solid;height:90px}
+.jmc-paste p{font-size:11px;color:#3d6b4f;margin:4px 0 0}
+</style>
+<script>
+/* Colar a ficha do paciente copiada do iMED: preenche automaticamente os campos que existirem nesta página */
+(()=>{
+ if(document.getElementById('paste'))return; // os cuidados pós-operatórios já têm o seu próprio campo
+ function parseIMED(t){
+ // Rótulos tolerantes a cópias mal feitas («ome:», «ata nasc.:», «Esdo:»): compara com os rótulos conhecidos por semelhança
+ const K={nome:'nome',datanasc:'nasc',profissao:'prof',local:'local',estado:'estado',nif:'nif',cartaodecidadao:'cc',nutente:'utente',utente:'utente',entidade:'entidade',nbenef:'benef',morada:'morada',telemovel:'tel',telefone:'tel',email:'email'};
+ const norm=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,'');
+ const lev=(a,b)=>{const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const q=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=q;}}return d[b.length];};
+ const key=l=>{const n=norm(l);if(n.length<2)return '';let best='',bd=9;
+  for(const k in K){const dd=k===n?0:(k.endsWith(n)||k.startsWith(n))&&n.length>=3?1:lev(n,k);if(dd<bd){bd=dd;best=K[k];}}
+  return bd<=Math.max(1,Math.floor(norm(l).length/3))?best:'';};
+ const o={}, lines=t.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
+ lines.forEach((ln,i)=>{
+  // separa rótulos na mesma linha («… Profissão: …», «… Cartão de Cidadão: …»)
+  const parts=ln.split(/\s+(?=(?:Profiss\S*|Cart\S* de Cidad\S*)\s*:)/);
+  parts.forEach(pt=>{const c=pt.indexOf(':');if(c<0||c>25){if(i===0&&!o.nome&&!o._first)o._first=pt;return;}
+   const k=key(pt.slice(0,c)),v=pt.slice(c+1).replace(/\s+/g,' ').trim();
+   if(k&&!o[k])o[k]=v;else if(i===0&&!o._first)o._first=v;});});
+ if(!o.nome&&o._first&&/^[A-Za-zÀ-ÿ'’. -]{3,}$/.test(o._first)&&o._first.split(' ').length>=2)o.nome=o._first;
+ if(!o.email){const e=t.match(/[^\s@:]+@[^\s@]+\.[a-z]{2,}/i);if(e)o.email=e[0];}
+ if(!o.local){const u=t.match(/Jesus Mar Couto\s*-\s*(Aveiro|Fa[ií]scas)/i);if(u)o.local=u[0];}
+ const r={};
+ if(o.nome)r.nome=o.nome;
+ if(o.nasc)r.nasc=(o.nasc.match(/\d{4}-\d{2}-\d{2}/)||[''])[0];
+ if(o.nif)r.nif=o.nif.replace(/\D/g,'');
+ if(o.cc){const c=o.cc.replace(/\s/g,'').toUpperCase(),m=c.match(/^(\d{8})(\d)([A-Z0-9]{3})$/);r.cc=m?m[1]+' '+m[2]+' '+m[3]:c;}
+ if(o.utente)r.utente=o.utente.replace(/\D/g,'');
+ if(o.morada)r.morada=o.morada;
+ if(o.tel)r.tel=o.tel.replace(/\s/g,'');
+ if(o.email)r.email=(o.email.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)||[''])[0];
+ if(o.local)r.unidade=/fa[ií]scas/i.test(o.local)?'faiscas':/aveiro/i.test(o.local)?'aveiro':'';
+ return r;}
+ const q=id=>document.getElementById(id);
+ const first=ids=>ids.map(q).find(Boolean);
+ const nameEl=first(['nome','nomeF','patient']);
+ if(!nameEl)return;
+ const fire=el=>{el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};
+ const set=(el,v)=>{if(!el||!v)return false;el.value=v;fire(el);return true;};
+ const box=document.createElement('div');box.className='jmc-paste';
+ box.innerHTML='<textarea placeholder="Colar informação do paciente (iMED)" aria-label="Colar informação do paciente"></textarea><p hidden></p>';
+ const sec=nameEl.closest('section'),h2=sec&&sec.querySelector(':scope > h2');
+ if(h2)h2.after(box);else if(sec)sec.before(box);else(nameEl.closest('form')||nameEl.closest('label')||nameEl).before(box);
+ const ta=box.querySelector('textarea'),ok=box.querySelector('p');
+ ta.addEventListener('input',()=>{
+  const r=parseIMED(ta.value),done=[];
+  if(set(nameEl,r.nome))done.push('nome «'+r.nome+'»');
+  if(set(q('email'),r.email))done.push('email');
+  if(r.nasc&&q('nasc')&&set(q('nasc'),r.nasc))done.push('data de nascimento');
+  if(q('tel')&&set(q('tel'),r.tel))done.push('telemóvel');
+  if(q('nif')&&set(q('nif'),r.nif))done.push('NIF');
+  if(q('cc')&&set(q('cc'),r.cc))done.push('cartão de cidadão');
+  if(r.morada&&q('rua')){ // contrato: morada do iMED «Localidade, Concelho, rua…, Nº. X, 1234-567»
+   const cp=(r.morada.match(/\d{4}-\d{3}/)||[''])[0];
+   const parts=r.morada.replace(cp,'').split(',').map(x=>x.trim()).filter(Boolean);
+   const local=parts[0]||'',rua=parts.slice(parts.length>2?2:1).join(', ');
+   if(set(q('rua'),rua))done.push('morada');set(q('cp'),cp);if(q('loc')&&q('loc').tagName==='INPUT')set(q('loc'),local);
+  }
+  const uSel=[q('unidade'),q('local'),q('location')].find(e=>e&&e.tagName==='SELECT');
+  if(r.unidade&&uSel){const want=r.unidade==='faiscas'?'Faíscas':'Aveiro';const o=[...uSel.options].find(o=>o.value===want||o.text===want||o.value===r.unidade);if(o){uSel.value=o.value;fire(uSel);done.push('unidade');}}
+  // ortodontia: a morada vai depois da unidade (mudar a unidade repõe a morada da clínica)
+  if(r.morada&&!q('rua')&&q('address')&&set(q('address'),r.morada))done.push('morada');
+  if(!done.length)return;
+  ta.value='';ta.blur();ok.hidden=false;
+  ok.textContent='✓ Preenchido: '+done.join(', ')+(r.nome?'':' — falta o nome, escreva-o abaixo')+'. Confirme antes de assinar.';
+ });
+})();
+</script>
+</body>
 </html>

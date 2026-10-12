@@ -214,6 +214,7 @@ button{cursor:pointer}
 /*uni*/
 /* ---------- painel lateral do universo (Dr. Gonçalo e Dra. Catarina, no telemóvel) ---------- */
 .uni{position:fixed;inset:0;z-index:90;pointer-events:none}
+.up .ug{margin-top:10px}.up .ug:first-child{margin-top:2px}
 .tals{position:fixed;inset:0;z-index:120;background:rgba(10,10,10,.55);display:flex;align-items:flex-end;justify-content:center}
 .tals[hidden]{display:none}
 .tals .tbox{background:var(--bg);width:min(100%,520px);max-height:100%;border-radius:22px 22px 0 0;padding:14px 14px calc(var(--sab,env(safe-area-inset-bottom,0px)) + 14px);display:flex;flex-direction:column;gap:10px;box-shadow:0 -10px 40px rgba(0,0,0,.25)}
@@ -825,7 +826,7 @@ body:not(.ph) .cxdet{grid-template-columns:1fr 1fr 1fr}
 </div></div>
 <div class="uni" id="uni" aria-hidden="true"><div class="ub" data-ux></div><nav class="up" aria-label="Aplicações Jesus Mar Couto">
 <div class="uh"><svg class="emb" aria-hidden="true"><use href="#jmc"/></svg><div><b>Jesus Mar Couto</b><small id="uniMe"></small></div><button class="ux" data-ux aria-label="Fechar" title="Fechar">✕</button></div>
-<div class="ul">Aplicações</div><div id="uniL"></div>
+<div id="uniL"></div>
 <div class="uf"><button class="ua" data-uset><span class="ui cr"><svg viewBox="0 0 24 24" style="stroke:#A88A3C"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2 2 2 0 1 1-2.8-2.8A1.7 1.7 0 0 0 3.1 13a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9 2 2 0 1 1 2.8-2.8A1.7 1.7 0 0 0 10 3.1a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2 2 2 0 1 1 2.8 2.8A1.7 1.7 0 0 0 20.9 10a2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.5 1z"/></svg></span><span class="ut">Definições</span></button></div>
 </nav></div>
 <div class="toast" id="toast" role="status"></div>
@@ -928,11 +929,12 @@ function item(r){
   const cxStaff=r.tipo==='caixa'&&!OWN.includes(ME);
   const cxTxt=!cxStaff?r.t:r.inc?(r.concluidoEm?'Fecho de caixa enviado mais tarde, com sucesso.':'O fecho de caixa deste dia não foi concluído. Abra o fecho de caixa, indique a justificação e envie.'):r.ok?'Fecho de caixa enviado com sucesso.':'O fecho de caixa não confere. Fale com o Dr. Gonçalo ou a Dra. Catarina.';
   const sysBtn=r.tipo==='caixa'&&r.link&&(!cxStaff||(r.inc&&isPend(r)))?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">Abrir o fecho de caixa ›</a>`:'';
+  const ddBtn=r.tipo==='dd'&&r.link&&/^https:\/\/goncalojpjesus\.github\.io\/jmc-avisos\/documentos\/debitos\//.test(r.link)?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">Abrir os débitos diretos ›</a>`:'';
   const labBtn=r.tipo==='lab'&&r.link?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">Abrir no Executive Lab ›</a>`:'';
   const pontoBtn=r.tipo==='ponto'&&r.link&&/^https:\/\/goncalojpjesus\.github\.io\/jmc-avisos\/ponto\//.test(r.link)?`<a class="sysbtn" href="${esc(r.link)}" target="_blank" rel="noopener">${/[?&]ir=/.test(r.link)?'Tratar na Área RH ›':'Abrir a Área RH ›'}</a>`:'';
   const isNew=NEWIDS.has(r.id)?' new':'';
   return `<div class="it ${r.p}${r.tipo==='caixa'?' sys':''}${r.ok?' okc':''}${r.inc&&isPend(r)?' incx':''}${r.tipo==='caixa'&&!OWN.includes(ME)&&!r.ok&&!r.inc&&isPend(r)?' kox':''}${isNew}${r.estado==='feito'?' fd':''}" data-id="${r.id}">${acts?`<button class="chk" data-a="ok" aria-label="Marcar como feito" title="Marcar como feito"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>`:`<span class="chk st" aria-hidden="true">${r.estado==='feito'?'<svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg>':''}</span>`}<div class="tx">
-${sys}${pontoBtn?`<a class="rhlink" href="${esc(r.link)}" target="_blank" rel="noopener"><p>${mark}${esc(r.t)}</p></a>`:`<p>${mark}${esc(r.tipo==='caixa'?cxTxt:r.t)}</p>`}${axHTML(r)}${sysBtn}${labBtn}${pontoBtn}
+${sys}${pontoBtn?`<a class="rhlink" href="${esc(r.link)}" target="_blank" rel="noopener"><p>${mark}${esc(r.t)}</p></a>`:`<p>${mark}${esc(r.tipo==='caixa'?cxTxt:r.t)}</p>`}${axHTML(r)}${sysBtn}${labBtn}${pontoBtn}${ddBtn}
   <div class="meta"><b>${esc(nomeDe(r))}</b> → <b>${esc(paraTxt(r))}</b> · ${fmtW(r.criadoEm)}${r.escalaEm&&r.estado!=='feito'?(r.p==='u'&&r.pOrig!=='u'?` · <span class="esc on">ficou urgente ${fmtAte(r.escalaEm).replace('às ','às ')}</span>`:r.pOrig!=='u'?` · <span class="esc">passa a urgente ${fmtAte(r.escalaEm)}</span>`:''):''}</div>
   ${(env||TAB==='fei'||r.estado!=='pend'||(r.tipo==='caixa'&&!OWN.includes(ME)))?pill(r):''}
   ${acts?`
@@ -1553,17 +1555,21 @@ const UNI=()=>{const A=(window.JMC_CONFIG||{}).apps||{};const im=k=>`<img src="$
   tal:im('talao'),
   gest:im('gestao')};
   const inChat=VIEW==='ph'?PHMODE==='chat':UNICTX==='chat';
-  return [inChat?{k:'chat',t:'Notificações',s:'Recados e avisos',cur:1,go:'rec'}:{k:'chat',t:'Chat',s:'Conversas da equipa',cur:1,go:'chat'},
-    {k:'lab',t:'Executive Lab',s:'Trabalhos do laboratório',u:A.lab||'https://goncalojpjesus.github.io/executive-lab/'},
-    {k:'cx',t:'Fecho de caixa',s:'Fechos e faturação',u:A.caixa||''},
-    {k:'ponto',t:'Área RH',s:'Recursos humanos · ponto, férias e recibos',u:A.ponto||''},
+  const DDSVG=`<svg viewBox="0 0 48 48" style="width:100%;height:100%"><rect x="6" y="12" width="36" height="25" rx="5" fill="#F3EAD2" stroke="#A88A3C" stroke-width="2"/><path d="M6 19h36" stroke="#A88A3C" stroke-width="3"/><path d="M12 29h10" stroke="#A88A3C" stroke-width="2" stroke-linecap="round"/><path d="M30 26l4 4 4-4" fill="none" stroke="#2E7D5B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;I.dd=DDSVG;
+  return [{h:'Comunicação'},inChat?{k:'chat',t:'Notificações',s:'Recados e avisos',cur:1,go:'rec'}:{k:'chat',t:'Chat',s:'Conversas da equipa',cur:1,go:'chat'},
+    {h:'Laboratório'},{k:'lab',t:'Executive Lab',s:'Trabalhos do laboratório',u:A.lab||'https://goncalojpjesus.github.io/executive-lab/'},
+    {h:'Finanças'},{k:'cx',t:'Fecho de caixa',s:'Fechos e faturação',u:A.caixa||''},
+    {k:'tal',t:'Digitalizar talões',s:'Talões do TPA para o fecho',u:A.taloes||(A.caixa?A.caixa+'?talao=1':'')},
+    {k:'dd',t:'Débitos diretos',s:'Banco · contabilidade · mapa',u:A.debitos||'https://goncalojpjesus.github.io/jmc-avisos/documentos/debitos/',ddv:1},
+    {h:'Equipa e documentos'},{k:'ponto',t:'Área RH',s:'Recursos humanos · ponto, férias e recibos',u:A.ponto||''},
     {k:'doc',t:'Documentos',s:'Consentimentos e documentos',u:A.documentos||''},
     {k:'doc1',t:'Documentos 1',s:'Novos documentos · em migração',u:A.documentos1||'https://goncalojpjesus.github.io/jmc-avisos/documentos/',only:'Dr. Gonçalo'},
-    {k:'tal',t:'Digitalizar talões',s:'Talões do TPA para o fecho',u:A.taloes||(A.caixa?A.caixa+'?talao=1':'')},
-    {k:'gest',t:'Gestão de topo',s:'Objetivos e faturação',u:A.gestao||(A.caixa?A.caixa+'?gestao=1':''),own:1}]
-   .filter(x=>!x.only||x.only===ME)
-   .filter(x=>PERFIL[ME]?PERFIL[ME].apps.includes(x.k):OWN.includes(ME)||(!x.own&&(x.k!=='ponto'||uniPonto())))
-   .map(x=>x.k==='tal'&&x.u?(()=>{const c=talCfg()||{clinica:talFix()},n=talCount();const sub=!c.clinica?'Escolha primeiro este aparelho nas Definições':n?n+(n===1?' talão':' talões')+' hoje · ver ou digitalizar outro':'Abre a câmara · '+esc(c.clinica==='Ambas'?'Aveiro ou Faíscas':c.clinica);
+    {h:'Gestão'},{k:'gest',t:'Gestão de topo',s:'Objetivos, faturação e débitos',u:A.gestao||(A.caixa?A.caixa+'?gestao=1':''),own:1}]
+   .filter(x=>x.h||!x.ddv||OWN.includes(ME)||ME==='Faíscas')
+   .filter(x=>x.h||!x.only||x.only===ME)
+   .filter(x=>x.h||(PERFIL[ME]?PERFIL[ME].apps.includes(x.k):OWN.includes(ME)||(!x.own&&(x.k!=='ponto'||uniPonto()))))
+   .filter((x,i,arr)=>!x.h||(arr[i+1]&&!arr[i+1].h))
+   .map(x=>x.h?`<div class="ul ug">${x.h}</div>`:x.k==='tal'&&x.u?(()=>{const c=talCfg()||{clinica:talFix()},n=talCount();const sub=!c.clinica?'Escolha primeiro este aparelho nas Definições':n?n+(n===1?' talão':' talões')+' hoje · ver ou digitalizar outro':'Abre a câmara · '+esc(c.clinica==='Ambas'?'Aveiro ou Faíscas':c.clinica);
      return n?`<button class="ua tal" data-tallist><span class="ui bare">${I[x.k]}</span><span class="ut">${x.t}<small>${sub}</small></span></button>`:`<label class="ua tal">${c.clinica?'<input type="file" accept="image/*" capture="environment" hidden data-talin>':''}<span class="ui bare">${I[x.k]}</span><span class="ut">${x.t}<small>${sub}</small></span></label>`;})():x.cur?`<button class="ua cur" data-ux data-uchat="${x.go}"><span class="ui">${im('jmc')}</span><span class="ut">${x.t}<small>${x.s}</small></span>${(()=>{const n=x.go==='rec'?pend().length:unreadAll();return n?`<span class="uc">${n}</span>`:'';})()}</button>`
      :`<a ${x.u?`href="${esc(x.u)}" target="_blank" rel="noopener"`:'href="#" data-soon'}><span class="ui bare">${I[x.k]}</span><span class="ut">${x.t}<small>${x.u?x.s:'Em breve'}</small></span></a>`).join('');};
 /* ---- Digitalizar talões: câmara → recorte automático → envio para o fecho de caixa do dia ---- */

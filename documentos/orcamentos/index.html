@@ -457,7 +457,21 @@ function dentes(){ return $('dentes').value.split(/[^0-9]+/).filter(x=>x.length>
 $('dentes').oninput=()=>{$('nd').textContent=dentes().length+' posições'};
 const ARC=t=>/^[1256]/.test(t)?'S':'I';
 const AN={S:'Maxilar superior',I:'Maxilar inferior',SI:'Maxilar superior e inferior',G:''};
-const FN={0:'Tratamentos',1:'Planeamento e avaliação pré-cirúrgica',2:'Fase cirúrgica',3:'Impressão',4:'Reabilitação definitiva'};
+const FN={0:'Outros tratamentos',1:'Consulta e planeamento',2:'Cirurgia',3:'Impressão / scanner intraoral',4:'Prostodontia · reabilitação final',5:'Periodontologia e profilaxia dentária',6:'Dentisteria',7:'Endodontia'};
+const ORD={1:0,5:1,6:2,7:3,2:4,3:5,4:6,0:7}, ORDL=[1,5,6,7,2,3,4,0];
+// nome da fase cirúrgica conforme o que tem: extrações/quistos (cirurgia oral), implantes (implantologia) ou os dois
+function fNome(f){ if(f!==2) return FN[f]; const L=LS.filter(l=>l.f===2), imp=L.some(l=>/implant|zigom|all.?on|seio|enxert|regenera|osso/i.test(l.d)), cir=L.some(l=>!/implant|zigom|all.?on|seio|enxert|regenera|osso/i.test(l.d));
+ return imp&&cir?'Cirurgia oral e implantologia':imp?'Implantologia':'Cirurgia oral'; }
+// área clínica de um artigo pelo código do iMED (01 consulta, 03 dentisteria, 04 endodontia, 05 cirurgia, 06 periodontologia, 07 implantes, 08 prótese) ou pelo nome
+function faseDe(nome,cod){ const t=String(nome||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(), c=String(cod||'');
+ if(/impress|scanner/.test(t)&&!/protese remov/.test(t)) return 3;
+ if(/^06\./.test(c)||/destartar|raspagem|profilax|periodont|gengiv|alisamento radicular|higiene/.test(t)) return 5;
+ if(/^04\./.test(c)||/endodon|canal|pulp|apexi/.test(t)) return 7;
+ if(/^0[57]\./.test(c)||/exodont|extrac|cirurg|implant|enxert|regenera|seio|quist|biops|frenect|siso|zigom/.test(t)) return 2;
+ if(/^08\./.test(c)||/coroa|protese|faceta|ponte|overlay|onlay|inlay|espigao|nucleo/.test(t)) return 4;
+ if(/^03\./.test(c)||/restaura|branquea|selante|colagem|reconstru/.test(t)) return 6;
+ if(/^01\./.test(c)||/consulta|avalia|estudo|planea/.test(t)) return 1;
+ return 0; }
 let LS=[], uid=0;
 function line(code,q,pos,a){ const p=P[code]; return {id:++uid,code,d:p.d,q,u:p[U],disc:0,pos:pos||'',f:FASE[code]!=null?FASE[code]:2,a:a||'G'}; }
 const AO={G:0,S:1,I:2,SI:3};
@@ -469,7 +483,7 @@ function arcDe(pos,txt){ const ds=dentesDe(pos); const s=ds.some(t=>ARC(t)=='S')
  if(/bimaxilar|superior e inferior|sup\.? e inf/.test(t)||(ws&&wi)) return 'SI'; if(ws) return 'S'; if(wi) return 'I'; return ''; }
 function setPos(i,v){ const l=LS[i]; const ds=dentesDe(v); l.pos=ds.length?ds.join(', '):String(v).trim(); const a=arcDe(l.pos); if(a) l.a=a; sortLS(); render(); }
 function setArc(i,v){ LS[i].a=v; sortLS(); render(); }
-function sortLS(){ LS=LS.map((l,i)=>[l,i]).sort((x,y)=>(x[0].f-y[0].f)||(AO[x[0].a]-AO[y[0].a])||(x[1]-y[1])).map(x=>x[0]); }
+function sortLS(){ LS=LS.map((l,i)=>[l,i]).sort((x,y)=>((ORD[x[0].f]??9)-(ORD[y[0].f]??9))||(AO[x[0].a]-AO[y[0].a])||(x[1]-y[1])).map(x=>x[0]); }
 function addB(k){ const b=B[k]; const ds=dentes(); const by={S:ds.filter(t=>ARC(t)=='S'),I:ds.filter(t=>ARC(t)=='I')};
  const arcs=ds.length?['S','I'].filter(a=>by[a].length):['G'];
  if(b.per) arcs.forEach(a=>b.per.forEach(c=>LS.push(line(c,Math.max((by[a]||[]).length,1),(by[a]||[]).join(', '),a))));
@@ -489,12 +503,12 @@ function render(){
  if(!LS.length){ $('linesWrap').innerHTML='<div class="empty">Ainda sem linhas — escolha um código rápido acima.</div>'; $('optWrap').innerHTML=''; calc(); return; }
  let h='<table class="lines"><thead><tr><th></th><th>Descrição</th><th>Dentes</th><th class="num">Qt.</th><th class="num">Preço</th><th class="num">Desc. %</th><th class="num">Total</th><th></th></tr></thead><tbody>';
  let lf=null, la=null;
- LS.forEach((l,i)=>{ if(l.f!==lf){ lf=l.f; la=null; h+=`<tr class="grp"><td colspan="8">${FN[l.f]}</td></tr>`; }
-  if(l.a!==la){ la=l.a; if(l.a!=='G') h+=`<tr class="arc"><td></td><td colspan="7">${AN[l.a]}</td></tr>`; }
+ LS.forEach((l,i)=>{ if(l.f!==lf){ lf=l.f; la=null; h+=`<tr class="grp"><td colspan="8">${fNome(l.f)}</td></tr>`; }
+  if(l.a!==la){ la=l.a; if(l.a!=='G'&&[2,3,4].includes(l.f)) h+=`<tr class="arc"><td></td><td colspan="7">${AN[l.a]}</td></tr>`; }
   const fl=(P[l.code].c||P[l.code]['c'+U])?'<span class="flag" title="por confirmar"></span>':'';
   const pj=par(i)>=0?`<button class="ib j" title="Juntar com a linha igual (soma quantidades)" onclick="juntar(${i})">⊕</button>`:'';
   h+=`<tr><td class="mvs"><button class="ib" onclick="mv(${i},-1)" title="Subir">▲</button><button class="ib" onclick="mv(${i},1)" title="Descer">▼</button></td>
-   <td>${l.d}${fl}${P[l.code].i!=='—'?'<div class="cod">'+P[l.code].i+'</div>':''}<input class="nota" placeholder="+ escrever à frente (aparece no orçamento)" value="${(l.nota||'').replace(/"/g,'&quot;')}" oninput="LS[${i}].nota=this.value"></td><td class="mini"><input class="pos" value="${String(l.pos||'').replace(/"/g,'&quot;')}" placeholder="ex.: 36" onchange="setPos(${i},this.value)" style="width:74px;padding:5px 7px;border:1px solid #e6e1d6;border-radius:8px;font:11px Montserrat;background:#fff"><select onchange="setArc(${i},this.value)" title="Maxilar" style="display:block;margin-top:4px;width:74px;padding:3px 4px;border:1px solid #e6e1d6;border-radius:8px;font:10.5px Montserrat;background:${l.a=='G'?'#fff6e0':'#fff'}">${[['G','Maxilar?'],['S','Superior'],['I','Inferior'],['SI','Sup.+Inf.']].map(([k,t])=>`<option value="${k}"${l.a==k?' selected':''}>${t}</option>`).join('')}</select></td>
+   <td>${l.d}${fl}<input class="nota" placeholder="+ escrever à frente (aparece no orçamento)" value="${(l.nota||'').replace(/"/g,'&quot;')}" oninput="LS[${i}].nota=this.value"></td><td class="mini"><input class="pos" value="${String(l.pos||'').replace(/"/g,'&quot;')}" placeholder="ex.: 36" onchange="setPos(${i},this.value)" style="width:74px;padding:5px 7px;border:1px solid #e6e1d6;border-radius:8px;font:11px Montserrat;background:#fff"><select onchange="setArc(${i},this.value)" title="Maxilar" style="display:block;margin-top:4px;width:74px;padding:3px 4px;border:1px solid #e6e1d6;border-radius:8px;font:10.5px Montserrat;background:${l.a=='G'?'#fff6e0':'#fff'}">${[['G','Maxilar?'],['S','Superior'],['I','Inferior'],['SI','Sup.+Inf.']].map(([k,t])=>`<option value="${k}"${l.a==k?' selected':''}>${t}</option>`).join('')}</select></td>
    <td class="num"><input class="q" type="number" value="${l.q}" oninput="upd(${i},'q',this.value)"></td>
    <td class="num"><input type="number" value="${l.u}" oninput="upd(${i},'u',this.value)"></td>
    <td class="num"><input class="d" type="number" value="${l.disc}" oninput="upd(${i},'disc',this.value)"></td>
@@ -529,10 +543,10 @@ function calc(){
  risco(tot,ep,fin,men);
 }
 function planoFa(){ const sub=subtotal(), tot=totalCom(sub), k=sub?tot/sub:1; const fl=x=>LS.filter(l=>l.f==x&&!(show3&&l.pf));
- const c={0:0,1:0,2:0,3:0,4:0}; LS.forEach(l=>{ if(!(show3&&l.pf)) c[l.f]+=lt(l)*k; });
+ const c={0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:0}; LS.forEach(l=>{ if(!(show3&&l.pf)) c[l.f]+=lt(l)*k; });
  const P=[]; const s=FA.s&&c[2]>0?Math.min(+FA.v||0,c[2]):0;
  if(s) P.push({q:'Na adjudicação do orçamento',d:'Sinal para reservar a data da cirurgia — é descontado no valor da fase cirúrgica',v:s,k:'sinal'});
- fl(0).forEach(l=>P.push({q:'Na consulta respetiva',d:l.d,v:lt(l)*k}));
+ [5,6,7,0].forEach(x=>fl(x).forEach(l=>P.push({q:'Na consulta respetiva',d:l.d,v:lt(l)*k})));
  fl(1).forEach(l=>P.push({q:/avalia|medica/i.test(l.d)?'Na consulta de avaliação pré-cirúrgica':/profilax|planea/i.test(l.d)?'Na consulta de profilaxia e planeamento':'Na consulta respetiva',d:l.d,v:lt(l)*k}));
  if(c[2]>0) P.push({q:'No dia da cirurgia',d:'Fase cirúrgica'+(s?' (valor de '+eur(c[2])+', descontado o sinal de '+eur(s)+')':''),v:c[2]-s});
  if(c[3]>0) P.push({q:'Na impressão, após boa cicatrização',d:'Impressão para a reabilitação definitiva',v:c[3]});
@@ -621,11 +635,11 @@ async function lerPdf(f){ $('pdfRes').textContent='A ler o PDF…';
   const L=linhas.map(l=>l.t.replace(/\t+/g,' ').trim());
   const ex=L.findIndex(x=>/^Exmo/i.test(x));
   let cli=(tudo.match(/(?:Cliente|Utente|Paciente|Nome)\s*:?\s*\t?\s*([^\n\t]+)/i)||[])[1]; let mor=(tudo.match(/Morada\s*:?\s*\t?\s*([^\n\t]+)/i)||[])[1];
-  if(ex>=0){ cli=L[ex+1]; const mm=[]; for(let k=ex+2;k<Math.min(ex+5,L.length);k++){ if(/^(dados|outras|or[çc]amento|endere|artigo)/i.test(L[k])||/@/.test(L[k])) break; mm.push(L[k]); } if(mm.length) mor=mm.join(', ').replace(/\s+,/g,','); }
+  const CB=imedCab(PGS[0]||[]); if(CB.nome){ cli=CB.nome; if(CB.morada) mor=CB.morada; } else if(ex>=0){ cli=L[ex+1]; const mm=[]; for(let k=ex+2;k<Math.min(ex+5,L.length);k++){ if(/^(dados|outras|or[çc]amento|endere|artigo)/i.test(L[k])||/@/.test(L[k])) break; mm.push(L[k]); } if(mm.length) mor=mm.join(', ').replace(/\s+,/g,','); }
   if(cli) cli=cli.toLowerCase().replace(/(^|[\s'’-])(\S)/g,(m,a,b)=>a+b.toUpperCase()).replace(/ (De|Da|Do|Das|Dos|E)(?= )/g,w=>w.toLowerCase());
-  const ci=L.findIndex(x=>/Contrib/i.test(x)); const nifs=[...(ci>=0?L.slice(ci,ci+3).join(' '):tudo).matchAll(/\b(\d{9})\b/g)].map(m=>m[1]).filter(n=>n!=='514531592');
-  const emP=(tudo.match(/[^\s@:;,<>]+@[^\s@;,<>]+\.[a-z]{2,}/i)||[])[0]; if(emP&&!$('pEmail').value) $('pEmail').value=emP;
-  const obs=(tudo.match(/OUTRAS INFORMA[ÇC][ÕO]ES\s*:?\s*([^\n]+(?:\n(?!Or[çc]amento)[^\n\t]{0,80})?)/i)||[])[1];
+  const ci=L.findIndex(x=>/Contrib/i.test(x)); const nifs=[...(CB.nif?[CB.nif]:[]),...[...(ci>=0?L.slice(ci,ci+3).join(' '):tudo).matchAll(/\b(\d{9})\b/g)].map(m=>m[1]).filter(n=>n!=='514531592')];
+  const emP=CB.email||(tudo.match(/[^\s@:;,<>]+@[^\s@;,<>]+\.[a-z]{2,}/i)||[])[0]; if(emP&&!$('pEmail').value) $('pEmail').value=emP;
+  const obs=CB.obs||(tudo.match(/OUTRAS INFORMA[ÇC][ÕO]ES\s*:?\s*([^\n]+(?:\n(?!Or[çc]amento)[^\n\t]{0,80})?)/i)||[])[1];
 
   if(cli&&!$('pNome').value) $('pNome').value=cli.trim(); if(nifs[0]&&!$('pNif').value) $('pNif').value=nifs[0].replace(/(\d{3})(\d{3})(\d{3})/,'$1 $2 $3'); if(mor&&!$('pMor').value) $('pMor').value=mor.trim();
   // linhas da tabela: x da coluna de descrição = x das linhas com €
@@ -672,11 +686,11 @@ function abrirDoc(){
  const f=d=>d.toLocaleDateString('pt-PT',{day:'numeric',month:'long',year:'numeric'});
  const nome=($('pNome').value||'Nome do paciente').trim().split(/\s+/); const nm=nome.length>1?nome[0]+' <i>'+nome[nome.length-1]+'</i>':'<i>'+nome[0]+'</i>';
  const a4=hasA4(), cb=$('cbct').checked, cbd=$('cbctD').value?new Date($('cbctD').value).toLocaleDateString('pt-PT',{day:'numeric',month:'long'}):'';
- const T={0:['Tratamentos',''],1:['Planeamento e avaliação pré-cirúrgica',''],
-  2:['Fase cirúrgica',''],
-  3:['Impressão',''],
-  4:['Reabilitação definitiva','']};
- const ph={0:[],1:[],2:[],3:[],4:[]};
+ const T={0:[fNome(0),''],5:[fNome(5),''],6:[fNome(6),''],7:[fNome(7),''],1:[LS.some(l=>l.f===2)?'Planeamento e avaliação pré-cirúrgica':fNome(1),''],
+  2:[fNome(2),''],
+  3:[fNome(3),''],
+  4:[fNome(4),'']};
+ const ph={0:[],1:[],2:[],3:[],4:[],5:[],6:[],7:[]};
  LS.forEach(l=>{ if(show3&&l.pf) return; ph[l.f].push(l); });
  let n=0;
  const pfl=LS.filter(l=>l.pf);
@@ -684,9 +698,9 @@ function abrirDoc(){
  const dn=p=>p?` <span class="dn">· ${/[a-z]/.test(p)?p:(p.includes(',')?'dentes ':'dente ')+p}</span>`:'';
  const row=l=>`<tr><td>${l.d}${l.nota?' <span class="nt">— '+l.nota.replace(/</g,'&lt;')+'</span>':''}${dn(l.pos)}</td><td class="c">${l.q}</td><td class="r">${eu(l.u)}</td>${temD?`<td class="r dsc">${l.disc?'−'+String(l.disc).replace('.',',')+'%':''}</td>`:''}<td class="r b">${eu(lt(l))}</td></tr>`;
  const fh=x=>{ n++; return `<tr class="fh"><td colspan="${nc+1}"><span class="no">0${n}</span>${T[x][0]}${T[x][1]?'<em>'+T[x][1]+'</em>':''}</td></tr>`; };
- let body=''; [0,1,2,3,4].filter(x=>ph[x].length).forEach(x=>{
+ let body=''; ORDL.filter(x=>ph[x].length).forEach(x=>{
   let la=null; const secs=new Set(ph[x].map(l=>l.a)); const multi=[...secs].some(a=>a!=='G');
-  body+=fh(x)+ph[x].map(l=>{ let r=''; if(l.a!==la){ la=l.a; if(l.a!=='G'&&multi) r=`<tr class="ah"><td colspan="${nc+1}">${AN[l.a]}</td></tr>`; } return r+row(l); }).join(''); });
+  body+=fh(x)+ph[x].map(l=>{ let r=''; if(l.a!==la){ la=l.a; if(l.a!=='G'&&multi&&[2,3,4].includes(x)) r=`<tr class="ah"><td colspan="${nc+1}">${AN[l.a]}</td></tr>`; } return r+row(l); }).join(''); });
  if(show3&&a4){ body+=fh(4).replace('</td></tr>','<em>Escolha uma das três opções.</em></td></tr>')+Object.entries(OPT).map(([c,o])=>{ const q=pfl.reduce((a,l)=>a+l.q,0)||1, d=(pfl[0]||{}).disc||0; return row({d:o.n+' · Prótese fixa '+o.t.toLowerCase(),pos:'',q,u:P[c][U],disc:d}); }).join(''); }
  const fases=body?`<table class="dtab"><thead><tr><th>Tratamento</th><th class="c">Qt.</th><th class="r">Valor</th>${temD?'<th class="r">Desc.</th>':''}<th class="r">Total</th></tr></thead><tbody>${body}</tbody></table>`:'';
  let fim='';
@@ -902,6 +916,17 @@ function imedLinhasPdf(paginas){ // paginas: [[{s,x,y,w}]] (itens de texto de ca
    else mais.push(t); });
   return {codigo:l.codigo,cmc:l.cmc,desc:[l.desc,...mais].join(' ').replace(/\s+/g,' ').replace(/-\s+(?=[a-zà-ú])/g,'-').replace(/\s*-\s*Pr[óo]tese Fixa( implanto suportada)?$/i,'').trim(),mais,nota:nota.join(' · '),pos:pos.join(', '),q:l.q,u:l.u,disc:l.disc,tot:l.tot}; });
 }
+/* ---- cabeçalho do orçamento do iMED: nome (a negrito, pode ocupar 2 linhas), morada, email e NIF ---- */
+function imedCab(its){ const rows=[]; its.slice().sort((a,b)=>b.y-a.y||a.x-b.x).forEach(i=>{ let r=rows.find(r=>Math.abs(r.y-i.y)<3); if(!r){ r={y:i.y,it:[]}; rows.push(r); } r.it.push(i); });
+ const ex=its.find(i=>/^Exmo/i.test(i.s.trim())); const out={};
+ if(ex){ const xs=ex.x-6, L=[]; for(const r of rows){ if(r.y>=ex.y-1) continue; if(r.y<ex.y-110) break; const t=r.it.filter(i=>i.x>=xs).map(i=>i.s).join(' ').replace(/\s+/g,' ').trim(); if(!t) continue; if(/Or[çc]amento N|Endere[çc]o/i.test(t)) break; L.push(t); }
+  const nome=[]; let k=0; while(k<L.length&&!/\d|,/.test(L[k])){ nome.push(L[k]); k++; }
+  const mor=[]; for(;k<L.length;k++){ mor.push(L[k]); if(/\d{4}-\d{3}/.test(L[k])) break; }
+  out.nome=nome.join(' ').replace(/\s+/g,' ').trim(); out.morada=mor.join(', ').replace(/\s+,/g,',').replace(/,\s*,/g,',').trim(); }
+ const ee=rows.findIndex(r=>r.it.some(i=>/Endere[çc]o Fatura/i.test(i.s))); if(ee>=0&&rows[ee+1]){ const e=rows[ee+1].it.find(i=>/@/.test(i.s)); if(e) out.email=e.s.trim(); }
+ const ci=rows.findIndex(r=>r.it.some(i=>/Contrib/i.test(i.s))); if(ci>=0&&rows[ci+1]){ const n=rows[ci+1].it.map(i=>i.s).join(' ').match(/\b\d{9}\b/); if(n&&n[0]!=='514531592') out.nif=n[0]; }
+ const oi=its.find(i=>/OUTRAS INFORMA/i.test(i.s)); if(oi){ const t=[]; rows.forEach(r=>{ if(r.y<=oi.y+1&&r.y>oi.y-40){ const s=r.it.filter(i=>i.x<300&&!/OUTRAS INFORMA|Dados adicionais/i.test(i.s)).map(i=>i.s).join(' ').trim(); if(s&&!/Or[çc]amento N/i.test(s)) t.push(s); } }); out.obs=t.join(' ').replace(/\s+/g,' ').trim(); }
+ return out; }
 
 // ================== ARTIGOS DO iMED (13/10/2026) ==================
 // Tabela de referência exportada do iMED (Faturação › Artigos › Exportar Excel): Faíscas = tabela JESUS CLINIC, Aveiro = tabela CMC,
@@ -918,7 +943,7 @@ function artPorNome(n){ const k=artNorm(n); if(k.length<4) return null; return A
 function artFase(nome){ const t=artNorm(nome); if(/implant|enxert|regenera|seio|sinus|osso|zigom|all.?on/.test(t)) return 2; if(/cirurg/.test(t)&&!/consulta/.test(t)) return 2; return 0; }
 let xseq=0; const xcode=()=>'X'+Date.now().toString(36)+(++xseq);
 // acrescenta uma linha a partir de um artigo da tabela (preço da unidade do orçamento; editável)
-function artAcrescentar(a){ const code=xcode(); const pr=artPreco(a); P[code]={d:a[1],i:a[0]||'—',F:artPreco(a,'F'),A:artPreco(a,'A')}; FASE[code]=artFase(a[1]);
+function artAcrescentar(a){ const code=xcode(); const pr=artPreco(a); P[code]={d:a[1],i:a[0]||'—',F:artPreco(a,'F'),A:artPreco(a,'A')}; FASE[code]=faseDe(a[1],a[0]);
  const l=line(code,1,'','G'); l.u=pr; l.art=1; LS.push(l); sortLS(); render(); toast('Acrescentado: '+a[1]+' · '+eur(pr)); }
 function artBusca(){ const q=artNorm($('artQ').value); const box=$('artRes'); if(q.length<2){ box.innerHTML=''; box.style.display='none'; return; }
  const ws=q.split(' '); const L=ART.filter(a=>{ const t=artNorm(a[1]+' '+a[0]); return ws.every(w=>t.includes(w)); }).slice(0,8);
@@ -973,14 +998,18 @@ async function artImportar(f){ $('artImpRes').textContent='A ler '+f.name+'…';
 function importarPdfImed(L,tudo){ const add=[], fora=[]; const temImp=L.some(x=>/implant|all.?on|h[ií]brid|zigom/i.test(x.desc));
  L.forEach(x=>{ const a=artPorCodigo(x.codigo)||artPorNome(x.desc); let nome=x.desc;
   if(a&&x.codigo&&artNorm(a[1]).startsWith(artNorm(x.desc).slice(0,20))) nome=a[1].replace(/\s*-\s*Pr[óo]tese Fixa( implanto suportada)?$/i,'');
+  nome=nome.replace(/\s*-\s*Pr[óo]tese (Fixa|Removível)( implanto suportada)?$/i,'').trim(); if(/^impress[ãa]o$/i.test(nome)) nome='Impressão / scanner intraoral';
   let code=temImp?(MAP.find(m=>m[0].test(nome))||[])[1]:null;
-  if(!code){ code=xcode(); P[code]={d:nome,i:x.codigo&&/^\d/.test(x.codigo)?x.codigo:'—',F:x.u,A:x.u}; FASE[code]=temImp&&/consulta|estudo|avalia/i.test(nome)?1:artFase(nome); }
-  const l=line(code,x.q,x.pos||'',arcDe(x.pos,nome+' '+(x.nota||''))||'G'); l.u=x.u; l.disc=x.disc; l.tot=x.tot; l.imp=[x.q,x.u,x.disc]; if(x.codigo) l.ic=x.codigo; if(x.nota) l.nota=x.nota;
-  if(['PFH','PFP','PFC'].includes(code)) l.pf=1; LS.push(l); add.push(l); if(!a) fora.push({d:nome,u:x.u}); });
- const ars=[...new Set(add.map(l=>l.a).filter(a=>a!=='G'))]; if(ars.length==1) add.forEach(l=>{ if(l.a==='G'&&l.f>1){ l.a=ars[0]; l.auto=1; } });
+  if(!code){ code=xcode(); P[code]={d:nome,i:x.codigo&&/^\d/.test(x.codigo)?x.codigo:'—',F:x.u,A:x.u}; FASE[code]=faseDe(nome,x.codigo); }
+  const l=line(code,x.q,x.pos||'',arcDe(x.pos,nome+' '+(x.nota||''))||'G'); l.d=nome; l.u=x.u; l.disc=x.disc; l.tot=x.tot; l.imp=[x.q,x.u,x.disc]; if(x.codigo) l.ic=x.codigo; if(x.nota) l.nota=x.nota;
+  const ig=add.find(o=>o.d===l.d&&o.u===l.u&&o.disc===l.disc&&o.f===l.f&&!o.pf&&!l.pf);   // a mesma linha repetida (ex.: duas exodontias): uma linha com as quantidades somadas
+  if(ig){ ig.q+=l.q; ig.tot=Math.round((ig.tot+l.tot)*100)/100; ig.imp=[ig.q,ig.u,ig.disc]; ig.pos=[...new Set([...(ig.pos?ig.pos.split(', '):[]),...(l.pos?l.pos.split(', '):[])])].join(', '); const na=arcDe(ig.pos,ig.d); if(na) ig.a=na; if(l.nota&&ig.nota!==l.nota) ig.nota=[ig.nota,l.nota].filter(Boolean).join(' · '); if(!a&&!fora.some(f=>f.d===nome)) fora.push({d:nome,u:x.u}); return; }
+  if(['PFH','PFP','PFC'].includes(code)) l.pf=1; LS.push(l); add.push(l); if(!a&&!fora.some(f=>f.d===nome)) fora.push({d:nome,u:x.u}); });
+ const ars=[...new Set(add.map(l=>l.a).filter(a=>a!=='G'))]; if(ars.length==1) add.forEach(l=>{ if(l.a==='G'&&[2,3,4].includes(l.f)){ l.a=ars[0]; l.auto=1; } });
  const tm=(tudo||'').match(/Total\s*\(\s*EUR\s*\)\s*([\d.\s]+,\d{2})/i); const tot=tm?parseFloat(tm[1].replace(/[.\s]/g,'').replace(',','.')):null;
  const soma=Math.round(add.reduce((s,l)=>s+lt(l),0)*100)/100; const df=(tudo||'').match(/Desconto Financeiro\s*([\d.\s]+,\d{2})/i); const dfv=df?parseFloat(df[1].replace(/[.\s]/g,'').replace(',','.')):0;
  if(dfv>0&&tot!=null&&Math.abs(soma-dfv-tot)<0.02){ $('dgTipo').value='e'; $('dgVal').value=dfv; $('dgMot').value='Desconto financeiro do orçamento do iMED'; }
+ if(!temImp&&$('cbct')) $('cbct').checked=false;
  sortLS(); render(); return {ok:add.length,fora,sem:0,tot,totOk:tot!=null&&(Math.abs(soma-tot)<0.02||Math.abs(soma-dfv-tot)<0.02)}; }
 async function artForaTabela(){ const F=window.__fora||[]; if(!F.length) return; let n=0;
  for(const x of F){ try{ const r=await run('addOrcArtigo',{nome:x.d,preco:x.u}); artDe({artigos:r}); n++; }catch(e){ toast('Erro: '+e.message); break; } }

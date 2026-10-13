@@ -36,6 +36,18 @@ label.f input:focus,label.f select:focus,label.f textarea:focus{border-color:var
 .btn.p{background:#1f201d;color:#f6efdc}.btn.g{background:var(--g);color:#fff}.btn.gr{background:#0e6b5e;color:#fff}.btn.sm{padding:7px 11px;font-size:12px;border-radius:9px}
 .btn.ghost{background:transparent;border:1px solid #ddd8cc}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
+.artAdd{position:relative;margin:2px 0 12px}
+.artAdd input{width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #e1ded6;border-radius:12px;background:#fbfaf8;font:13px Montserrat;outline:none}
+.artAdd input:focus{border-color:var(--g);background:#fff}
+.artRes{display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:#fff;border:1px solid #e6e1d6;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.12);overflow:hidden;max-height:360px;overflow-y:auto}
+.artRes .ar{display:flex;justify-content:space-between;gap:12px;padding:9px 13px;border-bottom:1px solid #f0ece3;cursor:pointer;font-size:12.5px}
+.artRes .ar:last-child{border-bottom:0}.artRes .ar:hover{background:#fbf7ee}
+.artRes .ar b{font-weight:500}.artRes .ar small{display:block;color:var(--mut);font-size:10.5px;margin-top:1px}.artRes .ap{white-space:nowrap;font-weight:600;font-variant-numeric:tabular-nums}
+.artRes .ar.novo b{font-weight:600;color:var(--gd)}
+.novoArt{border:1px solid #efe6cf;background:#fbf7ee;border-radius:12px;padding:12px 14px;margin:0 0 12px}
+.novoArt .rw{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.novoArt input{padding:8px 10px;border:1px solid #e1ded6;border-radius:9px;font:13px Montserrat;background:#fff}
+.flag2{display:inline-block;font-size:10px;padding:1px 7px;border-radius:999px;background:#fbf1dc;color:#8a6d1f;margin-left:4px}
 .chip{border:1px solid #e1ded6;background:#fbfaf8;border-radius:12px;padding:9px 12px;cursor:pointer;text-align:left;min-width:132px;transition:.15s}
 .chip:hover{border-color:var(--g);background:#fff;transform:translateY(-1px)}
 .chip b{display:block;font:700 11px Montserrat;letter-spacing:.08em;color:var(--gd)}
@@ -239,7 +251,7 @@ function jmcWho(){let n='';try{n=localStorage.getItem('jmc_docs_nome')||'';}catc
 <div id="jmcWho" style="position:fixed;right:10px;bottom:8px;font-size:11px;color:#9ca3af;z-index:4;pointer-events:none"></div>
 
 <div class="top"><div class="in">
- <div style="display:flex;align-items:center;gap:14px"><div class="logo"><img id="logoTop" alt="Jesus Mar Couto" style="width:100%;display:block"></div><h1>Orçamentos<small>Implantologia · Documentos JMC</small></h1></div>
+ <div style="display:flex;align-items:center;gap:14px"><div class="logo"><img id="logoTop" alt="Jesus Mar Couto" style="width:100%;display:block"></div><h1>Orçamentos<small>Documentos JMC</small></h1></div>
  <div class="seg" id="tabs"><button class="on" data-v="novo">Novo orçamento</button><button data-v="pasta">Pasta de orçamentos</button><button data-v="precos">Tabela de preços</button></div>
  <div class="sp"></div>
  <div class="unit">Unidade <div class="seg" id="unSeg"><button class="on" data-u="F">Faíscas</button><button data-u="A">Aveiro</button></div></div>
@@ -276,6 +288,9 @@ function jmcWho(){let n='';try{n=localStorage.getItem('jmc_docs_nome')||'';}catc
 
 <div class="card">
  <h2><span class="n">3</span>Linhas do orçamento <button class="btn sm ghost" style="margin-left:auto" onclick="abrirImp()">⤓ Importar orçamento</button></h2>
+ <div class="artAdd"><input id="artQ" placeholder="+ Acrescentar artigo — procurar pelo nome ou código (ex.: destartarização, restauração, 06.01)" autocomplete="off" aria-label="Acrescentar artigo"><div id="artRes" class="artRes"></div></div>
+ <div id="novoArt" class="novoArt" style="display:none"><div class="rw"><input id="naNome" placeholder="Descrição do artigo" style="flex:1;min-width:220px"><input id="naVal" placeholder="valor €" inputmode="decimal" style="width:100px;text-align:right"><button class="btn sm p" type="button" onclick="artNovoOk()">Acrescentar ao orçamento</button><button class="btn sm ghost" type="button" onclick="$('novoArt').style.display='none'">Cancelar</button></div>
+  <div id="naPerg" class="rw" style="display:none;margin-top:10px"><span id="naPergT" style="flex:1;min-width:200px;font-size:12.5px"></span><button class="btn sm g" type="button" onclick="artNovoTabela(true)">Sim, acrescentar à tabela</button><button class="btn sm ghost" type="button" onclick="artNovoTabela(false)">Não, só neste orçamento</button></div></div>
  <div id="linesWrap"></div>
  <div id="optWrap"></div>
  <div class="row r3" style="margin-top:14px">
@@ -351,7 +366,15 @@ function jmcWho(){let n='';try{n=localStorage.getItem('jmc_docs_nome')||'';}catc
 <!-- ============ PREÇOS ============ -->
 <section class="view" id="v-precos">
  <div class="card">
-  <h2>Tabela de preços por unidade <button class="btn sm p" style="margin-left:auto" onclick="gravarPrecos()">Gravar (supervisão)</button></h2>
+  <h2>Artigos do iMED <label class="btn sm p" style="margin-left:auto;cursor:pointer">Atualizar com nova exportação<input type="file" id="artFile" accept=".xlsx,.xls" hidden></label></h2>
+  <p class="hint" id="artInfo"></p>
+  <p class="hint">No iMED: Faturação › Artigos › Pesquisar › Exportar Excel. Faíscas usa a tabela JESUS CLINIC e Aveiro a tabela CMC; os artigos sem código valem para as duas. Nos orçamentos importados vale sempre o valor do documento do iMED.</p>
+  <div id="artImpRes" class="mini" style="margin-bottom:8px"></div>
+  <div class="rw" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><input id="artTQ" placeholder="Procurar artigo" style="flex:1;min-width:200px;padding:9px 12px;border:1px solid #e1ded6;border-radius:11px;background:#fbfaf8;font:13px Montserrat"><label class="mini" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="artTN"> só os criados na app</label><span class="mini" id="artTN2"></span></div>
+  <div style="overflow-x:auto"><table class="prices"><thead><tr><th>Artigo</th><th>Código</th><th>Área</th><th style="text-align:right">Faíscas</th><th style="text-align:right">Aveiro</th></tr></thead><tbody id="artTB"></tbody></table></div>
+ </div>
+ <div class="card">
+  <h2>Códigos rápidos de implantologia · preços <button class="btn sm p" style="margin-left:auto" onclick="gravarPrecos()">Gravar (supervisão)</button></h2>
   <p class="hint">Valores por defeito retirados dos orçamentos do iMED (2025–2026). Alterar aqui muda os códigos rápidos; para gravar é pedido o código de supervisão. <span class="flag"></span> = por confirmar.</p>
   <table class="prices"><thead><tr><th>Descrição</th><th>Código</th><th style="text-align:right">Faíscas</th><th style="text-align:right">Aveiro</th></tr></thead><tbody id="tp"></tbody></table>
  </div>
@@ -434,9 +457,9 @@ function dentes(){ return $('dentes').value.split(/[^0-9]+/).filter(x=>x.length>
 $('dentes').oninput=()=>{$('nd').textContent=dentes().length+' posições'};
 const ARC=t=>/^[1256]/.test(t)?'S':'I';
 const AN={S:'Maxilar superior',I:'Maxilar inferior',SI:'Maxilar superior e inferior',G:''};
-const FN={1:'Planeamento e avaliação pré-cirúrgica',2:'Fase cirúrgica',3:'Impressão',4:'Reabilitação definitiva'};
+const FN={0:'Tratamentos',1:'Planeamento e avaliação pré-cirúrgica',2:'Fase cirúrgica',3:'Impressão',4:'Reabilitação definitiva'};
 let LS=[], uid=0;
-function line(code,q,pos,a){ const p=P[code]; return {id:++uid,code,d:p.d,q,u:p[U],disc:0,pos:pos||'',f:FASE[code]||2,a:a||'G'}; }
+function line(code,q,pos,a){ const p=P[code]; return {id:++uid,code,d:p.d,q,u:p[U],disc:0,pos:pos||'',f:FASE[code]!=null?FASE[code]:2,a:a||'G'}; }
 const AO={G:0,S:1,I:2,SI:3};
 const FDI=/^(1[1-8]|2[1-8]|3[1-8]|4[1-8]|5[1-5]|6[1-5]|7[1-5]|8[1-5])$/;
 function dentesDe(txt){ const out=[]; String(txt||'').replace(/\b(\d{2})\b/g,(m,d)=>{ if(FDI.test(d)&&!out.includes(d)) out.push(d); return m; }); return out; }
@@ -465,7 +488,7 @@ function juntar(i){ const j=par(i); if(j<0) return; const x=LS[i],y=LS[j]; const
 function render(){
  if(!LS.length){ $('linesWrap').innerHTML='<div class="empty">Ainda sem linhas — escolha um código rápido acima.</div>'; $('optWrap').innerHTML=''; calc(); return; }
  let h='<table class="lines"><thead><tr><th></th><th>Descrição</th><th>Dentes</th><th class="num">Qt.</th><th class="num">Preço</th><th class="num">Desc. %</th><th class="num">Total</th><th></th></tr></thead><tbody>';
- let lf=0, la=null;
+ let lf=null, la=null;
  LS.forEach((l,i)=>{ if(l.f!==lf){ lf=l.f; la=null; h+=`<tr class="grp"><td colspan="8">${FN[l.f]}</td></tr>`; }
   if(l.a!==la){ la=l.a; if(l.a!=='G') h+=`<tr class="arc"><td></td><td colspan="7">${AN[l.a]}</td></tr>`; }
   const fl=(P[l.code].c||P[l.code]['c'+U])?'<span class="flag" title="por confirmar"></span>':'';
@@ -481,7 +504,7 @@ function render(){
  calc(); }
 function setPF(c){ pf=c; show3=false; LS.forEach(l=>{ if(l.pf){ l.code=c; l.d=P[c].d; l.u=P[c][U]; } }); render(); }
 function upd(i,k,v){ LS[i][k]=parseFloat(v)||0; $('lt'+i).textContent=eur(lt(LS[i])); calc(); }
-const lt=l=>l.q*l.u*(1-l.disc/100);
+const lt=l=>(l.tot!=null&&l.imp&&l.q==l.imp[0]&&l.u==l.imp[1]&&l.disc==l.imp[2])?l.tot:l.q*l.u*(1-l.disc/100);
 function subtotal(code){ // total com a prótese "code" (para comparar opções)
  let s=0; LS.forEach(l=>{ if(l.pf&&code){ s+=l.q*P[code][U]*(1-l.disc/100);} else s+=lt(l); }); return s; }
 function totalCom(sub){ const v=parseFloat($('dgVal').value)||0; return Math.max(0,$('dgTipo').value=='p'?sub*(1-v/100):sub-v); }
@@ -506,9 +529,10 @@ function calc(){
  risco(tot,ep,fin,men);
 }
 function planoFa(){ const sub=subtotal(), tot=totalCom(sub), k=sub?tot/sub:1; const fl=x=>LS.filter(l=>l.f==x&&!(show3&&l.pf));
- const c={1:0,2:0,3:0,4:0}; LS.forEach(l=>{ if(!(show3&&l.pf)) c[l.f]+=lt(l)*k; });
+ const c={0:0,1:0,2:0,3:0,4:0}; LS.forEach(l=>{ if(!(show3&&l.pf)) c[l.f]+=lt(l)*k; });
  const P=[]; const s=FA.s&&c[2]>0?Math.min(+FA.v||0,c[2]):0;
  if(s) P.push({q:'Na adjudicação do orçamento',d:'Sinal para reservar a data da cirurgia — é descontado no valor da fase cirúrgica',v:s,k:'sinal'});
+ fl(0).forEach(l=>P.push({q:'Na consulta respetiva',d:l.d,v:lt(l)*k}));
  fl(1).forEach(l=>P.push({q:/avalia|medica/i.test(l.d)?'Na consulta de avaliação pré-cirúrgica':/profilax|planea/i.test(l.d)?'Na consulta de profilaxia e planeamento':'Na consulta respetiva',d:l.d,v:lt(l)*k}));
  if(c[2]>0) P.push({q:'No dia da cirurgia',d:'Fase cirúrgica'+(s?' (valor de '+eur(c[2])+', descontado o sinal de '+eur(s)+')':''),v:c[2]-s});
  if(c[3]>0) P.push({q:'Na impressão, após boa cicatrização',d:'Impressão para a reabilitação definitiva',v:c[3]});
@@ -548,11 +572,11 @@ function aplicar(e,n){ if(+$('eR').value<e) $('eR').value=e; if(prest>n) prest=n
 
 document.querySelectorAll('#pay .pc').forEach(c=>c.onclick=()=>{ document.querySelectorAll('#pay .pc').forEach(x=>x.classList.toggle('on',x==c)); modo=c.dataset.m; calc(); });
 $('tabs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; [...$('tabs').children].forEach(x=>x.classList.toggle('on',x==b)); document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id=='v-'+b.dataset.v)); };
-$('unSeg').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; U=b.dataset.u; [...$('unSeg').children].forEach(x=>x.classList.toggle('on',x==b)); LS.forEach(l=>l.u=P[l.code][U]); $('numorc').textContent='N.º '+U+'-2026/'+(U=='F'?'0143':'0092')+' · rascunho'; render(); toast('Preços de '+(U=='F'?'Faíscas':'Aveiro')); };
+$('unSeg').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; U=b.dataset.u; [...$('unSeg').children].forEach(x=>x.classList.toggle('on',x==b)); LS.forEach(l=>{ if(!l.imp&&!l.code.startsWith('X')) l.u=P[l.code][U]; }); $('numorc').textContent='N.º '+U+'-2026/'+(U=='F'?'0143':'0092')+' · rascunho'; render(); toast('Preços de '+(U=='F'?'Faíscas':'Aveiro')); };
 
 // ---------- importar ----------
 const EXIMED='';
-const MAP=[[/zigom/i,'ZIG'],[/(4|quatro) implantes|provisionaliza/i,'ALL4'],[/imediato/i,'IMI'],[/coroa.*(implante|aparafus)/i,'COR'],[/provis.*(coroa|implante)/i,'PROV'],[/cer[aâ]mica.*implantes|implantes.*cer[aâ]mica/i,'PFC'],[/premium/i,'PFP'],[/(h[ií]brida|acr[ií]lic|pr[oó]tese fixa)/i,'PFH'],[/impress|scanner/i,'IMPR'],[/seio/i,'SEIO'],[/regenera|enxerto/i,'ROG'],[/exodontia|extra[cç][aã]o/i,'EXO'],[/avalia|medica[cç]/i,'AVAL'],[/destartariza|profilaxia|planeamento/i,'PLAN'],[/implante/i,'IMP']];
+const MAP=[[/zigom/i,'ZIG'],[/(4|quatro) implantes|provisionaliza/i,'ALL4'],[/imediato/i,'IMI'],[/coroa.*(implante|aparafus)/i,'COR'],[/provis.*(coroa|implante)/i,'PROV'],[/cer[aâ]mica.*implantes|implantes.*cer[aâ]mica/i,'PFC'],[/premium/i,'PFP'],[/(h[ií]brida|acr[ií]lic|pr[oó]tese fixa)/i,'PFH'],[/impress|scanner/i,'IMPR'],[/seio/i,'SEIO'],[/regenera|enxerto/i,'ROG'],[/exodontia|extra[cç][aã]o/i,'EXO'],[/avalia|medica[cç]/i,'AVAL'],[/profilaxia|planeamento/i,'PLAN'],[/implante/i,'IMP']];
 let xn=0;
 const nr=s=>parseFloat(String(s).replace(/\./g,'').replace(',','.'))||0;
 const NAO=/^(total|sub-?total|iva|total iva|desconto|valor|base|incid|pago|a pagar|artigo|descri|quadro|resumo|taxa|isento|isen[çc][aã]o|motivo|regime|pagamento|vencimento|data|n\.?º|contribuinte|nif|morada|cliente|utente|observa)/i;
@@ -588,8 +612,8 @@ function importarImed(){ if(!$('impTxt').value.trim()){ $('impRes').textContent=
 // ---- PDF ----
 function pdfjs(){ return window.pdfjsLib?Promise.resolve(pdfjsLib):new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src='https:\/\/cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; s.onload=()=>{ pdfjsLib.GlobalWorkerOptions.workerSrc='https:\/\/cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; ok(pdfjsLib); }; s.onerror=ko; document.head.appendChild(s); }); }
 async function lerPdf(f){ $('pdfRes').textContent='A ler o PDF…';
- try{ const lib=await pdfjs(); const doc=await lib.getDocument({data:await f.arrayBuffer()}).promise; let linhas=[];
-  for(let pg=1;pg<=doc.numPages;pg++){ const tc=await (await doc.getPage(pg)).getTextContent(); const its=tc.items.filter(i=>i.str.trim()).map(i=>({s:i.str,x:i.transform[4],y:i.transform[5],w:i.width}));
+ try{ const lib=await pdfjs(); const doc=await lib.getDocument({data:await f.arrayBuffer()}).promise; let linhas=[], PGS=[];
+  for(let pg=1;pg<=doc.numPages;pg++){ const tc=await (await doc.getPage(pg)).getTextContent(); const its=tc.items.filter(i=>i.str.trim()).map(i=>({s:i.str,x:i.transform[4],y:i.transform[5],w:i.width})); PGS.push(its);
    const rows=[]; its.sort((a,b)=>b.y-a.y||a.x-b.x).forEach(i=>{ let r=rows.find(r=>Math.abs(r.y-i.y)<3); if(!r){ r={y:i.y,it:[]}; rows.push(r);} r.it.push(i); });
    rows.forEach(r=>{ r.it.sort((a,b)=>a.x-b.x); let t='',px=null; r.it.forEach(i=>{ t+=(px==null?'':(i.x-px>8?'\t':' '))+i.s; px=i.x+i.w; }); linhas.push({t,x:r.it[0].x}); }); }
   // dados do paciente
@@ -598,7 +622,7 @@ async function lerPdf(f){ $('pdfRes').textContent='A ler o PDF…';
   const ex=L.findIndex(x=>/^Exmo/i.test(x));
   let cli=(tudo.match(/(?:Cliente|Utente|Paciente|Nome)\s*:?\s*\t?\s*([^\n\t]+)/i)||[])[1]; let mor=(tudo.match(/Morada\s*:?\s*\t?\s*([^\n\t]+)/i)||[])[1];
   if(ex>=0){ cli=L[ex+1]; const mm=[]; for(let k=ex+2;k<Math.min(ex+5,L.length);k++){ if(/^(dados|outras|or[çc]amento|endere|artigo)/i.test(L[k])||/@/.test(L[k])) break; mm.push(L[k]); } if(mm.length) mor=mm.join(', ').replace(/\s+,/g,','); }
-  if(cli) cli=cli.replace(/\b([A-ZÀ-Ý])([A-ZÀ-Ý'’]+)\b/g,(m,a,b)=>a+b.toLowerCase()).replace(/\b(De|Da|Do|Das|Dos|E)\b/g,w=>w.toLowerCase());
+  if(cli) cli=cli.toLowerCase().replace(/(^|[\s'’-])(\S)/g,(m,a,b)=>a+b.toUpperCase()).replace(/ (De|Da|Do|Das|Dos|E)(?= )/g,w=>w.toLowerCase());
   const ci=L.findIndex(x=>/Contrib/i.test(x)); const nifs=[...(ci>=0?L.slice(ci,ci+3).join(' '):tudo).matchAll(/\b(\d{9})\b/g)].map(m=>m[1]).filter(n=>n!=='514531592');
   const emP=(tudo.match(/[^\s@:;,<>]+@[^\s@;,<>]+\.[a-z]{2,}/i)||[])[0]; if(emP&&!$('pEmail').value) $('pEmail').value=emP;
   const obs=(tudo.match(/OUTRAS INFORMA[ÇC][ÕO]ES\s*:?\s*([^\n]+(?:\n(?!Or[çc]amento)[^\n\t]{0,80})?)/i)||[])[1];
@@ -607,9 +631,9 @@ async function lerPdf(f){ $('pdfRes').textContent='A ler o PDF…';
   // linhas da tabela: x da coluna de descrição = x das linhas com €
   const xs=linhas.filter(l=>/€/.test(l.t)).map(l=>l.x); const xd=xs.sort((a,b)=>a-b)[0];
   linhas.forEach(l=>{ l.cont=Math.abs(l.x-xd)<6; });
-  const res=importarLinhas(linhas); const num=(tudo.match(/Or[çc]amento\s*:?\s*([A-Z\-]+\/\d+)/i)||[])[1];
-  $('pdfRes').innerHTML=`<b>${res.ok} linhas importadas</b>${num?' do orçamento '+num:''}${cli?' · '+cli.trim():''}.`+(obs?` <br><span style="color:#8a6d1f">Nota do iMED: ${obs.replace(/\s+/g,' ').trim().replace(/</g,'&lt;')}</span><br>`:'')+(res.fora.length?` Sem código pré-definido: ${res.fora.join(', ')}.`:'')+(res.sem?` <b>${res.sem} linha(s) sem maxilar</b> — escolhe em «Maxilar?» ou escreve o dente.`:' Maxilares detetados pelos dentes.');
-  if(res.ok){ toast(res.ok+' linhas importadas do PDF'); setTimeout(()=>$('imp').classList.remove('on'),1500); }
+  const LI=imedLinhasPdf(PGS); const res=LI.length?importarPdfImed(LI,tudo):importarLinhas(linhas); const num=(tudo.match(/Or[çc]amento\s*:?\s*([A-Z\-]+\/\d+)/i)||[])[1];
+  $('pdfRes').innerHTML=`<b>${res.ok} linhas importadas</b>${num?' do orçamento '+num:''}${cli?' · '+cli.trim():''}.`+(obs?` <br><span style="color:#8a6d1f">Nota do iMED: ${obs.replace(/\s+/g,' ').trim().replace(/</g,'&lt;')}</span><br>`:'')+(res.tot!=null?` Total ${eur(res.tot)}${res.totOk?' — igual ao do iMED ✓':''}.`:'')+(res.fora.length?`<br>Não estão na tabela de artigos: ${res.fora.map(x=>esc(x.d)).join(', ')}. <button class="btn sm g" type="button" onclick="artForaTabela()">Acrescentar à tabela</button>`:'');
+  window.__fora=res.fora||[]; if(res.ok){ toast(res.ok+' linhas importadas do PDF'); if(!res.fora.length) setTimeout(()=>$('imp').classList.remove('on'),1500); }
  }catch(e){ $('pdfRes').textContent='Não consegui ler este PDF ('+e.message+'). Se for uma digitalização (imagem), usa o copiar e colar do iMED.'; } }
 $('pdfIn').onchange=e=>{ if(e.target.files[0]) lerPdf(e.target.files[0]); };
 $('drop').ondragover=e=>{e.preventDefault(); $('drop').style.background='#fff';};
@@ -648,11 +672,11 @@ function abrirDoc(){
  const f=d=>d.toLocaleDateString('pt-PT',{day:'numeric',month:'long',year:'numeric'});
  const nome=($('pNome').value||'Nome do paciente').trim().split(/\s+/); const nm=nome.length>1?nome[0]+' <i>'+nome[nome.length-1]+'</i>':'<i>'+nome[0]+'</i>';
  const a4=hasA4(), cb=$('cbct').checked, cbd=$('cbctD').value?new Date($('cbctD').value).toLocaleDateString('pt-PT',{day:'numeric',month:'long'}):'';
- const T={1:['Planeamento e avaliação pré-cirúrgica',''],
+ const T={0:['Tratamentos',''],1:['Planeamento e avaliação pré-cirúrgica',''],
   2:['Fase cirúrgica',''],
   3:['Impressão',''],
   4:['Reabilitação definitiva','']};
- const ph={1:[],2:[],3:[],4:[]};
+ const ph={0:[],1:[],2:[],3:[],4:[]};
  LS.forEach(l=>{ if(show3&&l.pf) return; ph[l.f].push(l); });
  let n=0;
  const pfl=LS.filter(l=>l.pf);
@@ -660,7 +684,7 @@ function abrirDoc(){
  const dn=p=>p?` <span class="dn">· ${/[a-z]/.test(p)?p:(p.includes(',')?'dentes ':'dente ')+p}</span>`:'';
  const row=l=>`<tr><td>${l.d}${l.nota?' <span class="nt">— '+l.nota.replace(/</g,'&lt;')+'</span>':''}${dn(l.pos)}</td><td class="c">${l.q}</td><td class="r">${eu(l.u)}</td>${temD?`<td class="r dsc">${l.disc?'−'+String(l.disc).replace('.',',')+'%':''}</td>`:''}<td class="r b">${eu(lt(l))}</td></tr>`;
  const fh=x=>{ n++; return `<tr class="fh"><td colspan="${nc+1}"><span class="no">0${n}</span>${T[x][0]}${T[x][1]?'<em>'+T[x][1]+'</em>':''}</td></tr>`; };
- let body=''; [1,2,3,4].filter(x=>ph[x].length).forEach(x=>{
+ let body=''; [0,1,2,3,4].filter(x=>ph[x].length).forEach(x=>{
   let la=null; const secs=new Set(ph[x].map(l=>l.a)); const multi=[...secs].some(a=>a!=='G');
   body+=fh(x)+ph[x].map(l=>{ let r=''; if(l.a!==la){ la=l.a; if(l.a!=='G'&&multi) r=`<tr class="ah"><td colspan="${nc+1}">${AN[l.a]}</td></tr>`; } return r+row(l); }).join(''); });
  if(show3&&a4){ body+=fh(4).replace('</td></tr>','<em>Escolha uma das três opções.</em></td></tr>')+Object.entries(OPT).map(([c,o])=>{ const q=pfl.reduce((a,l)=>a+l.q,0)||1, d=(pfl[0]||{}).disc||0; return row({d:o.n+' · Prótese fixa '+o.t.toLowerCase(),pos:'',q,u:P[c][U],disc:d}); }).join(''); }
@@ -711,7 +735,7 @@ function run(fn,arg){ return jmcApi(fn,arg||{}); }
 async function supervisao(txt){ try{ await run('orcSupervisao',{}); return {}; }catch(e){} const c=prompt(txt+'\nCódigo pessoal do Dr. Gonçalo ou da Dra. Catarina:'); if(!c) return null; await run('orcSupervisao',{codigo:c}); return {codigo:c}; }
 function unAtual(){ return U=='F'?'faiscas':'aveiro'; }
 function setNum(){ $('numorc').textContent=ORC.numero?('N.º '+ORC.numero+' · '+ORC.estado.toLowerCase()):(TESTE?'TESTE · ':'')+'Novo · n.º atribuído ao guardar'; }
-function setUnidade(u){ U=u; [...$('unSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.u==U)); LS.forEach(l=>{ if(!l.code.startsWith('X')) l.u=P[l.code][U]; }); render(); }
+function setUnidade(u){ U=u; [...$('unSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.u==U)); LS.forEach(l=>{ if(l.imp) return; if(!l.code.startsWith('X')) l.u=P[l.code][U]; else if(l.art&&P[l.code]&&P[l.code][U]!=null) l.u=P[l.code][U]; }); render(); }
 $('unSeg').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; setUnidade(b.dataset.u); try{ localStorage.setItem('jmc_orc_un',U);}catch(x){} toast('Preços de '+(U=='F'?'Faíscas':'Aveiro')); };
 function parseFicha(t){
  const K={nome:'nome',datanasc:'nasc',datadenascimento:'nasc',nascimento:'nasc',profissao:'prof',local:'local',estado:'estado',nif:'nif',contribuinte:'nif',cartaodecidadao:'cc',nutente:'utente',utente:'utente',entidade:'entidade',nbenef:'benef',morada:'morada',telemovel:'tel',telefone:'tel',email:'email'};
@@ -813,7 +837,7 @@ function abrirDocLimpo(){ docEditado=false; $('doc').contentEditable='false'; $(
 // ---------- contrato ----------
 function contrato(){ const tot=totalCom(subtotal()), ep=+$('eR').value; const d={orcamento:ORC.numero,paciente:$('pNome').value,nif:$('pNif').value,morada:$('pMor').value,email:$('pEmail').value,total:Math.round(tot*100)/100,entradaPct:ep,entrada:Math.round(tot*ep)/100,prestacoes:prest,taxa:75,dia:10};
  try{ localStorage.setItem('jmc_orc_para_contrato',JSON.stringify(d)); }catch(e){}
- if(ORC.base) window.open(ORC.base+'?doc=contrato'+(TESTE?'&teste=1':''),'_blank'); toast('Contrato aberto · valores: '+eur(tot)+', entrada '+eur(d.entrada)+', '+prest+'×'); }
+ window.open('../contratos/'+(TESTE?'?teste=1':''),'_blank'); toast('Contrato aberto · valores: '+eur(tot)+', entrada '+eur(d.entrada)+', '+prest+'×'); }
 // ---------- pasta ----------
 const EST={'Rascunho':'p-r','Entregue':'p-e','Aceite':'p-a','Parcialmente aceite':'p-pa','Recusado':'p-x','Expirado':'p-v'};
 function estadoVisto(o){ if(o.estado==='Entregue'||o.estado==='Rascunho'){ const d=new Date(o.criado); if(!isNaN(d)&&(Date.now()-d)/864e5>31) return 'Expirado'; } return o.estado||'Rascunho'; }
@@ -837,7 +861,7 @@ async function abrirOrc(id,dup){ try{ const r=await run('loadOrcamento',{teste:T
 // importar da pasta (substitui o exemplo)
 function abrirImp(){ $('impPasta').innerHTML=ORC.lista.length?'<table class="list"><tbody>'+ORC.lista.slice(0,40).map(o=>`<tr><td class="numo">${o.numero}</td><td>${esc(o.paciente||'')}</td><td class="mini">${eur(o.total)}</td><td style="text-align:right"><button class="btn sm p" onclick="copiarOrc('${o.id}')">Copiar linhas</button></td></tr>`).join('')+'</tbody></table><p class="mini" style="margin-top:10px">As linhas são acrescentadas às que já tens; o paciente só é preenchido se estiver vazio.</p>':'<p class="mini">Ainda não há orçamentos guardados.</p>'; $('imp').classList.add('on'); }
 async function copiarOrc(id){ try{ const r=await run('loadOrcamento',{teste:TESTE,id}); const d=r.data||{}; Object.assign(P,d.xp||{}); Object.assign(FASE,d.xf||{});
-  (d.LS||[]).forEach(l=>{ const n=Object.assign({},l,{id:++uid}); if(!n.code.startsWith('X')) n.u=(d.U||U)==U?n.u:P[n.code][U]; LS.push(n); });
+  (d.LS||[]).forEach(l=>{ const n=Object.assign({},l,{id:++uid}); if(!n.code.startsWith('X')&&!n.imp) n.u=(d.U||U)==U?n.u:P[n.code][U]; LS.push(n); });
   const p=d.pac||{}; if(!$('pNome').value){ $('pNome').value=p.nome||''; $('pNif').value=p.nif||''; $('pMor').value=p.mor||''; $('pEmail').value=p.email||''; $('pTel').value=p.tel||''; $('pNasc').value=p.nasc||''; }
   sortLS(); render(); $('imp').classList.remove('on'); toast('Copiado de '+r.numero+' — acrescente o que quiser'); }catch(e){ toast('Erro: '+e.message); } }
 // tabela de preços (gravar com supervisão)
@@ -849,7 +873,117 @@ async function gravarPrecos(){ let sv; try{ sv=await supervisao('Gravar a tabela
 (function(){ let u=null; try{ u=localStorage.getItem('jmc_orc_un'); }catch(e){}
  if(!u){ let x=''; try{ x=(window.jmcUnidade&&jmcUnidade())||window.JMC_UNIDADE||localStorage.getItem('jmc_unidade')||''; }catch(e){} x=String(x).toLowerCase(); u=x.startsWith('fa')?'F':'A'; }
  U=u==='F'?'F':'A'; [...$('unSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.u==U)); setNum(); render();
- run('getOrcConfig',{teste:TESTE}).then(c=>{ ORC.base=c.base||''; if(c.precos) Object.entries(c.precos).forEach(([k,v])=>{ if(P[k]){ P[k].F=v.F; P[k].A=v.A; } }); tp(); ORC.lista=c.lista||[]; desenharPasta(); LS.forEach(l=>{ if(!l.code.startsWith('X')) l.u=P[l.code][U]; }); render(); }).catch(e=>toast('Sem ligação ao servidor: '+e.message));
+ run('getOrcConfig',{teste:TESTE}).then(c=>{ ORC.base=c.base||''; try{ artDe(c); }catch(e){ console.warn(e); } if(c.precos) Object.entries(c.precos).forEach(([k,v])=>{ if(P[k]){ P[k].F=v.F; P[k].A=v.A; } }); tp(); ORC.lista=c.lista||[]; desenharPasta(); LS.forEach(l=>{ if(l.imp) return; if(!l.code.startsWith('X')) l.u=P[l.code][U]; else if(l.art&&P[l.code]&&P[l.code][U]!=null) l.u=P[l.code][U]; }); render(); }).catch(e=>toast('Sem ligação ao servidor: '+e.message));
 })();
+
+
+/* ---- leitura do orçamento do iMED (PDF) por colunas: Artigo · Descrição · Quant. · Uni. · Pr. Unitário · Desc. · IVA · Total ----
+   Cada linha traz o código, a descrição, a quantidade, o preço unitário, o desconto e o total do iMED (é o total que vale). */
+function imedLinhasPdf(paginas){ // paginas: [[{s,x,y,w}]] (itens de texto de cada página)
+ const nrm=s=>parseFloat(String(s).replace(/\./g,'').replace(',','.'))||0;
+ const NUM=/(\d+(?:,\d+)?)\s*UN\s+([\d.]+,\d{2})\s+([\d.,]+)\s*%\s+([\d.,]+)\s*%\s+([\d.]+,\d{2})\s*$/;
+ const out=[]; let ult=null;
+ paginas.forEach(its=>{ const rows=[]; its.slice().sort((a,b)=>b.y-a.y||a.x-b.x).forEach(i=>{ let r=rows.find(r=>Math.abs(r.y-i.y)<3); if(!r){ r={y:i.y,it:[]}; rows.push(r); } r.it.push(i); });
+  rows.forEach(r=>r.it.sort((a,b)=>a.x-b.x));
+  let xD=null, xQ=null, fim=false;
+  rows.forEach(r=>{ const txt=r.it.map(i=>i.s).join(' ').replace(/\s+/g,' ').trim();
+   if(xD==null){ const d=r.it.find(i=>/^Descri/i.test(i.s.trim())), q=r.it.find(i=>/^Quant/i.test(i.s.trim())); if(d&&q&&r.it.some(i=>/^Artigo/i.test(i.s.trim()))){ xD=d.x; xQ=q.x; } return; }
+   if(fim) return; if(/quadro\s+resumo|mercadoria|total\s*\(/i.test(txt)){ fim=true; return; }
+   const cod=r.it.filter(i=>i.x<xD-3).map(i=>i.s).join(' ').replace(/\s+/g,' ').trim();
+   const des=r.it.filter(i=>i.x>=xD-3&&i.x<xQ-3).map(i=>i.s).join(' ').replace(/\s+/g,' ').trim();
+   const dir=r.it.filter(i=>i.x>=xQ-3).map(i=>i.s).join(' ').replace(/\s+/g,' ').trim();
+   const m=dir.match(NUM);
+   if(m){ ult={codigo:cod.replace(/\s+CMC$/i,'').trim(),cmc:/\bCMC\b/.test(cod),desc:des,cont:[],q:nrm(m[1]),u:nrm(m[2]),disc:nrm(m[3]),tot:nrm(m[5])}; out.push(ult); return; }
+   if(ult&&des&&!cod&&!dir) ult.cont.push(des); });
+ });
+ return out.map(l=>{ const pos=[], nota=[], mais=[];
+  l.cont.forEach(t=>{ if(/^(dentes?|posi[çc][õo]es?( dent[aá]rias?)?|posi[çc][ãa]o dent[aá]ria)\b/i.test(t)){ const ds=[]; t.replace(/\b([1-8])\.([1-8])\b/g,(a,b,c)=>{ ds.push(b+c); return a; }); t.replace(/\b([1-8][1-8])\b/g,(a,b)=>{ ds.push(b); return a; }); ds.forEach(d=>{ if(!pos.includes(d)) pos.push(d); }); if(!ds.length) nota.push(t); }
+   else if(/^\d\s*Q(\s*(e|,)\s*\d\s*Q)*$/i.test(t)||/^(maxilar|mand[ií]bula|arcada)/i.test(t)) nota.push(t);
+   else mais.push(t); });
+  return {codigo:l.codigo,cmc:l.cmc,desc:[l.desc,...mais].join(' ').replace(/\s+/g,' ').replace(/-\s+(?=[a-zà-ú])/g,'-').replace(/\s*-\s*Pr[óo]tese Fixa( implanto suportada)?$/i,'').trim(),mais,nota:nota.join(' · '),pos:pos.join(', '),q:l.q,u:l.u,disc:l.disc,tot:l.tot}; });
+}
+
+// ================== ARTIGOS DO iMED (13/10/2026) ==================
+// Tabela de referência exportada do iMED (Faturação › Artigos › Exportar Excel): Faíscas = tabela JESUS CLINIC, Aveiro = tabela CMC,
+// artigos sem código (criados pela clínica) valem para as duas. Linha: [código, nome, área, preço Faíscas, preço Aveiro, preço único].
+// Nos orçamentos importados vale sempre o que está no documento do iMED (preço unitário, desconto e total).
+let ART=[], ARTI={em:0,ficheiro:'',n:0,novos:0};
+const artNorm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+function artPreco(a,u){ u=u||U; const v=u=='F'?a[3]:a[4]; return v!=null?v:(a[5]!=null?a[5]:(u=='F'?a[4]:a[3])); }
+function artDe(cfg){ if(!cfg||!cfg.artigos) return; const A=cfg.artigos; ART=(A.artigos||[]).concat((A.novos||[]).map(n=>[n[0]||'',n[1],n[2]||'',n[3],n[4],n[5],1]));
+ ARTI={em:A.em||0,ficheiro:A.ficheiro||'',n:(A.artigos||[]).length,novos:(A.novos||[]).length,por:A.por||''}; artTab(); }
+function artPorCodigo(c){ c=String(c||'').replace(/\s*CMC$/i,'').trim(); if(!/^\d/.test(c)) return null; return ART.find(a=>a[0]===c)||null; }
+function artPorNome(n){ const k=artNorm(n); if(k.length<4) return null; return ART.find(a=>artNorm(a[1])===k)||ART.find(a=>artNorm(a[1]).startsWith(k)||k.startsWith(artNorm(a[1])))||null; }
+// fase da linha: consultas e tratamentos gerais em "Tratamentos"; cirurgia na fase cirúrgica
+function artFase(nome){ const t=artNorm(nome); if(/implant|enxert|regenera|seio|sinus|osso|zigom|all.?on/.test(t)) return 2; if(/cirurg/.test(t)&&!/consulta/.test(t)) return 2; return 0; }
+let xseq=0; const xcode=()=>'X'+Date.now().toString(36)+(++xseq);
+// acrescenta uma linha a partir de um artigo da tabela (preço da unidade do orçamento; editável)
+function artAcrescentar(a){ const code=xcode(); const pr=artPreco(a); P[code]={d:a[1],i:a[0]||'—',F:artPreco(a,'F'),A:artPreco(a,'A')}; FASE[code]=artFase(a[1]);
+ const l=line(code,1,'','G'); l.u=pr; l.art=1; LS.push(l); sortLS(); render(); toast('Acrescentado: '+a[1]+' · '+eur(pr)); }
+function artBusca(){ const q=artNorm($('artQ').value); const box=$('artRes'); if(q.length<2){ box.innerHTML=''; box.style.display='none'; return; }
+ const ws=q.split(' '); const L=ART.filter(a=>{ const t=artNorm(a[1]+' '+a[0]); return ws.every(w=>t.includes(w)); }).slice(0,8);
+ box.innerHTML=L.map((a,i)=>`<div class="ar" data-ai="${ART.indexOf(a)}"><span><b>${esc(a[1])}</b><small>${a[0]?esc(a[0]):'artigo da clínica'}${a[2]?' · '+esc(a[2]):''}${a[6]?' · criado na app':''}</small></span><span class="ap">${artPreco(a)!=null?eur(artPreco(a)):'—'}</span></div>`).join('')+
+  `<div class="ar novo" data-novo="1"><span><b>+ Novo artigo:</b> «${esc($('artQ').value.trim())}»<small>não está na tabela — escreve-se o valor</small></span><span></span></div>`;
+ box.style.display='block'; }
+function artNovoForm(nome){ $('artRes').style.display='none'; $('naNome').value=nome||''; $('naVal').value=''; $('novoArt').style.display='block'; $('naPerg').style.display='none'; setTimeout(()=>$(nome?'naVal':'naNome').focus(),30); }
+function artNovoOk(){ const nome=$('naNome').value.trim(), v=parseFloat(String($('naVal').value).replace(',','.')); if(!nome) return $('naNome').focus(); if(!(v>=0)) return $('naVal').focus();
+ const a=['',nome,'',null,null,v,1]; artAcrescentar(a); $('artQ').value=''; $('naPerg').dataset.nome=nome; $('naPerg').dataset.v=v;
+ $('naPergT').textContent=`Acrescentar «${nome}» (${eur(v)}) à nossa tabela de artigos?`; $('naPerg').style.display='flex'; }
+async function artNovoTabela(sim){ const nome=$('naPerg').dataset.nome, v=+$('naPerg').dataset.v; $('novoArt').style.display='none';
+ if(!sim) return toast('Fica só neste orçamento.');
+ try{ const r=await run('addOrcArtigo',{nome,preco:v}); artDe({artigos:r}); toast('«'+nome+'» acrescentado à tabela'); }catch(e){ toast('Não foi possível acrescentar à tabela: '+e.message); } }
+(function(){ const q=$('artQ'); if(!q) return;
+ q.addEventListener('input',artBusca); q.addEventListener('focus',artBusca);
+ q.addEventListener('keydown',e=>{ if(e.key==='Escape'){ $('artRes').style.display='none'; } if(e.key==='Enter'){ e.preventDefault(); const f=$('artRes').querySelector('[data-ai]'); if(f) f.click(); else if(q.value.trim()) artNovoForm(q.value.trim()); } });
+ $('artRes').addEventListener('mousedown',e=>{ const d=e.target.closest('.ar'); if(!d) return; e.preventDefault(); if(d.dataset.novo) return artNovoForm(q.value.trim()); artAcrescentar(ART[+d.dataset.ai]); q.value=''; $('artRes').style.display='none'; });
+ q.addEventListener('blur',()=>setTimeout(()=>{ $('artRes').style.display='none'; },150));
+})();
+// ---- separador Tabela de preços: artigos do iMED ----
+function artTab(){ const el=$('artInfo'); if(!el) return;
+ el.innerHTML=ARTI.n?`Exportação em uso: <b>${ARTI.em?new Date(ARTI.em).toLocaleDateString('pt-PT'):'—'}</b>${ARTI.ficheiro?' ('+esc(ARTI.ficheiro)+')':''} · ${ARTI.n} artigos${ARTI.novos?` · <b>${ARTI.novos}</b> criados na app, por acrescentar no iMED`:''}`
+  :'Ainda não há tabela de artigos. Exporte do iMED (Faturação › Artigos › Pesquisar › Exportar Excel) e carregue aqui o ficheiro.';
+ artTabLista(); }
+function artTabLista(){ const q=artNorm(($('artTQ')||{}).value||''); const ws=q.split(' ').filter(Boolean);
+ let L=ART.filter(a=>!ws.length||ws.every(w=>artNorm(a[1]+' '+a[0]+' '+a[2]).includes(w)));
+ if(($('artTN')||{}).checked) L=L.filter(a=>a[6]);
+ const n=L.length; L=L.slice(0,80); const f=v=>v==null?'<span class="mini">—</span>':eur(v);
+ $('artTB').innerHTML=L.map(a=>`<tr><td>${esc(a[1])}${a[6]?' <span class="flag2">criado na app</span>':''}</td><td class="mini">${esc(a[0]||'—')}</td><td class="mini">${esc(a[2]||'')}</td><td style="text-align:right">${f(a[3]!=null?a[3]:a[5])}</td><td style="text-align:right">${f(a[4]!=null?a[4]:a[5])}</td></tr>`).join('')||'<tr><td colspan="5" class="mini">Sem artigos.</td></tr>';
+ $('artTN2').textContent=n>80?`A mostrar 80 de ${n}. Escreva para procurar.`:`${n} artigo${n==1?'':'s'}`; }
+// ler a exportação do iMED (Excel) e enviar ao servidor
+async function artImportar(f){ $('artImpRes').textContent='A ler '+f.name+'…';
+ try{ if(!window.XLSX) await loadJs('https:\/\/cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+  const wb=XLSX.read(new Uint8Array(await f.arrayBuffer()),{type:'array'}); const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null});
+  const h=(rows[0]||[]).map(x=>artNorm(x)); const ix=n=>h.findIndex(x=>x.startsWith(n));
+  const iC=ix('codigo'), iN=ix('nome'), iCat=ix('categoria'), iP=ix('preco de venda (sem iva)'), iS=ix('situacao');
+  if(iN<0||iP<0) throw Error('Este ficheiro não parece a exportação de artigos do iMED (faltam as colunas Nome e Preço de venda).');
+  const by=new Map();
+  rows.slice(1).forEach(r=>{ const nome=String(r[iN]||'').replace(/\s+/g,' ').trim(); if(!nome) return; if(iS>=0&&r[iS]&&String(r[iS]).trim()!=='A') return;
+   const cod0=String(r[iC]||'').replace(/\s+/g,' ').trim(), cat=String(r[iCat]||''); const t=/^CMC/i.test(cat)||/\sCMC$/i.test(cod0)?'A':/^JESUS/i.test(cat)?'F':'P';
+   const cod=cod0.replace(/\s*CMC$/i,'').trim(); const area=cat.includes('>>')?cat.split('>>').pop().trim().toLowerCase().replace(/(^|\s)\S/g,s=>s.toUpperCase()):'';
+   const pv=r[iP]==null||r[iP]===''?null:Math.round(+r[iP]*100)/100; const k=cod||('~'+artNorm(nome));
+   const o=by.get(k)||[cod,nome,area,null,null,null]; if(t==='F') o[3]=pv; else if(t==='A'){ o[4]=pv; o[1]=nome; } else o[5]=pv; if(area&&!o[2]) o[2]=area; by.set(k,o); });
+  const L=[...by.values()]; if(L.length<50) throw Error('Encontrei só '+L.length+' artigos. Exporte a lista completa (sem filtros).');
+  $('artImpRes').textContent='A gravar '+L.length+' artigos…';
+  const r=await run('setOrcArtigos',{artigos:L,ficheiro:f.name}); artDe({artigos:r}); $('artImpRes').textContent='✓ Tabela atualizada: '+L.length+' artigos.'; toast('Tabela de artigos atualizada');
+ }catch(e){ $('artImpRes').textContent=e.message; } }
+(function(){ const fi=$('artFile'); if(fi) fi.onchange=e=>{ const f=e.target.files[0]; e.target.value=''; if(f) artImportar(f); };
+ const q=$('artTQ'); if(q) q.oninput=artTabLista; const n=$('artTN'); if(n) n.onchange=artTabLista; artTab(); })();
+
+// linhas lidas do PDF do iMED → linhas do orçamento (valores do iMED: preço unitário, desconto e total)
+function importarPdfImed(L,tudo){ const add=[], fora=[]; const temImp=L.some(x=>/implant|all.?on|h[ií]brid|zigom/i.test(x.desc));
+ L.forEach(x=>{ const a=artPorCodigo(x.codigo)||artPorNome(x.desc); let nome=x.desc;
+  if(a&&x.codigo&&artNorm(a[1]).startsWith(artNorm(x.desc).slice(0,20))) nome=a[1].replace(/\s*-\s*Pr[óo]tese Fixa( implanto suportada)?$/i,'');
+  let code=temImp?(MAP.find(m=>m[0].test(nome))||[])[1]:null;
+  if(!code){ code=xcode(); P[code]={d:nome,i:x.codigo&&/^\d/.test(x.codigo)?x.codigo:'—',F:x.u,A:x.u}; FASE[code]=temImp&&/consulta|estudo|avalia/i.test(nome)?1:artFase(nome); }
+  const l=line(code,x.q,x.pos||'',arcDe(x.pos,nome+' '+(x.nota||''))||'G'); l.u=x.u; l.disc=x.disc; l.tot=x.tot; l.imp=[x.q,x.u,x.disc]; if(x.codigo) l.ic=x.codigo; if(x.nota) l.nota=x.nota;
+  if(['PFH','PFP','PFC'].includes(code)) l.pf=1; LS.push(l); add.push(l); if(!a) fora.push({d:nome,u:x.u}); });
+ const ars=[...new Set(add.map(l=>l.a).filter(a=>a!=='G'))]; if(ars.length==1) add.forEach(l=>{ if(l.a==='G'&&l.f>1){ l.a=ars[0]; l.auto=1; } });
+ const tm=(tudo||'').match(/Total\s*\(\s*EUR\s*\)\s*([\d.\s]+,\d{2})/i); const tot=tm?parseFloat(tm[1].replace(/[.\s]/g,'').replace(',','.')):null;
+ const soma=Math.round(add.reduce((s,l)=>s+lt(l),0)*100)/100; const df=(tudo||'').match(/Desconto Financeiro\s*([\d.\s]+,\d{2})/i); const dfv=df?parseFloat(df[1].replace(/[.\s]/g,'').replace(',','.')):0;
+ if(dfv>0&&tot!=null&&Math.abs(soma-dfv-tot)<0.02){ $('dgTipo').value='e'; $('dgVal').value=dfv; $('dgMot').value='Desconto financeiro do orçamento do iMED'; }
+ sortLS(); render(); return {ok:add.length,fora,sem:0,tot,totOk:tot!=null&&(Math.abs(soma-tot)<0.02||Math.abs(soma-dfv-tot)<0.02)}; }
+async function artForaTabela(){ const F=window.__fora||[]; if(!F.length) return; let n=0;
+ for(const x of F){ try{ const r=await run('addOrcArtigo',{nome:x.d,preco:x.u}); artDe({artigos:r}); n++; }catch(e){ toast('Erro: '+e.message); break; } }
+ if(n){ toast(n+' artigo(s) acrescentado(s) à tabela'); window.__fora=[]; $('imp').classList.remove('on'); } }
 
 </script><script>jmcWho();</script></body></html>

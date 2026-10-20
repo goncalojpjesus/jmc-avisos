@@ -192,6 +192,24 @@ h1, h2, h3 { font-family: var(--f-display); font-weight: 700; margin: 0; text-wr
 .dmapa .guardada { margin-top: 4px; font-size: 11.5px; font-weight: 600; color: var(--ok-ink); }
 .dmapa td.tot .btn { margin-top: 4px; padding: 4px 8px; font-size: 11.5px; }
 .calc-viagem { display: grid; gap: 12px; } .calc-viagem label[hidden] { display: none; }
+.linkbtn { border: 0; background: none; color: var(--info-ink); font: inherit; font-size: 13px; cursor: pointer; padding: 0; }
+.vg-box { border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin: 14px 0 4px; }
+.vg-lista { margin-top: 10px; border-top: 1px solid var(--line); }
+.vg-row { display: grid; grid-template-columns: 24px 56px 1fr auto; gap: 10px; align-items: center; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: 15px; cursor: pointer; }
+.vg-row input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--turquesa); }
+.vg-row.off { opacity: .45; }
+.vg-d { color: var(--muted); font-variant-numeric: tabular-nums; }
+.vg-add { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; align-items: end; margin-top: 10px; padding: 10px; border-radius: 12px; background: var(--surface-2); }
+.vg-add .campo { margin: 0; }
+.vg-sw { position: relative; width: 46px; height: 28px; flex: none; margin-left: 12px; }
+.vg-sw input { opacity: 0; width: 0; height: 0; }
+.vg-sw span { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: .2s; cursor: pointer; }
+.vg-sw span:before { content: ""; position: absolute; width: 24px; height: 24px; left: 2px; top: 2px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: .2s; }
+.vg-sw input:checked + span { background: var(--turquesa); }
+.vg-sw input:checked + span:before { transform: translateX(18px); }
+.msg-ed { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-height: 80px; font-size: 15px; line-height: 1.5; background: var(--surface); outline: none; margin-top: 6px; }
+.msg-ed:focus { border-color: var(--turquesa); }
+@media (max-width: 560px) { .vg-add { grid-template-columns: 1fr 1fr; } }
 .calc-res { padding: 10px 14px; border-radius: 12px; background: var(--surface-2); font-size: 15px; font-variant-numeric: tabular-nums; }
 .mapa-viagens { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; padding: 10px 14px; border-radius: 12px; background: var(--surface-2); font-size: 14px; }
 .dmapa th.tot { width: 104px; text-align: right; }
@@ -711,7 +729,7 @@ function ecraResultado(r) {
       '<h1>' + (entrada ? 'Entrada registada' : 'Saída registada') + '</h1>' +
       '<div class="hora num">' + esc(S.eu.primeiroNome) + ' · ' + esc(r.hora) + ' · ' + esc(r.clinica) + (r.tardio ? ' · com registo feito mais tarde' : '') + '</div>' +
       (m.texto ? '<div class="frase"><span class="emo">' + esc(m.emoji) + '</span>' + esc(m.texto) + '</div>' : '') +
-      (r.pagamento ? '<div class="aviso-pag">' + esc(r.pagamento) + '</div>' : '') +
+      (r.pagamento ? '<div class="aviso-pag">' + msgPagHtml(r.pagamento) + '</div>' : '') +
       '<div class="linha-flex" style="justify-content:center"><button class="btn sec" id="rMais">Fazer um pedido ou enviar documento</button><button class="btn" id="rFim">Concluir</button></div>' +
     '</div></section>';
   S.eu = r.eu;
@@ -797,7 +815,8 @@ function folhaViagem() {
       '<input id="vOutro" type="text" placeholder="Para onde? Ex.: laboratório, banco, fornecedor" hidden style="margin-top:8px;width:100%;padding:13px 15px;border:0;border-radius:12px;background:var(--surface-2);font-size:17px"></div>' +
       '<div class="campo"><label for="vData">Dia</label><input id="vData" type="date" value="' + hojeStr() + '"></div>' +
       '<div class="msg-erro" id="vErro"></div><div class="botoes-folha"><button class="btn sec" id="vCanc">Fechar</button><button class="btn" id="vOk">Registar viagem</button></div>' +
-      '<div class="eyebrow">Viagens por pagar · ' + r.porPagar.length + '</div><div class="lista">' + lista + '</div>');
+      '<div class="eyebrow">Viagens por pagar · ' + r.porPagar.length + '</div><div class="lista">' + lista + '</div>' +
+      ((r.adiantadas || []).length ? '<div class="eyebrow">Já pagas antecipadamente</div><div class="lista">' + r.adiantadas.map(function (v) { return '<div class="item"><div><b>' + (v.destino === 'Faíscas' ? 'Clínica das Faíscas' : v.destino === 'Aveiro' ? 'Clínica de Aveiro' : esc(v.destino)) + '</b><div class="meta">' + diaSemanaPT(v.data) + ' · não precisa de a registar</div></div><span class="tag e">paga</span></div>'; }).join('') + '</div>' : ''));
     var outro = document.getElementById('vOutro');
     document.querySelectorAll('#vDest .escolha').forEach(function (b) { b.onclick = function () { document.querySelectorAll('#vDest .escolha').forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); outro.hidden = b.dataset.v !== 'Outro'; if (!outro.hidden) outro.focus(); }; });
     document.getElementById('vCanc').onclick = fecharFolha;
@@ -1521,10 +1540,10 @@ function supViagens() {
       var total = p.porPagar.reduce(function (t, v) { return t + (Number(v.valor) || 0); }, 0), semValor = p.porPagar.some(function (v) { return v.valor === ''; });
       cartoes += '<div class="cartao"><div class="linha-flex"><h3 style="margin:0">' + esc(p.nome) + '</h3>' +
         '<div class="linha-flex"><span class="pp-valor ' + (p.porPagar.length ? 'pos' : '') + '">' + p.porPagar.length + ' por pagar' + (total ? ' · ' + eur(total) : '') + '</span>' + (p.porPagar.length ? '<button class="btn verde peq" data-pv="' + esc(p.id) + '">Registar pagamento</button>' : '') + '</div></div>' +
-        '<div class="meta" style="margin:4px 0 8px">' + (p.ultimoPagamento ? 'Último pagamento: até ' + dataPT(p.ultimoPagamento) + ' (' + p.pagamentos[0].viagens + ' viage' + (p.pagamentos[0].viagens === 1 ? 'm' : 'ns') + ' · ' + eur(p.pagamentos[0].valor) + ')' : 'Ainda sem pagamentos de viagens') + (semValor ? ' · <b>falta o valor por viagem de algum ano</b>' : '') + '</div>' +
+        '<div class="meta" style="margin:4px 0 8px">' + (p.pagamentos.length ? 'Último pagamento: ' + (p.pagamentos[0].ate ? 'até ' + dataPT(p.pagamentos[0].ate) : 'com as horas extra a ' + dataPT(String(p.pagamentos[0].criadoEm).slice(0, 10))) + ' (' + p.pagamentos[0].viagens + ' viage' + (p.pagamentos[0].viagens === 1 ? 'm' : 'ns') + ' · ' + eur(p.pagamentos[0].valor) + ')' : 'Ainda sem pagamentos de viagens') + (semValor ? ' · <b>falta o valor por viagem de algum ano</b>' : '') + '</div>' +
         '<div class="lista">' + (p.porPagar.length ? p.porPagar.slice().reverse().map(function (v) { return '<div class="item"><div><b>' + esc(nomeDestino(v.destino)) + '</b><div class="meta">' + diaSemanaPT(v.data) + '</div></div><span class="num">' + (v.valor === '' ? '—' : eur(v.valor)) + '</span></div>'; }).join('') : '<div class="vazio">Sem viagens por pagar.</div>') + '</div>' +
         (p.pagamentos.length || p.pagas.length ? '<details style="margin-top:10px"><summary class="meta" style="cursor:pointer">Histórico</summary><div class="lista" style="margin-top:8px">' +
-          p.pagamentos.map(function (g) { return '<div class="item"><div><b>Pago até ' + dataPT(g.ate) + '</b><div class="meta">' + g.viagens + ' viage' + (g.viagens === 1 ? 'm' : 'ns') + ' · ' + eur(g.valor) + (g.nota ? ' · ' + esc(g.nota) : '') + ' · ' + esc(g.criadoPor) + '</div></div><button class="btn sec peq" data-anpv="' + esc(g.id) + '" data-p="' + esc(p.id) + '">Anular</button></div>'; }).join('') +
+          p.pagamentos.map(function (g) { if (!g.ate) return '<div class="item"><div><b>Pago com as horas extra · ' + dataPT(String(g.criadoEm).slice(0, 10)) + '</b><div class="meta">' + g.viagens + ' viage' + (g.viagens === 1 ? 'm' : 'ns') + ' · ' + eur(g.valor) + (g.nota ? ' · ' + esc(g.nota) : '') + ' · ' + esc(g.criadoPor) + '</div></div><span class="meta">anula-se no pagamento das horas</span></div>'; return '<div class="item"><div><b>Pago até ' + dataPT(g.ate) + '</b><div class="meta">' + g.viagens + ' viage' + (g.viagens === 1 ? 'm' : 'ns') + ' · ' + eur(g.valor) + (g.nota ? ' · ' + esc(g.nota) : '') + ' · ' + esc(g.criadoPor) + '</div></div><button class="btn sec peq" data-anpv="' + esc(g.id) + '" data-p="' + esc(p.id) + '">Anular</button></div>'; }).join('') +
           p.pagas.map(function (v) { return '<div class="item"><div>' + esc(nomeDestino(v.destino)) + '<div class="meta">' + diaSemanaPT(v.data) + '</div></div><span class="tag e">paga</span></div>'; }).join('') + '</div></details>' : '') +
         '</div>';
     });
@@ -1800,12 +1819,19 @@ function porPagarCalc(p, par, ate, desde) {
   return t;
 }
 function ultimoDomingo() { var d = agora(); d.setDate(d.getDate() - ((d.getDay() + 7) % 7 || 7)); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+function msgPagHtml(t) { return esc(String(t || '')).replace(/&lt;(\/?)b&gt;/gi, '<$1b>'); }
+function limpaMsgPag(h) { return String(h || '').replace(/<(\/?)(strong)>/gi, '<$1b>').replace(/<br\s*\/?>/gi, ' ').replace(/<(?!\/?b>)[^>]*>/gi, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim(); }
+var MET_TOTAL = { transferencia: 'Foi transferido', numerario: 'Foi pago em numerário', recibo: 'Foi pago no recibo de vencimento' };
+function eurN(x) { return (Math.round((Number(x) || 0) * 100) / 100).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' €'; }
+function numPT(x) { var n = Number(String(x == null ? '' : x).replace(/\s/g, '').replace(',', '.')); return isFinite(n) ? n : 0; }
 function folhaPagamento(pid) {
   var p = S.horasDados.pessoas.filter(function (x) { return String(x.id) === String(pid); })[0], par = lerPar(pid);
   var ontem = somaDias(hojeStr(), -1), dom = ultimoDomingo(), sex = somaDias(dom, -2);
   var desde0 = p.ultimoPagamento ? somaDias(p.ultimoPagamento, 1) : ((p.porPagar[0] || {}).inicio || hojeSegunda());
   var ult = p.pagamentos[0];
-  var hist = p.pagamentos.length ? p.pagamentos.map(function (g) { return '<div class="item"><div><b>' + (g.desde ? 'De ' + dataPT(g.desde) + ' a ' + dataPT(g.ate) : 'Pago até ' + dataPT(g.ate)) + '</b><div class="meta">' + hSinal(g.horas) + ' · ' + eur(g.valor) + (g.taxa1 !== '' && g.taxa1 != null ? ' · taxas ' + String(g.taxa1).replace('.', ',') + '% / ' + String(g.taxa2).replace('.', ',') + '%' : '') + (g.nota ? ' · ' + esc(g.nota) : '') + ' · registado por ' + esc(g.criadoPor) + '<br>Pago a ' + dataPT(g.pagoEm) + ' · ' + ({ transferencia: 'transferência bancária', numerario: 'numerário', recibo: 'no recibo de vencimento' }[g.metodo] || 'transferência bancária') + ' · ' + (g.avisoEm ? 'mensagem vista pela assistente a ' + esc(g.avisoEm.slice(8, 10) + '/' + g.avisoEm.slice(5, 7) + ' às ' + g.avisoEm.slice(11, 16)) : 'a assistente ainda não viu a mensagem') + '</div></div><button class="btn sec peq" data-anpag="' + esc(g.id) + '">Anular</button></div>'; }).join('') : '<div class="vazio">Ainda sem pagamentos registados.</div>';
+  var hist = p.pagamentos.length ? p.pagamentos.map(function (g) { return '<div class="item"><div><b>' + (g.desde ? 'De ' + dataPT(g.desde) + ' a ' + dataPT(g.ate) : 'Pago até ' + dataPT(g.ate)) + '</b><div class="meta">' + hSinal(g.horas) + ' · ' + eur(g.valor) + (g.taxa1 !== '' && g.taxa1 != null ? ' · taxas ' + String(g.taxa1).replace('.', ',') + '% / ' + String(g.taxa2).replace('.', ',') + '%' : '') + (g.nota ? ' · ' + esc(g.nota) : '') + ' · registado por ' + esc(g.criadoPor) + '<br>Pago a ' + dataPT(g.pagoEm) + ' · ' + ({ transferencia: 'transferência bancária', numerario: 'numerário', recibo: 'no recibo de vencimento' }[g.metodo] || 'transferência bancária') + ' · ' + (g.avisoEm ? 'mensagem vista pela assistente a ' + esc(g.avisoEm.slice(8, 10) + '/' + g.avisoEm.slice(5, 7) + ' às ' + g.avisoEm.slice(11, 16)) : 'a assistente ainda não viu a mensagem') + '</div>' +
+    (g.viagensN ? '<div class="meta"><span class="tag e">+ viagens</span> ' + g.viagensN + (g.viagensN === 1 ? ' viagem' : ' viagens') + ' · ' + eur(g.viagensValor) + (g.viagensAdiantadas ? ' · ' + g.viagensAdiantadas + ' paga' + (g.viagensAdiantadas > 1 ? 's' : '') + ' antecipadamente' : '') + '</div>' : '') +
+    (g.mensagem ? '<div class="meta">Mensagem: «' + msgPagHtml(g.mensagem) + '»</div>' : '') + '</div><button class="btn sec peq" data-anpag="' + esc(g.id) + '">Anular</button></div>'; }).join('') : '<div class="vazio">Ainda sem pagamentos registados.</div>';
   abrirFolha('<div class="eyebrow">' + esc(p.nome) + '</div><h2>Pagamento de horas extra</h2>' +
     '<p>' + (ult ? 'Último pagamento: <b>' + (ult.desde ? dataPT(ult.desde) + ' a ' : 'até ') + dataPT(ult.ate) + '</b> (' + hSinal(ult.horas) + ' · ' + eur(ult.valor) + '). ' : '') + 'O período começa no dia a seguir ao último pagamento; pode mudar as datas, mesmo a meio da semana. A partir do dia seguinte ao fim, as horas extra voltam a contar do zero.</p>' +
     '<div class="duas"><div class="campo"><label for="pgDe">De</label><input id="pgDe" type="date" value="' + desde0 + '"></div><div class="campo"><label for="pgAte">Até</label><input id="pgAte" type="date" value="' + ontem + '"></div></div>' +
@@ -1817,6 +1843,10 @@ function folhaPagamento(pid) {
     '<div class="campo"><label for="pgV">Valor pago (€)</label><input id="pgV" type="text" inputmode="decimal"></div></div>' +
     '<div class="duas"><div class="campo"><label for="pgM">Como foi pago</label><select id="pgM"><option value="transferencia">Transferência bancária</option><option value="numerario">Numerário</option><option value="recibo">No recibo de vencimento</option></select></div><div class="campo"><label for="pgP">Data do pagamento</label><input id="pgP" type="date" value="' + hojeStr() + '"></div></div>' +
     '<div class="campo"><label for="pgN">Nota (opcional)</label><input id="pgN" type="text" placeholder="Ex.: pago no salário de outubro"></div>' +
+    '<div class="vg-box" id="pgVg"></div>' +
+    '<div class="linha-flex" style="justify-content:space-between;margin-top:6px"><span class="eyebrow" style="margin:0">Mensagem que vai aparecer no pica-ponto</span><button class="linkbtn" id="pgMsgR" hidden>Repor texto automático</button></div>' +
+    '<div class="msg-ed" id="pgMsg" contenteditable="true"></div>' +
+    '<p class="meta" style="margin:6px 0 0">Aparece uma só vez, na próxima picagem de ' + esc(String(p.nome).split(' ')[0]) + ' no computador da clínica. Pode alterar o texto; para pôr a negrito, selecione e carregue em Ctrl+B (⌘B no Mac).</p>' +
     '<div class="msg-erro" id="pgE"></div><div class="botoes-folha"><button class="btn sec" id="pgC">Cancelar</button><button class="btn verde" id="pgO">Registar pagamento</button></div>' +
     '<div class="eyebrow">Pagamentos anteriores</div><div class="lista">' + hist + '</div>');
   var conta = function () {
@@ -1830,15 +1860,72 @@ function folhaPagamento(pid) {
         (x.falta ? '<br>Horas a menos noutros dias: −' + horasFmt(x.falta) + ' × ' + eur(x.ph) + ' + ' + pct(x.t1) + ' = −' + eur(x.falta * x.ph * (1 + x.t1)) : '') +
         '<br><b>Total: ' + eur(t.valor) + '</b>' : '<br>Sem preço/hora definido para esta assistente.') : 'Sem dias registados nesse período.';
   };
-  conta();
-  document.getElementById('pgDe').onchange = conta; document.getElementById('pgAte').onchange = conta;
+  /* viagens pagas com as horas: escolhidas da lista (por pagar) e/ou acrescentadas aqui, incluindo futuras (pagas antecipadamente) */
+  var H = S.horasDados, HOJE_ = H.hoje || hojeStr(), VV = H.valoresViagem || {};
+  var abertas = (p.viagensAbertas || p.viagensPorPagar || []).slice().sort(function (a, b) { return a.data < b.data ? -1 : 1; });
+  var VG = { incl: abertas.length > 0, sel: {}, novas: [], valor: null, add: false }, MSG = { ed: false };
+  var precoV = function (d) { var v = VV[String(d).slice(0, 4)]; return v == null || v === '' ? null : Number(v); };
+  var marcaAte = function () { VG.sel = {}; abertas.forEach(function (v) { if (v.data <= valor('pgAte')) VG.sel[v.id] = 1; }); };
+  var escolhidas = function () { return abertas.filter(function (v) { return VG.sel[v.id]; }).map(function (v) { return { data: v.data, origem: v.origem, destino: v.destino }; }).concat(VG.novas); };
+  var vAuto = function () { return escolhidas().reduce(function (t, v) { return t + (precoV(v.data) || 0); }, 0); };
+  var vVg = function () { return VG.valor != null ? VG.valor : vAuto(); };
+  var nomeV = function (x) { return x === 'Faíscas' ? 'Faíscas' : x === 'Aveiro' ? 'Aveiro' : esc(x); };
+  var textoAuto = function () {
+    var de = valor('pgDe'), ate = valor('pgAte'), vh = numPT(valor('pgV')), E = VG.incl ? escolhidas() : [], vv = E.length ? vVg() : 0;
+    var dl = function (d) { return d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : ''; };
+    var per = de ? 'de ' + dl(de).slice(0, 5) + ' a ' + dl(ate) : 'até ' + dl(ate);
+    var t = (MET_TOTAL[valor('pgM')] || MET_TOTAL.transferencia) + ' um total de <b>' + eurN(vh + vv) + '</b>: o pagamento de ' + eurN(vh) + ' correspondente às horas extra ' + per;
+    if (E.length) { var fut = E.filter(function (v) { return v.data > HOJE_; });
+      t += ', e de ' + eurN(vv) + ' correspondente a ' + E.length + (E.length === 1 ? ' viagem' : ' viagens') + (fut.length ? ' (' + (fut.length === 1 ? 'a de ' + dl(fut[0].data).slice(0, 5) + ' paga antecipadamente' : fut.length + ' pagas antecipadamente: ' + fut.map(function (v) { return dl(v.data).slice(0, 5); }).join(', ')) + ')' : ''); }
+    return t + '.';
+  };
+  var msgAtual = function () { return MSG.ed ? limpaMsgPag(document.getElementById('pgMsg').innerHTML) : textoAuto(); };
+  var atualizaMsg = function () { if (!MSG.ed) document.getElementById('pgMsg').innerHTML = textoAuto(); document.getElementById('pgMsgR').hidden = !MSG.ed; };
+  var desenhaVg = function () {
+    var E = escolhidas(), semPreco = E.some(function (v) { return precoV(v.data) == null; });
+    var linhas = abertas.map(function (v) { var on = !!VG.sel[v.id]; return '<label class="vg-row' + (on ? '' : ' off') + '"><input type="checkbox" data-vgs="' + esc(v.id) + '"' + (on ? ' checked' : '') + '><span class="vg-d">' + dataPT(v.data).slice(0, 5) + '</span><span>' + nomeV(v.origem) + ' → ' + nomeV(v.destino) + (v.data > HOJE_ ? ' <span class="tag i">futura</span>' : v.data > valor('pgAte') ? ' <span class="tag i">depois do período</span>' : '') + '</span><span class="num">' + (precoV(v.data) == null ? '—' : eur(precoV(v.data))) + '</span></label>'; }).join('') +
+      VG.novas.map(function (v, i) { return '<div class="vg-row"><span></span><span class="vg-d">' + dataPT(v.data).slice(0, 5) + '</span><span>' + nomeV(v.origem) + ' → ' + nomeV(v.destino) + ' <span class="tag e">acrescentada</span>' + (v.data > HOJE_ ? ' <span class="tag t">paga antecipadamente</span>' : '') + ' <button class="linkbtn" data-vgdel="' + i + '">tirar</button></span><span class="num">' + (precoV(v.data) == null ? '—' : eur(precoV(v.data))) + '</span></div>'; }).join('');
+    document.getElementById('pgVg').innerHTML = '<div class="linha-flex" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><b>Pagar também viagens</b><div class="meta">Escolha as viagens pagas neste pagamento. Pode acrescentar uma viagem, também uma que ainda vai acontecer (fica paga antecipadamente).</div></div>' +
+      '<label class="vg-sw"><input type="checkbox" id="vgOn"' + (VG.incl ? ' checked' : '') + '><span></span></label></div>' +
+      (VG.incl ? '<div class="vg-lista">' + (linhas || '<div class="vazio">Sem viagens registadas por pagar.</div>') + '</div>' +
+        (VG.add ? '<div class="vg-add"><div class="campo"><label for="vgD">Dia</label><input id="vgD" type="date" value="' + hojeStr() + '"></div><div class="campo"><label for="vgO">De</label><select id="vgO"><option>' + esc(p.clinica === 'Faíscas' ? 'Faíscas' : 'Aveiro') + '</option><option>' + esc(p.clinica === 'Faíscas' ? 'Aveiro' : 'Faíscas') + '</option></select></div><div class="campo"><label for="vgT">Para</label><select id="vgT"><option>' + esc(p.clinica === 'Faíscas' ? 'Aveiro' : 'Faíscas') + '</option><option>' + esc(p.clinica === 'Faíscas' ? 'Faíscas' : 'Aveiro') + '</option><option value="Outro">Outro</option></select><input id="vgTo" type="text" placeholder="Para onde?" hidden style="margin-top:6px"></div><div class="linha-flex" style="gap:6px"><button class="btn sec peq" id="vgAddC">Cancelar</button><button class="btn peq" id="vgAddO">Acrescentar</button></div></div>'
+          : '<div style="margin-top:8px"><button class="btn sec peq" id="vgAdd">+ Acrescentar viagem</button></div>') +
+        '<div class="duas" style="margin-top:10px"><div class="campo"><label>Viagens</label><input type="text" value="' + E.length + '" disabled></div><div class="campo"><label for="vgV">Valor das viagens (€)</label><input id="vgV" type="text" inputmode="decimal" value="' + String(Math.round(vVg() * 100) / 100).replace('.', ',') + '"></div></div>' +
+        '<div class="meta">' + (E.length ? E.length + ' × valor por viagem do ano' : 'Nenhuma viagem escolhida') + (semPreco ? ' · <b style="color:#b4261a">falta o valor por viagem de algum ano (separador Viagens)</b>' : '') + (VG.valor != null ? ' · valor alterado à mão <button class="linkbtn" id="vgVR">repor</button>' : '') + '</div>' : '');
+    var on = document.getElementById('vgOn'); on.onchange = function () { VG.incl = on.checked; desenhaVg(); };
+    document.querySelectorAll('[data-vgs]').forEach(function (c) { c.onchange = function () { if (c.checked) VG.sel[c.dataset.vgs] = 1; else delete VG.sel[c.dataset.vgs]; desenhaVg(); }; });
+    document.querySelectorAll('[data-vgdel]').forEach(function (b) { b.onclick = function () { VG.novas.splice(+b.dataset.vgdel, 1); desenhaVg(); }; });
+    var a = document.getElementById('vgAdd'); if (a) a.onclick = function () { VG.add = true; desenhaVg(); };
+    var ac = document.getElementById('vgAddC'); if (ac) ac.onclick = function () { VG.add = false; desenhaVg(); };
+    var tt = document.getElementById('vgT'); if (tt) tt.onchange = function () { document.getElementById('vgTo').hidden = tt.value !== 'Outro'; };
+    var ao = document.getElementById('vgAddO'); if (ao) ao.onclick = function () {
+      var d = valor('vgD'), o = valor('vgO'), t = tt.value === 'Outro' ? valor('vgTo').trim() : tt.value;
+      if (!d) { document.getElementById('pgE').textContent = 'Escolha o dia da viagem.'; return; }
+      if (!t) { document.getElementById('pgE').textContent = 'Escreva para onde foi a viagem.'; return; }
+      if (o === t) { document.getElementById('pgE').textContent = 'A origem e o destino têm de ser diferentes.'; return; }
+      var ja = abertas.filter(function (v) { return v.data === d && v.destino === t; })[0];
+      if (ja) { VG.sel[ja.id] = 1; VG.add = false; document.getElementById('pgE').textContent = ''; desenhaVg(); toast('Essa viagem já estava registada: ficou escolhida.'); return; }
+      VG.novas.push({ data: d, origem: o, destino: t }); VG.novas.sort(function (x, y) { return x.data < y.data ? -1 : 1; }); VG.add = false; document.getElementById('pgE').textContent = '';
+      desenhaVg(); toast(d > HOJE_ ? 'Viagem futura acrescentada: fica paga antecipadamente.' : 'Viagem acrescentada.');
+    };
+    var vv = document.getElementById('vgV'); if (vv) vv.oninput = function () { VG.valor = vv.value.trim() === '' ? null : numPT(vv.value); atualizaMsg(); };
+    var vr = document.getElementById('vgVR'); if (vr) vr.onclick = function () { VG.valor = null; desenhaVg(); };
+    atualizaMsg();
+  };
+  var conta0 = conta; conta = function () { conta0(); if (document.getElementById('pgVg')) atualizaMsg(); };
+  marcaAte(); conta(); desenhaVg();
+  document.getElementById('pgMsg').oninput = function () { MSG.ed = true; document.getElementById('pgMsgR').hidden = false; };
+  document.getElementById('pgMsgR').onclick = function () { MSG.ed = false; atualizaMsg(); };
+  document.getElementById('pgV').oninput = atualizaMsg; document.getElementById('pgM').onchange = atualizaMsg;
+  document.getElementById('pgDe').onchange = conta; document.getElementById('pgAte').onchange = function () { marcaAte(); conta(); desenhaVg(); };
   document.getElementById('pgT1').oninput = conta; document.getElementById('pgT2').oninput = conta;
   document.querySelectorAll('[data-tx]').forEach(function (b) { b.onclick = function () { var k = b.dataset.tx.split('|'); document.getElementById('pgT1').value = k[0]; document.getElementById('pgT2').value = k[1]; conta(); }; });
-  document.querySelectorAll('[data-pgate]').forEach(function (b) { b.onclick = function () { document.getElementById('pgAte').value = b.dataset.pgate; conta(); }; });
+  document.querySelectorAll('[data-pgate]').forEach(function (b) { b.onclick = function () { document.getElementById('pgAte').value = b.dataset.pgate; marcaAte(); conta(); desenhaVg(); }; });
   document.getElementById('pgC').onclick = fecharFolha;
   document.getElementById('pgO').onclick = function () {
-    chamar('pagamento', { token: S.token, pessoaId: pid, dados: { desde: valor('pgDe'), ate: valor('pgAte'), horas: valor('pgH'), valor: valor('pgV'), taxa1: valor('pgT1').replace(',', '.'), taxa2: valor('pgT2').replace(',', '.'), nota: valor('pgN'), metodo: valor('pgM'), pagoEm: valor('pgP') } })
-      .then(function () { fecharFolha(); toast('Pagamento registado. As horas extra recomeçam do zero.'); supHoras(); }, function (e) { document.getElementById('pgE').textContent = e.message; });
+    chamar('pagamento', { token: S.token, pessoaId: pid, dados: { desde: valor('pgDe'), ate: valor('pgAte'), horas: valor('pgH'), valor: valor('pgV'), taxa1: valor('pgT1').replace(',', '.'), taxa2: valor('pgT2').replace(',', '.'), nota: valor('pgN'), metodo: valor('pgM'), pagoEm: valor('pgP'),
+      viagens: VG.incl && escolhidas().length ? { ids: Object.keys(VG.sel), novas: VG.novas, valor: String(Math.round(vVg() * 100) / 100) } : null, mensagem: msgAtual() } })
+      .then(function (r) { fecharFolha(); toast('Pagamento registado' + (r && r.viagens ? ' com ' + r.viagens + (r.viagens === 1 ? ' viagem' : ' viagens') : '') + '. As horas extra recomeçam do zero.'); supHoras(); }, function (e) { document.getElementById('pgE').textContent = e.message; });
   };
   document.querySelectorAll('[data-anpag]').forEach(function (b) { b.onclick = function () {
     if (b.dataset.conf !== '1') { b.dataset.conf = '1'; b.textContent = 'Confirmar'; return; }

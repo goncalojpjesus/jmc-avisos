@@ -1590,7 +1590,8 @@ const UNI=()=>{const A=(window.JMC_CONFIG||{}).apps||{};const im=k=>`<img src="$
   doc:im('docs'),
   doc1:im('docs'),
   tal:im('talao'),
-  gest:im('gestao')};
+  gest:im('gestao'),
+  contas:`<svg viewBox="0 0 48 48" style="width:100%;height:100%"><rect x="9" y="6" width="30" height="36" rx="5" fill="#F3EAD2" stroke="#A88A3C" stroke-width="2"/><path d="M16 17h16M16 24h16M16 31h9" stroke="#A88A3C" stroke-width="2.4" stroke-linecap="round"/><circle cx="33" cy="33" r="6" fill="#A88A3C"/><path d="M31 33h4" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>`};
   const inChat=VIEW==='ph'?PHMODE==='chat':UNICTX==='chat';
   const DDSVG=`<svg viewBox="0 0 48 48" style="width:100%;height:100%"><rect x="6" y="12" width="36" height="25" rx="5" fill="#F3EAD2" stroke="#A88A3C" stroke-width="2"/><path d="M6 19h36" stroke="#A88A3C" stroke-width="3"/><path d="M12 29h10" stroke="#A88A3C" stroke-width="2" stroke-linecap="round"/><path d="M30 26l4 4 4-4" fill="none" stroke="#2E7D5B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;I.dd=DDSVG;
   return [{h:'Comunicação'},inChat?{k:'chat',t:'Notificações',s:'Recados e avisos',cur:1,go:'rec'}:{k:'chat',t:'Chat',s:'Conversas da equipa',cur:1,go:'chat'},
@@ -1598,6 +1599,7 @@ const UNI=()=>{const A=(window.JMC_CONFIG||{}).apps||{};const im=k=>`<img src="$
     {h:'Finanças'},{k:'cx',t:'Fecho de caixa',s:'Fechos e faturação',u:A.caixa||''},
     {k:'tal',t:'Digitalizar talões',s:'Talões do TPA para o fecho',u:A.taloes||(A.caixa?A.caixa+'?talao=1':'')},
     {k:'dd',t:'Débitos diretos',s:'Banco · contabilidade · mapa',u:A.debitos||'https://goncalojpjesus.github.io/jmc-avisos/documentos/debitos/',ddv:1},
+    {k:'contas',t:'Contas dos médicos',s:'Honorários · resumo e email',u:A.contas||'https://claude.ai/artifact/Ao1Ci4fMXU7dr2ibfo7Dpe',own:1},
     {h:'Equipa e documentos'},{k:'ponto',t:'Área RH',s:'Recursos humanos · ponto, férias e recibos',u:A.ponto||''},
     {k:'doc',t:'Documentos',s:'Consentimentos e documentos',u:A.documentos||''},
     {k:'doc1',t:'Documentos 1',s:'Novos documentos · em migração',u:A.documentos1||'https://goncalojpjesus.github.io/jmc-avisos/documentos/'},
@@ -1828,7 +1830,7 @@ addEventListener('resize',fitPanels);
 dragY('#bar','top',()=>$('topR'));dragY('#chatBtn, .chead','chat',()=>$('chatW'));
 applyPos();setInterval(applyPos,60000);
 // atualização automática: se houver versão nova publicada, recarrega (sem perder nada: os dados estão no servidor)
-const BUILD='2026.10.20-1';
+const BUILD='2026.10.30-1';
 const chkUpd=()=>{if(location.protocol!=='https:')return;fetch('version.txt?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{v=v&&v.trim();
   if(v&&v!==BUILD&&$('sheet').hidden&&$('pin').hidden&&!document.querySelector('input:focus, textarea:focus')){
     let tried='';try{tried=sessionStorage.getItem('jmc_upd')||'';}catch(e){}if(tried===v)return;try{sessionStorage.setItem('jmc_upd',v);}catch(e){}

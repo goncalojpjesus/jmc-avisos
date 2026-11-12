@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<script>
+/* JMC — documentos migrados da app antiga (Apps Script) para o GitHub.
+   Mantém o mesmo código da página: google.script.run passa a falar com o servidor "JMC Documentos API" (código pessoal uma vez por aparelho). */
+(function(){
+ const qs=new URLSearchParams(location.search);
+ const u=(qs.get('unidade')||'').toLowerCase();
+ if(u==='aveiro'||u==='faiscas'){window.JMC_UNIDADE=u;try{localStorage.setItem('jmc_unidade',u);}catch(e){}}
+ else{try{const s=localStorage.getItem('jmc_unidade');if(s==='aveiro'||s==='faiscas')window.JMC_UNIDADE=s;}catch(e){}}
+ window.JMC_TESTE=qs.get('teste')==='1';
+ const API='https://script.google.com/macros/s/AKfycbz4r7u2KxQK2NLh-4julAkcAMj8qOmp-kKaI5vZC6HXJfTkhWyIpEVqoXt16HUmwwjFjQ/exec',TK='jmc_docs_token';
+ const tok=()=>{try{return localStorage.getItem(TK)||'';}catch(e){return '';}};
+ const post=(fn,payload,token)=>fetch(API,{method:'POST',body:JSON.stringify({fn,payload,token}),redirect:'follow'}).then(r=>{if(!r.ok)throw Error('Sem ligação ao servidor (HTTP '+r.status+').');return r.json();});
+ let wait=null;
+ function overlay(){let el=document.getElementById('jmcLogin');if(el)return el;el=document.createElement('div');el.id='jmcLogin';
+  el.style.cssText='display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(20,24,28,.55);align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif';
+  el.innerHTML='<div style="background:#fff;border-radius:16px;padding:22px 22px 18px;width:min(340px,100%);box-shadow:0 20px 50px rgba(0,0,0,.25);text-align:center"><div style="font-weight:700;font-size:17px;margin-bottom:4px">Código pessoal</div><div style="font-size:13px;color:#6b7280;margin-bottom:14px">O mesmo do fecho de caixa. Só é pedido uma vez neste aparelho.</div><input id="jmcPin" type="password" inputmode="numeric" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:22px;letter-spacing:.3em;text-align:center;padding:10px;border:1px solid #d9dbe0;border-radius:10px"><div id="jmcPinErr" style="min-height:18px;font-size:12.5px;color:#a1382b;margin:8px 0"></div><button id="jmcPinGo" type="button" style="width:100%;padding:11px;border:0;border-radius:10px;background:#1f2a2e;color:#fff;font-size:15px;font-weight:600;cursor:pointer">Entrar</button></div>';
+  document.body.appendChild(el);return el;}
+ function login(){if(wait)return wait;const el=overlay();el.style.display='flex';const pin=document.getElementById('jmcPin'),err=document.getElementById('jmcPinErr'),go=document.getElementById('jmcPinGo');pin.value='';err.textContent='';setTimeout(()=>pin.focus(),50);
+  wait=new Promise(res=>{const run=async()=>{const code=pin.value.trim();if(!code)return;go.disabled=true;err.textContent='A verificar…';
+   try{const o=await post('login',{code,aparelho:(navigator.userAgent.match(/\(([^)]+)\)/)||[])[1]||''});if(!o.ok)throw Error(o.erro);try{localStorage.setItem(TK,o.r.token);localStorage.setItem('jmc_docs_nome',o.r.nome||'');}catch(e){}
+    el.style.display='none';wait=null;res(o.r.token);}catch(e){err.textContent=e.message||String(e);}finally{go.disabled=false;}};
+   go.onclick=run;pin.onkeydown=e=>{if(e.key==='Enter')run();};});return wait;}
+ async function api(fn,payload){let t=tok();if(!t)t=await login();let o=await post(fn,payload,t);
+  if(!o.ok&&o.auth){try{localStorage.removeItem(TK);}catch(e){}t=await login();o=await post(fn,payload,t);}
+  if(!o.ok)throw Error(o.erro||'Erro no servidor.');return o.r;}
+ window.jmcApi=api;
+ const ORTHO_V='ortho-preview-2026-09-21-v17',cacheJ={};
+ const getJ=u=>cacheJ[u]||(cacheJ[u]=fetch(u,{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Não foi possível carregar o modelo ('+r.status+').');return r.json();}).catch(e=>{delete cacheJ[u];throw e;}));
+ const ORTHO_KEYS=['hyrax','ocluso','ortodontia'];
+ const LOCAL={
+  getOrthoPreview:k=>{if(!ORTHO_KEYS.includes(k))return Promise.reject(Error('Documento desconhecido.'));return getJ('modelos/preview_'+k+'.json').then(p=>Object.assign({},p,{version:ORTHO_V}));},
+  getOrthoPrintPdf:k=>{if(!ORTHO_KEYS.includes(k))return Promise.reject(Error('Documento desconhecido.'));return getJ('modelos/asset_'+k+'.json').then(a=>a.pdf);},
+  getAlimentacaoAsset:()=>getJ('modelo.json')
+ };
+ function runner(){const st={ok:null,fail:null};const p=new Proxy({},{get(_,k){
+   if(k==='withSuccessHandler')return f=>{st.ok=f;return p;};
+   if(k==='withFailureHandler')return f=>{st.fail=f;return p;};
+   if(k==='withUserObject')return ()=>p;
+   if(typeof k!=='string'||k==='then')return undefined;
+   return (arg)=>{(LOCAL[k]?Promise.resolve().then(()=>LOCAL[k](arg)):api(k,arg===undefined?{}:arg)).then(r=>{if(st.ok)st.ok(r);}).catch(e=>{if(st.fail)st.fail(e);else console.error(e);});};}});return p;}
+ window.google=window.google||{};window.google.script={get run(){return runner();},url:{getLocation:f=>f({parameter:Object.fromEntries(qs.entries()),parameters:{}})}};
+})();
+</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gerador de Consentimento — Implantologia</title>
+<style>
+:root{
+  --bg:#f4f5f7;--panel:#ffffff;--ink:#1c1c1e;--muted:#6b7280;--line:#d9dbe0;
+  --accent:#0f6b5c;--accent-ink:#ffffff;--paper:#ffffff;--paper-ink:#111;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#15171b;--panel:#1f2127;--ink:#ececee;--muted:#9aa0aa;--line:#33363d;--accent:#3ba58f;--accent-ink:#0b0b0b;}
+}
+:root[data-theme="dark"]{--bg:#15171b;--panel:#1f2127;--ink:#ececee;--muted:#9aa0aa;--line:#33363d;--accent:#3ba58f;--accent-ink:#0b0b0b;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+header h1{font-size:16px;margin:0}
+header small{color:var(--muted)}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.lang{background:transparent;color:var(--muted);border:0;padding:6px 9px;cursor:pointer;font-weight:600}.lang.on{background:var(--accent);color:var(--accent-ink)}
+main{display:grid;grid-template-columns:400px 1fr;gap:0;min-height:calc(100vh - 56px)}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:16px 18px 40px;overflow:auto}
+section.card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+section.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 10px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+select.sub{margin-left:24px;margin-bottom:6px}
+input[type=text],input[type=date],select,textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:52px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chk{display:flex;align-items:flex-start;gap:8px;margin:7px 0;font-size:13px}
+.chk input{margin-top:3px}
+.sub{margin-left:24px}
+.hint{font-size:11px;color:var(--muted);margin-top:4px}
+.req{color:#c0392b}
+.preview-wrap{padding:22px;overflow:auto;display:flex;justify-content:center}
+.paper{background:var(--paper);color:var(--paper-ink);width:210mm;min-height:297mm;padding:16mm 15mm;box-shadow:0 2px 14px rgba(0,0,0,.15);font:10.5pt/1.42 Arial,Helvetica,sans-serif;text-align:justify}
+.paper h1{text-align:center;font-size:13pt;margin:0 0 2pt}
+.paper .sub-t{text-align:center;font-size:10pt;margin:0 0 8pt}
+.paper h2{text-align:center;font-size:12pt;border-bottom:1px solid #000;padding-bottom:4pt;margin:0 0 10pt}
+.paper h3{font-size:10.5pt;margin:11pt 0 4pt}
+.paper p{margin:0 0 6pt}
+.paper .miss{background:#fff3b0;color:#7a5a00;padding:0 3px;border-radius:3px}
+.paper .sigbox{height:70pt;border:1px dashed #999;border-radius:4pt;display:flex;align-items:center;justify-content:center;margin-bottom:4pt;cursor:pointer;background:#fff}
+.paper .sigbox img{max-height:66pt;max-width:100%}
+.paper .sighint{color:#999;font-size:9pt}
+@media print{.paper .sigbox{border-color:transparent}.paper .sighint{display:none}}
+.paper .sig{display:grid;grid-template-columns:1fr 1fr;gap:24pt;margin-top:30pt;text-align:center;font-size:9.5pt}
+.paper .sig div{border-top:0;padding-top:0}
+.paper .sig div.sigline{border-top:1px solid #000;padding-top:4pt}
+.paper .sig div.sigbox{border:1px dashed #999}
+.paper .box{display:inline-block;width:10pt;height:10pt;border:1px solid #000;vertical-align:-2pt;margin-right:3pt;text-align:center;line-height:9pt;font-size:8pt}
+.paper .meta{font-size:9pt;color:#444;margin-top:6pt}
+.paper .pfoot{display:none}
+.pagebreak{page-break-before:always;break-before:page;border-top:2px dashed #999;margin:24pt 0}
+@media print{.pagebreak{border:0;margin:0}}
+@media print{.paper .pfoot{display:block;position:fixed;bottom:0;left:0;right:0;font-size:7.5pt;color:#555;border-top:1px solid #bbb;padding-top:2pt;text-align:center}}
+.warn{background:#fff3b0;color:#7a5a00;border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:12px;display:none}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50}
+#modal .dlg{background:var(--panel);color:var(--ink);border-radius:12px;padding:20px 22px;max-width:420px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+#modal .dlg p{margin:0 0 16px;white-space:pre-line}
+#modal .acts{display:flex;gap:8px;justify-content:flex-end}
+@media (max-width:980px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}.paper{width:100%;min-height:0;padding:14px}}
+@media print{
+  body{background:#fff}header,aside,.warn{display:none!important}main{display:block}
+  .preview-wrap{padding:0}.paper{box-shadow:none;width:auto;min-height:0;padding:0;font-size:10pt}
+  .paper .miss{background:none;color:#000}
+  @page{size:A4;margin:16mm 15mm 18mm}
+}
+</style>
+<style>.clinical-bar{padding:12px 20px;background:#edf4f3;color:#203b43;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #ccd9d8}.clinical-bar span{font-size:13px}#clinical-dialog{color:#203b43;background:white;width:min(90vw,620px);max-height:80vh;border:1px solid #ccd9d8;border-radius:12px;padding:22px}#clinical-dialog::backdrop{background:#0008}#clinical-dialog button{cursor:pointer;padding:10px 14px;margin:5px 0}#clinical-search{width:100%;padding:10px;box-sizing:border-box}#clinical-list{margin:14px 0}.clinical-row{display:block;width:100%;text-align:left;background:#f1f6f5;border:1px solid #ccd9d8;border-radius:6px}@media print{.clinical-bar,#clinical-dialog{display:none!important}}header{flex-wrap:wrap}</style></head>
+<body>
+<header>
+  <div><h1>Gerador de Consentimento — Implantologia</h1><small>v2.0 · escolhe as opções à esquerda; o documento à direita atualiza-se</small></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="langSel" style="display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:12px">
+      <button class="lang on" data-l="pt">PT</button><button class="lang" data-l="en" >EN</button><button class="lang" data-l="fr" >FR</button>
+    </span>
+    <button class="btn secondary" id="btnReset">Limpar</button>
+    <button class="btn secondary" id="btnPrint">Imprimir</button>
+    <button class="btn" id="btnSave" disabled title="Assine primeiro">Guardar no Drive e enviar</button>
+  </div>
+</header><section class="clinical-bar" aria-label="Rascunhos"><div><button class="btn" id="clinical-save" type="button">Guardar rascunho</button> <button class="btn secondary" id="clinical-resume" type="button">Retomar rascunho</button></div><span id="clinical-status" role="status">Prepare no computador e retome no tablet, com a mesma conta da clínica.</span></section>
+<main>
+<aside>
+  <div class="warn" id="warn"></div>
+
+  <section class="card">
+    <h2>Paciente e consulta</h2>
+    <label>Nome completo do paciente <span class="req">*</span></label>
+    <input type="text" id="nome" placeholder="Copiar da ficha">
+    <label>Email do paciente (para envio da cópia)</label>
+    <input type="text" id="email" placeholder="paciente@exemplo.com" inputmode="email">
+    <div class="row">
+      <div><label>Unidade clínica</label>
+        <select id="unidade"><option>Aveiro</option><option>Faíscas</option><option value="outra">Outra…</option></select>
+        <input type="text" id="unidadeOutra" placeholder="nome da unidade / localidade" style="margin-top:6px;display:none"></div>
+      <div><label>Médico(a) responsável</label>
+        <input type="text" id="medico" value="Dr. Gonçalo Jesus"></div>
+    </div>
+    <div class="row">
+      <div><label>Data de nascimento (cola do iMED)</label><input type="text" id="nasc" placeholder="2026-09-18 ou 18/09/2026"><div class="hint" id="nascHint"></div></div>
+      <div><label>Data (esclarecimento e assinatura)</label><input type="date" id="dataAss"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>1. Plano</h2>
+    <label>Posições dentárias (FDI) — opcional, para unitários/múltiplos</label>
+    <input type="text" id="pos" placeholder="ex.: 15 26 27 35 36  ou  1.5, 2.6, 2.7">
+    <div class="hint" id="posHint">Se escreveres posições, o n.º de implantes e a localização preenchem-se sozinhos. Numa total, deixa em branco e indica só o n.º e a arcada.</div>
+    <div class="row">
+      <div><label>N.º de implantes <span class="req">*</span></label>
+        <select id="nImpl"><option value="">—</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></div>
+      <div><label>Arcada <span class="req">*</span></label>
+        <select id="loc"><option value="">—</option><option>maxila</option><option>mandíbula</option><option>maxila e mandíbula</option></select></div>
+    </div>
+    <label>Reabilitação <span class="req">*</span></label>
+    <select id="reab"><option value="">—</option>
+      <option>coroa cerâmica sobre implante</option>
+      <option>coroas cerâmicas sobre implantes</option>
+      <option>prótese parcial fixa implanto-suportada</option>
+      <option>prótese total fixa implanto-suportada</option>
+      <option>próteses totais fixas implanto-suportadas (ambas as arcadas)</option>
+    </select>
+  </section>
+
+  <section class="card">
+    <h2>2. Fase cirúrgica — procedimentos complementares</h2>
+    <div class="chk"><input type="checkbox" id="exoOn"><span>Exodontias</span></div>
+    <select id="exo" class="sub" style="display:none;width:calc(100% - 24px)">
+      <option value="pos">Dos dentes / restos radiculares nas posições dos implantes</option>
+      <option value="sup">De todos os dentes presentes no maxilar superior</option>
+      <option value="inf">De todos os dentes presentes no maxilar inferior</option>
+      <option value="ambos">De todos os dentes presentes em ambas as arcadas</option>
+      <option value="dentes">Outros — escrever posições</option>
+    </select>
+    <input type="text" id="exoDentes" class="sub" placeholder="posições: ex. 46 48 ou 4.6, 4.8" style="margin-top:6px;display:none">
+
+    <div class="chk"><input type="checkbox" id="expl"><span>Explantação de implante(s) prévio(s)</span></div>
+    <input type="text" id="explPos" class="sub" placeholder="posição(ões) e motivo, ex.: 1.5, com peri-implantite" style="display:none">
+
+    <div class="chk"><input type="checkbox" id="geng"><span>Enxerto gengival / tecidos moles (palato e/ou tuberosidade)</span></div>
+    <div class="chk"><input type="checkbox" id="osso"><span>Enxerto ósseo / regeneração óssea guiada (biomaterial e/ou osso autólogo)</span></div>
+
+    <div class="chk"><input type="checkbox" id="sinusOn"><span>Elevação do seio maxilar</span></div>
+    <select id="sinus" class="sub" style="display:none;width:calc(100% - 24px)">
+      <option value="1q">1.º quadrante</option>
+      <option value="2q">2.º quadrante</option>
+      <option value="12q">1.º e 2.º quadrantes</option>
+    </select>
+
+    <div class="chk"><input type="checkbox" id="outroOn"><span>Outro procedimento</span></div>
+    <input type="text" id="outro" class="sub" placeholder="ex.: frenectomia" style="display:none">
+  </section>
+
+  <section class="card">
+    <h2 style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="carga" style="width:auto;margin:0"> 3. Carga imediata</h2>
+    <div id="cargaOpts" style="display:none">
+      <label>Tipo de provisório</label>
+      <select id="provTipo"><option value="auto">Automático (segundo a reabilitação)</option><option value="coroa">Coroa provisória</option><option value="coroas">Coroas provisórias</option><option value="ppf">Prótese fixa provisória</option></select>
+      <label>Posições com provisório (se diferente das posições dos implantes)</label>
+      <input type="text" id="provPos" placeholder="ex.: 11 (deixa vazio = todas)">
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Situações especiais</h2>
+    <div class="chk"><input type="checkbox" id="estrang"><span>Paciente residente ou ausente no estrangeiro durante o tratamento</span></div>
+    <div class="hint">Acrescenta o parágrafo sobre acompanhamento presencial, intercorrências e ausência de reembolsos.</div>
+  </section>
+
+  <section class="card">
+    <div class="chk"><input type="checkbox" id="addOn"><span>Informação adicional</span></div>
+    <div id="addOpts" style="display:none;margin-left:24px">
+    <label>Acrescentar em</label>
+    <select id="addSec">
+      <option value="diag">Diagnóstico e tratamento recomendado</option>
+      <option value="cir">Fase cirúrgica</option>
+      <option value="risc">Riscos e complicações</option>
+      <option value="carga">Carga imediata</option>
+      <option value="saude">Estado de saúde / cuidados</option>
+      <option value="prog">Prognóstico</option>
+      <option value="prot">Fase protética</option>
+      <option value="manut">Manutenção e garantia</option>
+    </select>
+    <label>Texto (entra como última frase da secção)</label>
+    <textarea id="addTxt" placeholder="ex.: Devido ao desvio dentário existente para o primeiro quadrante, tenho conhecimento de que haverá um desvio da linha média na reabilitação provisória e definitiva."></textarea>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>9. Registos clínicos</h2>
+    <label>Publicação "antes e depois" em redes sociais</label>
+    <select id="redes"><option value="">Deixar em branco (paciente assinala no tablet)</option><option value="sim">Sim</option><option value="nao">Não — omitir esta autorização do documento</option><option value="naop">Não — mostrar «Não» assinalado</option></select>
+    <p style="font-size:12px;color:#6b7280;margin:4px 0 0">O paciente também pode tocar em «Sim» ou «Não» diretamente no documento.</p>
+  </section>
+</aside>
+
+<div id="sigModal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:60">
+  <div style="background:#fff;color:#111;border-radius:12px;padding:16px;width:min(96vw,900px)">
+    <div id="sigTitle" style="font-weight:600;margin-bottom:8px">Assinatura</div>
+    <div style="font-size:13px;color:#555;margin:6px 0">Escreva com a caneta. Para apagar, afaste a caneta do ecrã e passe o dedo sobre o traço. No computador, use o rato para escrever.</div><canvas id="sigPad" style="width:100%;height:300px;border:1px dashed #999;border-radius:8px;touch-action:none;background:#fff"></canvas>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+      <button class="btn secondary" id="sigClear" style="color:#111">Limpar</button>
+      <button class="btn secondary" id="sigCancel" style="color:#111">Cancelar</button>
+      <button class="btn" id="sigOk">Confirmar assinatura</button>
+    </div>
+  </div>
+</div>
+<div id="toast" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:8px;display:none;z-index:70;max-width:90vw"></div>
+<div id="modal"><div class="dlg"><p id="modalMsg"></p><div class="acts"><button class="btn secondary" id="modalNo">Cancelar</button><button class="btn" id="modalYes">Continuar</button></div></div></div>
+<div class="preview-wrap"><div class="paper" id="paper"></div></div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const ids=['email','outroOn','addOn','exoOn','sinusOn','nasc','estrang','addSec','addTxt','provTipo','provPos','nome','unidade','unidadeOutra','medico','dataAss','nImpl','loc','pos','reab','exo','exoDentes','expl','explPos','geng','osso','sinus','outro','carga','redes'];
+const today=()=>{const d=new Date();return d.toISOString().slice(0,10)};
+$('dataAss').value=today();
+function normDate(t){
+  t=(t||'').trim(); if(!t) return '';
+  let m=t.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/); if(m) return `${m[3].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[1]}`;
+  m=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/); if(m) return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[3]}`;
+  m=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2})$/); if(m) return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${(+m[3]>30?'19':'20')+m[3]}`;
+  return null;
+}
+
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function fmtDate(v){if(!v)return '____ / ____ / ________';const [y,m,d]=v.split('-');return `${d}/${m}/${y}`}
+function v(id){return $(id).value.trim()}
+function miss(label){return `<span class="miss">${label}</span>`}
+const box=(on)=>`<span class="box">${on?'X':''}</span>`;
+
+function parseFDI(txt){
+  const out=[];
+  const re=/([1-8])\s*[.,]?\s*([1-8])/g; let m;
+  const clean=txt.replace(/[^0-9.,\s;/-]/g,' ');
+  const tokens=clean.split(/[\s,;\/-]+/).filter(Boolean);
+  for(const t of tokens){
+    const d=t.replace('.','');
+    if(/^[1-4][1-8]$/.test(d)) out.push(d[0]+'.'+d[1]);
+  }
+  return [...new Set(out)];
+}
+let lastAutoN='';
+function autoFromPositions(){
+  const teeth=parseFDI($('pos').value);
+  $('loc').disabled = teeth.length>0;
+  if(!teeth.length) return teeth;
+  const q=new Set(teeth.map(t=>t[0]));
+  const max=q.has('1')||q.has('2'), man=q.has('3')||q.has('4');
+  $('loc').value = max&&man?'maxila e mandíbula':max?'maxila':'mandíbula';
+  const auto=String(Math.min(teeth.length,12));
+  if(!$('nImpl').value || $('nImpl').value===lastAutoN) { $('nImpl').value = auto; lastAutoN = auto; }
+  return teeth;
+}
+function unidade(){return $('unidade').value==='outra' ? (v('unidadeOutra')||'') : $('unidade').value}
+const L = {
+pt:{
+  locale:'pt-PT', jaw:{max:'maxila',man:'mandíbula',both:'maxila e mandíbula'},
+  reab:{'coroa cerâmica sobre implante':'coroa cerâmica sobre implante','coroas cerâmicas sobre implantes':'coroas cerâmicas sobre implantes','prótese parcial fixa implanto-suportada':'prótese parcial fixa implanto-suportada','prótese total fixa implanto-suportada':'prótese total fixa implanto-suportada','próteses totais fixas implanto-suportadas (ambas as arcadas)':'prótese total fixa implanto-suportada em ambas as arcadas'},
+  sub:'Medicina Dentária', title:'CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE<br>Tratamento de Implantologia',
+  pac:'Paciente', nasc:'Data de nascimento', med:'Médico(a) responsável', dateLbl:'Data do esclarecimento e da assinatura',
+  missNome:'NOME DO PACIENTE', missNasc:'data de nascimento', missNascInv:'data inválida', missN:'N.º', missLoc:'localização', missReab:'tipo de reabilitação', missUnid:'unidade', missPos:'indicar posições',
+  impl:(n)=>n===1?'1 implante dentário':`${n} implantes dentários`, cnt:(k)=>k===1?'1 implante':`${k} implantes`,
+  posLabel:a=>a.length===1?`posição dentária ${a[0]}`:`posições dentárias ${a.join(', ')}`,
+  planBoth:(impl,up,upPos,lo,loPos,reab)=>`Serei submetido(a) a uma cirurgia de colocação de <b>${impl}</b>: <b>${up} na maxila</b> (${upPos}) e <b>${lo} na mandíbula</b> (${loPos}), para posterior reabilitação com <b>${reab}</b>.`,
+  planOne:(impl,loc,pos,reab)=>`Serei submetido(a) a uma cirurgia de colocação de <b>${impl}</b> na <b>${loc}</b>${pos?` (${pos})`:''}, para posterior reabilitação com <b>${reab}</b>.`,
+  fmtTeeth:a=>a.length===1?`do dente/resto radicular ${a[0]}`:`dos dentes/restos radiculares ${a.join(', ')}`,
+  exo:(t)=>`a exodontia (extração) ${t}`, exoPosMiss:'a exodontia (extração) dos dentes/restos radiculares nas posições dos implantes', exoMiss:'a exodontia (extração) dos dentes/restos radiculares',
+  exoSup:'a exodontia (extração) de todos os dentes presentes no maxilar superior', exoInf:'a exodontia (extração) de todos os dentes presentes no maxilar inferior', exoAmbos:'a exodontia (extração) de todos os dentes presentes no maxilar superior e no maxilar inferior',
+  expl:(p)=>`a explantação (remoção) do(s) implante(s) prévio(s) ${p}`, missPosSingle:'posição',
+  geng:'enxerto gengival / de tecidos moles, cuja área dadora poderá ser o palato e/ou a tuberosidade',
+  osso:'enxerto ósseo / regeneração óssea guiada, com biomaterial e/ou osso autólogo',
+  sinus:{'1q':'a elevação do seio maxilar no 1.º quadrante','2q':'a elevação do seio maxilar no 2.º quadrante','12q':'a elevação do seio maxilar no 1.º e no 2.º quadrantes'},
+  sinusTail:' — caso exista estabilidade primária suficiente, o(s) implante(s) será(ão) colocado(s) no mesmo ato cirúrgico; caso contrário, será(ão) colocado(s) 6 a 9 meses após a realização deste procedimento',
+  listAnd:'; e ', proc:(lista,one)=>`<p>Fui igualmente informado(a) de que, para o sucesso deste tratamento, será realizada ${lista}. ${one?'Este procedimento foi-me explicado':'Estes procedimentos foram-me explicados'} em consulta, incluindo a sua finalidade e os cuidados associados, e autorizo a sua realização.</p>`,
+  integRegen:'<p>Compreendo que a integração dos implantes, bem como o processo de regeneração óssea, têm um período de integração de 6 a 9 meses antes de ser efetuada a reabilitação definitiva.</p>',
+  integ:'<p>Tenho também conhecimento de que a integração dos implantes é um processo que ocorrerá num período de 6 a 9 meses antes de ser efetuada a reabilitação definitiva.</p>',
+  whereLoc:(loc)=>` na ${loc}`,
+  prov:{coroa:(w)=>`uma coroa provisória fixa sobre o implante${w}`,coroas:(w)=>`coroas provisórias fixas sobre os implantes${w}`,ppf:(w)=>`uma prótese fixa provisória sobre os implantes${w}`},
+  cuidPpf:'Esta prótese apresenta características de pouca resistência, pelo que deverei cumprir todos os cuidados recomendados, entre os quais evitar hábitos tabágicos, manter uma alimentação mole e evitar a mastigação sobre a zona reabilitada, de modo a evitar a fratura ou desaperto da prótese e/ou a perda de implantes.',
+  cuidCoroa:'Esta coroa provisória apresenta características de pouca resistência, pelo que deverei cumprir todos os cuidados recomendados, entre os quais não mastigar nem morder sobre ela, evitar hábitos tabágicos e manter uma alimentação mole, de modo a evitar a fratura ou desaperto do provisório e/ou a perda do implante.',
+  cuidCoroas:'Estas coroas provisórias apresentam características de pouca resistência, pelo que deverei cumprir todos os cuidados recomendados, entre os quais não mastigar nem morder sobre elas, evitar hábitos tabágicos e manter uma alimentação mole, de modo a evitar a fratura ou desaperto do provisório e/ou a perda dos implantes.',
+  carga1:(prov,cuid)=>`<p>Está prevista a realização de <b>carga imediata</b>: caso se verifiquem reunidas as condições clínicas necessárias, será realizada ${prov} após a cirurgia. ${cuid}</p>`,
+  carga2:'<p>Fui também informado(a) de que, após a colocação dos dentes provisórios e definitivos, poderão ocorrer alterações fonéticas (como a dificuldade em pronunciar algumas palavras) e alterações faciais.</p>',
+  carga3:'Comprometo-me a contactar de imediato a clínica caso, durante o período de cicatrização, sinta qualquer desaperto, mobilidade, estalo, fratura ou desconforto no provisório, ou qualquer outra intercorrência, para que seja avaliada e resolvida o mais rapidamente possível.',
+  carga3e:' Encontrando-me no estrangeiro, compreendo que essa resolução deve ser feita na clínica onde foi realizada a cirurgia, ou em local por esta designado, devendo contactá-la de imediato para ser definida a forma adequada de resolver a situação, e que a clínica não se responsabiliza por tratamentos realizados por iniciativa própria noutras clínicas nem pelas despesas deles decorrentes, nem pelas despesas de viagem ou estadia necessárias para a resolução da situação na clínica.',
+  h:{diag:'Diagnóstico e tratamento recomendado',cir:'Fase cirúrgica do tratamento',risc:'Riscos e complicações',carga:'Carga imediata e prótese provisória',saude:'Estado de saúde, cuidados pós-operatórios, tabaco e outras substâncias',prog:'Prognóstico',prot:'Fase protética do tratamento',manut:'Consultas de manutenção, cuidados pessoais e garantia',reg:'Utilização de registos clínicos',decl:'Declaração de consentimento'},
+  diag1:'Após o exame clínico e a observação dos exames complementares de diagnóstico, fui informado(a) de que o meu dente ou dentes em falta podem ser substituídos por dentes artificiais suportados por um ou mais implantes dentários. Foi-me apresentado o planeamento da cirurgia e da reabilitação, indicando todas as estruturas anatómicas presentes. Foram-me apresentadas as alternativas a este tratamento — nomeadamente prótese removível, prótese fixa sobre dentes, quando possível, ou não realizar tratamento — bem como as respetivas vantagens, desvantagens e as consequências de não efetuar o tratamento que me está a ser proposto.',
+  cir1:'Fui informado(a) de que serei submetido(a) a anestesia local e de que os implantes serão colocados nas perfurações efetuadas no osso para a colocação dos implantes dentários. A anestesia local não implica perda de consciência durante o procedimento, pelo que terei de colaborar para que não ocorram complicações intraoperatórias, como a deglutição ou aspiração de instrumentos.',
+  cir2:'Compreendo também que, durante a cirurgia, pode ser necessária a realização de procedimentos indispensáveis para a boa execução do tratamento, em função das condições ósseas e gengivais encontradas, enquadrando-se assim no tratamento que me foi explicado.',
+  risc1:'Serão necessárias observações no período pós-operatório, com intervalos regulares. Fui informado(a) dos riscos de possíveis complicações da cirurgia, nomeadamente: comunicação oroantral (comunicação entre o seio maxilar e a cavidade oral); lesão do nervo infraorbitário, do nervo alveolar inferior, do nervo mentoniano ou do nervo lingual, com a respetiva perda de sensibilidade temporária ou permanente (parestesia); lesão ocular; aspiração ou deglutição de instrumentos; perfuração da fossa temporal ou do processo pterigóide; migração do implante (deslocação do implante da posição inicial para outras estruturas ou cavidades anatómicas); sinusite crónica; fratura óssea (entre as quais do osso zigomático, do maxilar ou da mandíbula e de outras estruturas anexas); fratura do implante; fístulas intra e extraorais; necrose óssea; infeção; dor; edema; hematoma e hemorragia. Fui igualmente informado(a) de que o resultado estético não é totalmente previsível, podendo ocorrer retração gengival ou ausência de papila entre os dentes.',
+  riscExo:'Tenho também conhecimento de que podem existir complicações decorrentes de uma extração, como alveolite (inflamação do alvéolo), fratura radicular ou lesão de dentes adjacentes.',
+  saude1:'Declaro ter informado o médico responsável pela minha cirurgia, de forma correta e verdadeira, da minha condição de saúde atual, de toda a medicação que tomo e das minhas alergias, entre as quais a presença ou ausência de diabetes, doenças cardiovasculares, doenças ou alterações da coagulação, toma de anticoagulantes ou antiagregantes, toma atual ou passada de bifosfonatos ou de outros medicamentos antirreabsortivos, radioterapia da cabeça e do pescoço, alergias a medicamentos ou materiais, e gravidez ou amamentação. Compreendo que estas informações são determinantes para o planeamento e a segurança do meu tratamento.',
+  saude2:'Fui informado(a) de que os cuidados pós-operatórios — repouso, evitar esforço físico (período mínimo de 1 mês), alimentação mole (período mínimo de 1 mês) e fria (período mínimo de 7 dias), boa higiene oral, não fumar, e evitar tocar com os dedos ou exercer pressão com a língua na zona operada — são fatores determinantes para a integração dos implantes dentários. Um indivíduo que não cumpra os cuidados pós-operatórios recomendados tem menor taxa de integração de implantes.',
+  saude3:'Fui informado(a) de que os hábitos tabágicos e a higiene oral constituem fatores determinantes para o sucesso e a osteointegração dos implantes. O incumprimento das indicações pós-operatórias, nomeadamente a cessação do consumo de tabaco, aumenta significativamente o risco de insucesso e de perda dos implantes dentários, podendo causar necrose dos tecidos e rejeição do implante.',
+  saude4:'Fui informado(a) de que o consumo de substâncias psicoativas — incluindo substâncias ilícitas, álcool em quantidades excessivas e determinada medicação de uso prolongado — pode comprometer a cicatrização, a osteointegração e a longevidade dos implantes e da reabilitação protética. Declaro ter informado o médico responsável de todas as substâncias que consumo ou consumi, e comprometo-me a comunicar de imediato qualquer alteração da minha situação clínica ao longo do tratamento.',
+  prog1:'Embora o prognóstico seja favorável neste momento, podem ocorrer alterações imprevistas do osso ou dos tecidos moles. Caso se verifique tal situação, pode ser necessária a remoção dos implantes; esta remoção não é complicada e, na maioria dos casos, novos implantes serão colocados posteriormente. Embora a taxa de sucesso dos implantes dentários seja muito elevada, compreendi que nenhum tratamento médico ou dentário é totalmente previsível e que poderão surgir fatores imprevistos que exijam outro tipo de tratamentos.',
+  prot1:'Durante esta fase serão realizadas provas para a confeção da coroa e/ou prótese fixa que irá ficar sobre os implantes. O número, o tipo e a sequência das consultas dependem do tipo de reabilitação e da sua evolução clínica, cabendo ao médico dentista reabilitador definir as provas necessárias e o momento adequado para as realizar. Comprometo-me a comparecer a todas as consultas indicadas e a realizar as provas que forem consideradas necessárias, para que a reabilitação definitiva seja executada de forma correta e no tempo devido.',
+  manut1:'Foi-me explicado que o sucesso a longo prazo deste tratamento exige que eu efetue os procedimentos de higiene oral que me foram aconselhados — 3 vezes por dia e de forma contínua, com uma correta escovagem e o uso de fio dentário específico de implantologia, escovilhão e jato de ar-água — e que deverei voltar periodicamente para consultas de revisão e manutenção (geralmente 2 a 3 consultas anuais), pagas de acordo com as tabelas da clínica. Fui informado(a) de que estas consultas são indispensáveis para a manutenção da saúde peri-implantar e de que o não comparecimento às consultas de revisão e manutenção pode levar a problemas associados aos implantes, como a peri-implantite — uma condição inflamatória que afeta os tecidos à volta do implante e leva à reabsorção do osso, devido à presença de bactérias nocivas. A taxa de sucesso a longo prazo dos implantes dentários em indivíduos com pouca higiene oral, fumadores ou consumidores de drogas — isoladamente ou, com maior gravidade, em conjunto — é significativamente menor do que em pacientes sem estes hábitos. Compreendo também que não existem tratamentos com durabilidade vitalícia e que a longevidade da minha reabilitação depende dos meus cuidados e do acompanhamento regular. Compreendo, por isso, a necessidade de consultas periódicas de manutenção e dos cuidados recomendados, entre os quais a correta higiene oral e o correto uso dos implantes, nomeadamente quanto à força exercida sobre eles, para evitar a fratura de componentes ou de peças protéticas.',
+  manut2:'Ao longo das consultas de manutenção será avaliado o estado dos tecidos peri-implantares e a capacidade de higiene oral do paciente, o que determinará o número de consultas anuais a realizar: os pacientes com periodontite ou com uma higiene oral deficiente tendem a necessitar de mais consultas de acompanhamento por ano do que os pacientes com uma correta higiene oral e sem periodontite associada.',
+  manut3:'Fui informado(a) de que qualquer tratamento necessário devido a complicações com os implantes ou com a reabilitação protética será processado da seguinte forma: desde que sejam respeitadas as indicações pós-operatórias e de manutenção, e que compareça às consultas de manutenção necessárias e agendadas pela clínica, nos primeiros dois anos qualquer implante em que ocorra um problema será substituído sem qualquer encargo para mim, e a reabilitação protética ou qualquer componente protético será substituído ou reparado sem quaisquer honorários médicos, sendo apenas cobrados os custos laboratoriais, após uma previsão desses custos me ser apresentada. Caso não cumpra a higiene oral indispensável, não compareça às consultas de manutenção, ou ocorram perdas ósseas, complicações ou insucessos associados ao tabagismo ou ao consumo de drogas, estes não estarão abrangidos pela garantia, e assumirei os custos do tratamento necessário, mediante orçamento prévio.',
+  manut4:'Fui também informado(a) de que existem componentes que terão de ser substituídos com o decorrer do tempo, nomeadamente os parafusos de aperto das coroas ou próteses fixas que ficam sobre os implantes. A necessidade e a frequência dessa substituição dependem, entre outros fatores, dos hábitos parafuncionais e da regularidade das consultas de manutenção. Sempre que seja necessária a substituição de algum destes componentes, ser-me-á apresentado o respetivo orçamento.',
+  manut5:'Fui igualmente informado(a) de que poderei ter de usar uma goteira oclusal, caso o médico assim o recomende. Compreendo que a utilização desta goteira é indispensável para prevenir perdas ósseas à volta dos implantes, a fratura de componentes ou dos próprios implantes, o desgaste dos dentes, a fratura da prótese e outras complicações. O tratamento depende sempre de uma avaliação individual de cada situação, pelo que me comprometo a seguir o aconselhamento médico que me for dado.',
+  estrang:'Declaro ter informado a clínica de que permanecerei no estrangeiro após a conclusão do tratamento. Compreendo que o acompanhamento — incluindo a resolução de intercorrências, como a fratura ou o desaperto de coroas ou próteses, e as consultas de manutenção — só é assegurado presencialmente na clínica onde foi realizada a cirurgia, ou em local por esta designado, e que, em caso de intercorrência, devo contactar a clínica e comparecer a consulta com a maior brevidade possível. Compreendo que a clínica não se responsabiliza por complicações decorrentes do adiamento desse acompanhamento nem por tratamentos realizados noutra clínica, por qualquer motivo, e que essas despesas, bem como outras delas decorrentes, como viagens ou estadia, não serão objeto de reembolso. A clínica compromete-se a fornecer todos os dados necessários e a prestar todo o apoio que esteja ao seu alcance para a resolução rápida da situação.',
+  reg1:'Autorizo que fotografias, radiografias, modelos, filmagens e outros registos do meu tratamento sejam utilizados para fins de ensino e de divulgação científica, através de publicações ou apresentações científicas, sem que a minha identidade seja revelada.',
+  reg2:'Adicionalmente, autorizo a realização de fotografias e vídeos extraorais (rosto e sorriso) antes, durante e após o tratamento, necessários ao correto planeamento, execução e documentação do caso.',
+  reg3:'Declaro ainda que autorizo a publicação de imagens de "antes e depois" do meu tratamento nas redes sociais e no sítio da clínica (Instagram, Facebook ou outras), aceitando que, para este efeito, a minha identidade possa ser reconhecível. Compreendo que esta divulgação tem como finalidade mostrar o impacto que este tipo de tratamento pode ter na qualidade de vida e no bem-estar das pessoas, ajudando outras a saber que este tratamento existe e é possível. Compreendo também que esta divulgação não constitui qualquer promessa de resultado, que não me é devida qualquer compensação por ela, e que posso retirar esta autorização a qualquer momento, contactando a clínica, sem que isso afete o meu tratamento ou acompanhamento.',
+  regBox:'Autorização de publicação em redes sociais', yes:'Sim', no:'Não',
+  decl1:'Fui completamente informado(a), em linguagem que compreendi, sobre a natureza do tratamento com implantes dentários, as técnicas a utilizar, os riscos e benefícios da cirurgia, as alternativas disponíveis e a necessidade de manutenção na clínica e em casa. Tive tempo para refletir e a oportunidade de fazer perguntas, que foram esclarecidas. Sei que posso revogar este consentimento a qualquer momento antes da realização do procedimento e que receberei uma cópia deste documento.',
+  decl2:'Certifico que li e compreendi totalmente este documento e, assim, autorizo que o tratamento descrito seja efetuado.',
+  local:'Local', data:'Data', sigMed:'Médico(a) Dentista', sigPac:'Paciente / Representante legal',
+  meta:(id,ts,ver)=>`Documento n.º ${id} · gerado em ${ts} · Modelo Implantologia ${ver}`,
+  foot:(nome,id,ver)=>`Consentimento Implantologia · Paciente: ${nome} · Doc. ${id} · Modelo ${ver} · Assinatura do paciente na última página`,
+  transNote:''
+},
+en:{
+  locale:'en-GB', jaw:{max:'upper jaw (maxilla)',man:'lower jaw (mandible)',both:'upper and lower jaws'},
+  reab:{'coroa cerâmica sobre implante':'a ceramic crown on an implant','coroas cerâmicas sobre implantes':'ceramic crowns on implants','prótese parcial fixa implanto-suportada':'an implant-supported fixed partial prosthesis','prótese total fixa implanto-suportada':'an implant-supported fixed full-arch prosthesis','próteses totais fixas implanto-suportadas (ambas as arcadas)':'implant-supported fixed full-arch prostheses in both jaws'},
+  sub:'Dental Medicine', title:'INFORMED, ENLIGHTENED AND FREE CONSENT<br>Dental Implant Treatment',
+  pac:'Patient', nasc:'Date of birth', med:'Responsible clinician', dateLbl:'Date of explanation and signature',
+  missNome:'PATIENT NAME', missNasc:'date of birth', missNascInv:'invalid date', missN:'No.', missLoc:'location', missReab:'type of restoration', missUnid:'clinic', missPos:'indicate positions',
+  impl:(n)=>n===1?'1 dental implant':`${n} dental implants`, cnt:(k)=>k===1?'1 implant':`${k} implants`,
+  posLabel:a=>a.length===1?`tooth position ${a[0]}`:`tooth positions ${a.join(', ')}`,
+  planBoth:(impl,up,upPos,lo,loPos,reab)=>`I will undergo surgery for the placement of <b>${impl}</b>: <b>${up} in the upper jaw</b> (${upPos}) and <b>${lo} in the lower jaw</b> (${loPos}), for subsequent restoration with <b>${reab}</b>.`,
+  planOne:(impl,loc,pos,reab)=>`I will undergo surgery for the placement of <b>${impl}</b> in the <b>${loc}</b>${pos?` (${pos})`:''}, for subsequent restoration with <b>${reab}</b>.`,
+  fmtTeeth:a=>a.length===1?`of tooth/root remnant ${a[0]}`:`of teeth/root remnants ${a.join(', ')}`,
+  exo:(t)=>`the extraction ${t}`, exoPosMiss:'the extraction of the teeth/root remnants at the implant positions', exoMiss:'the extraction of the teeth/root remnants',
+  exoSup:'the extraction of all remaining teeth in the upper jaw', exoInf:'the extraction of all remaining teeth in the lower jaw', exoAmbos:'the extraction of all remaining teeth in the upper and lower jaws',
+  expl:(p)=>`the explantation (removal) of the previous implant(s) ${p}`, missPosSingle:'position',
+  geng:'a gingival / soft-tissue graft, whose donor area may be the palate and/or the tuberosity',
+  osso:'a bone graft / guided bone regeneration, with biomaterial and/or autologous bone',
+  sinus:{'1q':'a maxillary sinus lift in the 1st quadrant','2q':'a maxillary sinus lift in the 2nd quadrant','12q':'a maxillary sinus lift in the 1st and 2nd quadrants'},
+  sinusTail:' — if there is sufficient primary stability, the implant(s) will be placed during the same surgical procedure; otherwise, the implant(s) will be placed 6 to 9 months after this procedure',
+  listAnd:'; and ', proc:(lista,one)=>`<p>I have also been informed that, for the success of this treatment, the following will be performed: ${lista}. ${one?'This procedure has been explained to me during the consultation, including its purpose and the associated care, and I authorise it to be carried out.':'These procedures have been explained to me during the consultation, including their purpose and the associated care, and I authorise them to be carried out.'}</p>`,
+  integRegen:'<p>I understand that the integration of the implants, as well as the bone regeneration process, requires an integration period of 6 to 9 months before the definitive restoration is carried out.</p>',
+  integ:'<p>I am also aware that the integration of the implants is a process that will take 6 to 9 months before the definitive restoration is carried out.</p>',
+  whereLoc:(loc)=>` in the ${loc}`,
+  prov:{coroa:(w)=>`a fixed provisional crown on the implant${w}`,coroas:(w)=>`fixed provisional crowns on the implants${w}`,ppf:(w)=>`a fixed provisional prosthesis on the implants${w}`},
+  cuidPpf:'This prosthesis has limited strength, so I must follow all the recommended care, including avoiding smoking, keeping to a soft diet and avoiding chewing on the restored area, in order to prevent fracture or loosening of the prosthesis and/or loss of implants.',
+  cuidCoroa:'This provisional crown has limited strength, so I must follow all the recommended care, including not chewing or biting on it, avoiding smoking and keeping to a soft diet, in order to prevent fracture or loosening of the provisional and/or loss of the implant.',
+  cuidCoroas:'These provisional crowns have limited strength, so I must follow all the recommended care, including not chewing or biting on them, avoiding smoking and keeping to a soft diet, in order to prevent fracture or loosening of the provisionals and/or loss of the implants.',
+  carga1:(prov,cuid)=>`<p><b>Immediate loading</b> is planned: if the necessary clinical conditions are met, ${prov} will be fitted after surgery. ${cuid}</p>`,
+  carga2:'<p>I have also been informed that, after the placement of the provisional and definitive teeth, phonetic changes (such as difficulty pronouncing some words) and facial changes may occur.</p>',
+  carga3:'I undertake to contact the clinic immediately if, during the healing period, I notice any loosening, mobility, clicking, fracture or discomfort in the provisional, or any other complication, so that it can be assessed and resolved as quickly as possible.',
+  carga3e:' As I will be abroad, I understand that this must be resolved at the clinic where the surgery was performed, or at a location designated by it, and that I must contact the clinic immediately so that the appropriate way of resolving the situation can be defined; I also understand that the clinic is not responsible for treatments carried out on my own initiative at other clinics, nor for the costs arising from them, nor for the travel or accommodation costs required to resolve the situation at the clinic.',
+  h:{diag:'Diagnosis and recommended treatment',cir:'Surgical phase of treatment',risc:'Risks and complications',carga:'Immediate loading and provisional prosthesis',saude:'Health status, post-operative care, tobacco and other substances',prog:'Prognosis',prot:'Prosthetic phase of treatment',manut:'Maintenance appointments, personal care and guarantee',reg:'Use of clinical records',decl:'Declaration of consent'},
+  diag1:'After the clinical examination and review of the complementary diagnostic tests, I have been informed that my missing tooth or teeth can be replaced by artificial teeth supported by one or more dental implants. I have been shown the surgical and restorative plan, indicating all the anatomical structures present. I have been presented with the alternatives to this treatment — namely a removable prosthesis, a fixed prosthesis on teeth where possible, or no treatment — together with their respective advantages, disadvantages, and the consequences of not undergoing the treatment proposed to me.',
+  cir1:'I have been informed that I will be given local anaesthesia and that the implants will be placed in holes drilled in the bone for that purpose. Local anaesthesia does not involve loss of consciousness during the procedure, so I will need to cooperate to avoid intra-operative complications, such as swallowing or inhaling instruments.',
+  cir2:'I also understand that, during surgery, it may be necessary to carry out procedures that are indispensable for the proper execution of the treatment, depending on the bone and gum conditions found, and that these form part of the treatment explained to me.',
+  risc1:'Follow-up appointments will be required at regular intervals during the post-operative period. I have been informed of the risks of possible surgical complications, namely: oroantral communication (an opening between the maxillary sinus and the mouth); injury to the infraorbital, inferior alveolar, mental or lingual nerve, with temporary or permanent loss of sensation (paraesthesia); eye injury; inhalation or swallowing of instruments; perforation of the temporal fossa or pterygoid process; implant migration (displacement of the implant from its initial position into other anatomical structures or cavities); chronic sinusitis; bone fracture (including of the zygomatic bone, the maxilla or the mandible and other adjacent structures); implant fracture; intra- and extra-oral fistulas; bone necrosis; infection; pain; swelling; bruising and bleeding. I have also been informed that the aesthetic result is not entirely predictable, and that gum recession or absence of the papilla between the teeth may occur.',
+  riscExo:'I am also aware that complications may arise from an extraction, such as dry socket (inflammation of the socket), root fracture or injury to adjacent teeth.',
+  saude1:'I declare that I have correctly and truthfully informed the clinician responsible for my surgery of my current state of health, of all the medication I take and of my allergies, including the presence or absence of diabetes, cardiovascular disease, bleeding or clotting disorders, use of anticoagulants or antiplatelet drugs, current or past use of bisphosphonates or other antiresorptive medication, head and neck radiotherapy, allergies to medicines or materials, and pregnancy or breastfeeding. I understand that this information is essential for the planning and safety of my treatment.',
+  saude2:'I have been informed that post-operative care — rest, avoiding physical exertion (minimum of 1 month), a soft (minimum of 1 month) and cold (minimum of 7 days) diet, good oral hygiene, not smoking, and avoiding touching the operated area with my fingers or pressing on it with my tongue — are decisive factors for the integration of the dental implants. A person who does not follow the recommended post-operative care has a lower implant integration rate.',
+  saude3:'I have been informed that smoking and oral hygiene are decisive factors for the success and osseointegration of the implants. Failure to follow the post-operative instructions, in particular stopping tobacco use, significantly increases the risk of failure and loss of the dental implants, and may cause tissue necrosis and rejection of the implant.',
+  saude4:'I have been informed that the use of psychoactive substances — including illicit substances, excessive amounts of alcohol and certain long-term medication — may compromise healing, osseointegration and the longevity of the implants and the prosthetic restoration. I declare that I have informed the responsible clinician of all substances I use or have used, and I undertake to report immediately any change in my clinical situation during the treatment.',
+  prog1:'Although the prognosis is favourable at this time, unforeseen changes in the bone or soft tissues may occur. Should this happen, removal of the implants may be necessary; this removal is not complicated and, in most cases, new implants will be placed at a later date. Although the success rate of dental implants is very high, I understand that no medical or dental treatment is entirely predictable and that unforeseen factors may arise which require other types of treatment.',
+  prot1:'During this phase, try-in appointments will be carried out for the fabrication of the crown and/or fixed prosthesis that will be placed on the implants. The number, type and sequence of appointments depend on the type of restoration and its clinical progress, and it is for the restorative dentist to define the try-ins required and the appropriate time to carry them out. I undertake to attend all the appointments indicated and to carry out the try-ins considered necessary, so that the definitive restoration is completed correctly and in due time.',
+  manut1:'It has been explained to me that the long-term success of this treatment requires me to perform the oral hygiene procedures I have been advised — 3 times a day and continuously, with correct brushing and the use of implant-specific dental floss, interdental brushes and a water flosser — and to return periodically for review and maintenance appointments (usually 2 to 3 appointments a year), paid according to the clinic\'s price list. I have been informed that these appointments are indispensable for maintaining peri-implant health and that failure to attend review and maintenance appointments can lead to implant-related problems such as peri-implantitis — an inflammatory condition that affects the tissues around the implant and leads to bone resorption, due to the presence of harmful bacteria. The long-term success rate of dental implants in people with poor oral hygiene, smokers or drug users — individually or, more seriously, in combination — is significantly lower than in patients without these habits. I also understand that no treatment lasts a lifetime and that the longevity of my restoration depends on my care and on regular follow-up. I therefore understand the need for periodic maintenance appointments and for the recommended care, including correct oral hygiene and correct use of the implants, particularly regarding the force exerted on them, to avoid fracture of components or prosthetic parts.',
+  manut2:'During the maintenance appointments, the condition of the peri-implant tissues and the patient\'s oral hygiene ability will be assessed, which will determine the number of appointments required per year: patients with periodontitis or poor oral hygiene tend to need more follow-up appointments per year than patients with good oral hygiene and no associated periodontitis.',
+  manut3:'I have been informed that any treatment required due to complications with the implants or the prosthetic restoration will be handled as follows: provided that the post-operative and maintenance instructions are followed, and that I attend the maintenance appointments required and scheduled by the clinic, during the first two years any implant that develops a problem will be replaced at no cost to me, and the prosthetic restoration or any prosthetic component will be replaced or repaired without any clinical fees, only the laboratory costs being charged, after an estimate of those costs has been presented to me. If I do not maintain the indispensable oral hygiene, do not attend maintenance appointments, or if bone loss, complications or failures associated with smoking or drug use occur, these will not be covered by the guarantee and I will bear the costs of the necessary treatment, subject to a prior estimate.',
+  manut4:'I have also been informed that some components will need to be replaced over time, in particular the retaining screws of the crowns or fixed prostheses placed on the implants. The need for and frequency of this replacement depend, among other factors, on parafunctional habits and on the regularity of maintenance appointments. Whenever replacement of any of these components is required, the corresponding estimate will be presented to me.',
+  manut5:'I have also been informed that I may need to wear an occlusal splint (night guard), if the clinician so recommends. I understand that the use of this splint is indispensable to prevent bone loss around the implants, fracture of components or of the implants themselves, tooth wear, fracture of the prosthesis and other complications. Treatment always depends on an individual assessment of each situation, and I therefore undertake to follow the clinical advice given to me.',
+  estrang:'I declare that I have informed the clinic that I will be living abroad after the treatment is completed. I understand that follow-up — including the resolution of complications, such as fracture or loosening of crowns or prostheses, and maintenance appointments — is only provided in person at the clinic where the surgery was performed, or at a location designated by it, and that, in the event of a complication, I must contact the clinic and attend an appointment as soon as possible. I understand that the clinic is not responsible for complications arising from delaying this follow-up, nor for treatments carried out at another clinic for any reason, and that those costs, as well as other costs arising from them, such as travel or accommodation, will not be reimbursed. The clinic undertakes to provide all the necessary information and to give all the support within its reach for a swift resolution of the situation.',
+  reg1:'I authorise photographs, radiographs, models, video recordings and other records of my treatment to be used for teaching and scientific purposes, through scientific publications or presentations, without my identity being revealed.',
+  reg2:'In addition, I authorise extra-oral photographs and videos (face and smile) to be taken before, during and after the treatment, as required for the correct planning, execution and documentation of the case.',
+  reg3:'I further declare that I authorise the publication of "before and after" images of my treatment on the clinic\'s social media and website (Instagram, Facebook or others), accepting that, for this purpose, my identity may be recognisable. I understand that the purpose of this publication is to show the impact that this type of treatment can have on people\'s quality of life and well-being, helping others to know that this treatment exists and is possible. I also understand that this publication does not constitute any promise of results, that no compensation is owed to me for it, and that I may withdraw this authorisation at any time by contacting the clinic, without this affecting my treatment or follow-up.',
+  regBox:'Authorisation for publication on social media', yes:'Yes', no:'No',
+  decl1:'I have been fully informed, in language I understood, about the nature of dental implant treatment, the techniques to be used, the risks and benefits of the surgery, the available alternatives and the need for maintenance at the clinic and at home. I have had time to reflect and the opportunity to ask questions, which have been answered. I know that I may withdraw this consent at any time before the procedure is carried out and that I will receive a copy of this document.',
+  decl2:'I certify that I have read and fully understood this document and I therefore authorise the treatment described to be carried out.',
+  local:'Place', data:'Date', sigMed:'Dentist', sigPac:'Patient / Legal representative',
+  meta:(id,ts,ver)=>`Document no. ${id} · generated on ${ts} · Implantology template ${ver}`,
+  foot:(nome,id,ver)=>`Implant consent · Patient: ${nome} · Doc. ${id} · Template ${ver} · Patient signature on the last page`,
+  transNote:'Translation provided for the patient\'s information. The Portuguese version is the signed and legally binding document.'
+},
+fr:{
+  locale:'fr-FR', jaw:{max:'maxillaire',man:'mandibule',both:'maxillaire et mandibule'},
+  reab:{'coroa cerâmica sobre implante':'une couronne céramique sur implant','coroas cerâmicas sobre implantes':'des couronnes céramiques sur implants','prótese parcial fixa implanto-suportada':'une prothèse partielle fixe implanto-portée','prótese total fixa implanto-suportada':'une prothèse complète fixe implanto-portée','próteses totais fixas implanto-suportadas (ambas as arcadas)':'des prothèses complètes fixes implanto-portées aux deux arcades'},
+  sub:'Médecine Dentaire', title:'CONSENTEMENT LIBRE ET ÉCLAIRÉ<br>Traitement implantaire',
+  pac:'Patient(e)', nasc:'Date de naissance', med:'Médecin responsable', dateLbl:'Date de l\'information et de la signature',
+  missNome:'NOM DU PATIENT', missNasc:'date de naissance', missNascInv:'date invalide', missN:'N°', missLoc:'localisation', missReab:'type de réhabilitation', missUnid:'clinique', missPos:'indiquer les positions',
+  impl:(n)=>n===1?'1 implant dentaire':`${n} implants dentaires`, cnt:(k)=>k===1?'1 implant':`${k} implants`,
+  posLabel:a=>a.length===1?`position dentaire ${a[0]}`:`positions dentaires ${a.join(', ')}`,
+  planBoth:(impl,up,upPos,lo,loPos,reab)=>`Je serai soumis(e) à une chirurgie de pose de <b>${impl}</b> : <b>${up} au maxillaire</b> (${upPos}) et <b>${lo} à la mandibule</b> (${loPos}), en vue d'une réhabilitation ultérieure par <b>${reab}</b>.`,
+  planOne:(impl,loc,pos,reab)=>`Je serai soumis(e) à une chirurgie de pose de <b>${impl}</b> au niveau ${loc==='mandibule'?'de la':'du'} <b>${loc}</b>${pos?` (${pos})`:''}, en vue d'une réhabilitation ultérieure par <b>${reab}</b>.`,
+  fmtTeeth:a=>a.length===1?`de la dent/du reste radiculaire ${a[0]}`:`des dents/restes radiculaires ${a.join(', ')}`,
+  exo:(t)=>`l'extraction ${t}`, exoPosMiss:'l\'extraction des dents/restes radiculaires aux positions des implants', exoMiss:'l\'extraction des dents/restes radiculaires',
+  exoSup:'l\'extraction de toutes les dents présentes au maxillaire supérieur', exoInf:'l\'extraction de toutes les dents présentes au maxillaire inférieur', exoAmbos:'l\'extraction de toutes les dents présentes aux maxillaires supérieur et inférieur',
+  expl:(p)=>`l'explantation (dépose) du ou des implants antérieurs ${p}`, missPosSingle:'position',
+  geng:'une greffe gingivale / de tissus mous, dont la zone donneuse pourra être le palais et/ou la tubérosité',
+  osso:'une greffe osseuse / régénération osseuse guidée, avec biomatériau et/ou os autologue',
+  sinus:{'1q':'une élévation du sinus maxillaire au 1er quadrant','2q':'une élévation du sinus maxillaire au 2e quadrant','12q':'une élévation du sinus maxillaire aux 1er et 2e quadrants'},
+  sinusTail:' — en cas de stabilité primaire suffisante, le ou les implants seront posés au cours du même acte chirurgical ; dans le cas contraire, ils seront posés 6 à 9 mois après la réalisation de cette intervention',
+  listAnd:' ; et ', proc:(lista,one)=>`<p>J'ai également été informé(e) que, pour la réussite de ce traitement, ${one?'sera réalisée':'seront réalisées les interventions suivantes :'} ${lista}. ${one?'Cette intervention m\'a été expliquée en consultation, y compris sa finalité et les soins associés, et j\'autorise sa réalisation.':'Ces interventions m\'ont été expliquées en consultation, y compris leur finalité et les soins associés, et j\'autorise leur réalisation.'}</p>`,
+  integRegen:'<p>Je comprends que l\'intégration des implants, ainsi que le processus de régénération osseuse, nécessitent une période d\'intégration de 6 à 9 mois avant la réalisation de la réhabilitation définitive.</p>',
+  integ:'<p>Je suis également informé(e) que l\'intégration des implants est un processus qui se déroulera sur une période de 6 à 9 mois avant la réalisation de la réhabilitation définitive.</p>',
+  whereLoc:(loc)=>` au niveau ${loc==='mandibule'?'de la':'du'} ${loc}`,
+  prov:{coroa:(w)=>`une couronne provisoire fixe sur l'implant${w}`,coroas:(w)=>`des couronnes provisoires fixes sur les implants${w}`,ppf:(w)=>`une prothèse fixe provisoire sur les implants${w}`},
+  cuidPpf:'Cette prothèse présente une faible résistance ; je devrai donc respecter tous les soins recommandés, notamment éviter le tabac, maintenir une alimentation molle et éviter de mastiquer sur la zone réhabilitée, afin d\'éviter la fracture ou le desserrage de la prothèse et/ou la perte d\'implants.',
+  cuidCoroa:'Cette couronne provisoire présente une faible résistance ; je devrai donc respecter tous les soins recommandés, notamment ne pas mastiquer ni mordre dessus, éviter le tabac et maintenir une alimentation molle, afin d\'éviter la fracture ou le desserrage du provisoire et/ou la perte de l\'implant.',
+  cuidCoroas:'Ces couronnes provisoires présentent une faible résistance ; je devrai donc respecter tous les soins recommandés, notamment ne pas mastiquer ni mordre dessus, éviter le tabac et maintenir une alimentation molle, afin d\'éviter la fracture ou le desserrage des provisoires et/ou la perte des implants.',
+  carga1:(prov,cuid)=>`<p>Une <b>mise en charge immédiate</b> est prévue : si les conditions cliniques nécessaires sont réunies, ${prov} sera réalisée après la chirurgie. ${cuid}</p>`,
+  carga2:'<p>J\'ai également été informé(e) qu\'après la pose des dents provisoires et définitives, des modifications phonétiques (comme des difficultés à prononcer certains mots) et des modifications faciales peuvent survenir.</p>',
+  carga3:'Je m\'engage à contacter immédiatement la clinique si, pendant la période de cicatrisation, je ressens un desserrage, une mobilité, un craquement, une fracture ou une gêne au niveau du provisoire, ou toute autre complication, afin qu\'elle soit évaluée et résolue le plus rapidement possible.',
+  carga3e:' Me trouvant à l\'étranger, je comprends que cette résolution doit être effectuée à la clinique où la chirurgie a été réalisée, ou dans un lieu désigné par celle-ci, et que je dois la contacter immédiatement afin que soit définie la manière appropriée de résoudre la situation ; je comprends également que la clinique n\'est pas responsable des traitements réalisés de ma propre initiative dans d\'autres cliniques ni des frais en découlant, ni des frais de voyage ou de séjour nécessaires à la résolution de la situation à la clinique.',
+  h:{diag:'Diagnostic et traitement recommandé',cir:'Phase chirurgicale du traitement',risc:'Risques et complications',carga:'Mise en charge immédiate et prothèse provisoire',saude:'État de santé, soins postopératoires, tabac et autres substances',prog:'Pronostic',prot:'Phase prothétique du traitement',manut:'Consultations de maintenance, soins personnels et garantie',reg:'Utilisation des dossiers cliniques',decl:'Déclaration de consentement'},
+  diag1:'Après l\'examen clinique et l\'analyse des examens complémentaires de diagnostic, j\'ai été informé(e) que ma ou mes dents manquantes peuvent être remplacées par des dents artificielles supportées par un ou plusieurs implants dentaires. Le plan de la chirurgie et de la réhabilitation m\'a été présenté, avec l\'indication de toutes les structures anatomiques présentes. Les alternatives à ce traitement m\'ont été présentées — notamment une prothèse amovible, une prothèse fixe sur dents lorsque cela est possible, ou l\'absence de traitement — ainsi que leurs avantages, leurs inconvénients et les conséquences de ne pas réaliser le traitement qui m\'est proposé.',
+  cir1:'J\'ai été informé(e) que je serai soumis(e) à une anesthésie locale et que les implants seront placés dans les forages réalisés dans l\'os à cet effet. L\'anesthésie locale n\'entraîne pas de perte de conscience pendant l\'intervention ; je devrai donc coopérer afin d\'éviter des complications peropératoires, telles que la déglutition ou l\'aspiration d\'instruments.',
+  cir2:'Je comprends également qu\'au cours de la chirurgie, il peut être nécessaire de réaliser des interventions indispensables à la bonne exécution du traitement, en fonction des conditions osseuses et gingivales rencontrées, celles-ci s\'inscrivant dans le traitement qui m\'a été expliqué.',
+  risc1:'Des contrôles seront nécessaires pendant la période postopératoire, à intervalles réguliers. J\'ai été informé(e) des risques de complications possibles de la chirurgie, notamment : communication bucco-sinusienne (communication entre le sinus maxillaire et la cavité buccale) ; lésion du nerf infra-orbitaire, du nerf alvéolaire inférieur, du nerf mentonnier ou du nerf lingual, avec perte de sensibilité temporaire ou permanente (paresthésie) ; lésion oculaire ; aspiration ou déglutition d\'instruments ; perforation de la fosse temporale ou du processus ptérygoïde ; migration de l\'implant (déplacement de l\'implant de sa position initiale vers d\'autres structures ou cavités anatomiques) ; sinusite chronique ; fracture osseuse (notamment de l\'os zygomatique, du maxillaire ou de la mandibule et d\'autres structures annexes) ; fracture de l\'implant ; fistules intra- et extra-orales ; nécrose osseuse ; infection ; douleur ; œdème ; hématome et hémorragie. J\'ai également été informé(e) que le résultat esthétique n\'est pas totalement prévisible, une récession gingivale ou l\'absence de papille entre les dents pouvant survenir.',
+  riscExo:'Je suis également informé(e) que des complications peuvent découler d\'une extraction, telles qu\'une alvéolite (inflammation de l\'alvéole), une fracture radiculaire ou une lésion des dents adjacentes.',
+  saude1:'Je déclare avoir informé le médecin responsable de ma chirurgie, de manière exacte et sincère, de mon état de santé actuel, de tous les médicaments que je prends et de mes allergies, notamment la présence ou l\'absence de diabète, de maladies cardiovasculaires, de maladies ou troubles de la coagulation, la prise d\'anticoagulants ou d\'antiagrégants, la prise actuelle ou passée de bisphosphonates ou d\'autres médicaments antirésorptifs, une radiothérapie de la tête et du cou, des allergies à des médicaments ou matériaux, ainsi qu\'une grossesse ou un allaitement. Je comprends que ces informations sont déterminantes pour la planification et la sécurité de mon traitement.',
+  saude2:'J\'ai été informé(e) que les soins postopératoires — repos, éviter les efforts physiques (au minimum 1 mois), alimentation molle (au minimum 1 mois) et froide (au minimum 7 jours), bonne hygiène bucco-dentaire, ne pas fumer, et éviter de toucher la zone opérée avec les doigts ou d\'exercer une pression avec la langue — sont des facteurs déterminants pour l\'intégration des implants dentaires. Une personne qui ne respecte pas les soins postopératoires recommandés présente un taux d\'intégration des implants plus faible.',
+  saude3:'J\'ai été informé(e) que le tabagisme et l\'hygiène bucco-dentaire constituent des facteurs déterminants pour la réussite et l\'ostéointégration des implants. Le non-respect des consignes postopératoires, notamment l\'arrêt de la consommation de tabac, augmente considérablement le risque d\'échec et de perte des implants dentaires, pouvant entraîner une nécrose des tissus et le rejet de l\'implant.',
+  saude4:'J\'ai été informé(e) que la consommation de substances psychoactives — y compris les substances illicites, l\'alcool en quantités excessives et certains médicaments pris au long cours — peut compromettre la cicatrisation, l\'ostéointégration et la longévité des implants et de la réhabilitation prothétique. Je déclare avoir informé le médecin responsable de toutes les substances que je consomme ou ai consommées, et je m\'engage à signaler immédiatement tout changement de ma situation clinique au cours du traitement.',
+  prog1:'Bien que le pronostic soit favorable à ce jour, des modifications imprévues de l\'os ou des tissus mous peuvent survenir. Dans ce cas, la dépose des implants peut s\'avérer nécessaire ; cette dépose n\'est pas compliquée et, dans la plupart des cas, de nouveaux implants seront posés ultérieurement. Bien que le taux de succès des implants dentaires soit très élevé, je comprends qu\'aucun traitement médical ou dentaire n\'est totalement prévisible et que des facteurs imprévus peuvent survenir et nécessiter d\'autres types de traitements.',
+  prot1:'Au cours de cette phase, des essayages seront réalisés en vue de la confection de la couronne et/ou de la prothèse fixe qui sera placée sur les implants. Le nombre, le type et la séquence des consultations dépendent du type de réhabilitation et de son évolution clinique, le médecin dentiste chargé de la réhabilitation définissant les essayages nécessaires et le moment approprié pour les réaliser. Je m\'engage à me présenter à toutes les consultations indiquées et à réaliser les essayages jugés nécessaires, afin que la réhabilitation définitive soit exécutée correctement et dans les délais requis.',
+  manut1:'Il m\'a été expliqué que la réussite à long terme de ce traitement exige que j\'effectue les procédures d\'hygiène bucco-dentaire qui m\'ont été conseillées — 3 fois par jour et de manière continue, avec un brossage correct et l\'utilisation de fil dentaire spécifique à l\'implantologie, de brossettes interdentaires et d\'un hydropulseur — et que je devrai revenir périodiquement pour des consultations de contrôle et de maintenance (généralement 2 à 3 consultations par an), payées selon les tarifs de la clinique. J\'ai été informé(e) que ces consultations sont indispensables au maintien de la santé péri-implantaire et que l\'absence aux consultations de contrôle et de maintenance peut entraîner des problèmes liés aux implants, tels que la péri-implantite — une affection inflammatoire qui touche les tissus autour de l\'implant et entraîne une résorption osseuse, en raison de la présence de bactéries nocives. Le taux de succès à long terme des implants dentaires chez les personnes ayant une mauvaise hygiène bucco-dentaire, les fumeurs ou les consommateurs de drogues — isolément ou, plus gravement, de manière combinée — est nettement inférieur à celui des patients n\'ayant pas ces habitudes. Je comprends également qu\'aucun traitement n\'a une durée de vie illimitée et que la longévité de ma réhabilitation dépend de mes soins et d\'un suivi régulier. Je comprends donc la nécessité de consultations de maintenance périodiques et des soins recommandés, notamment une hygiène bucco-dentaire correcte et une utilisation correcte des implants, en particulier quant à la force exercée sur ceux-ci, afin d\'éviter la fracture de composants ou de pièces prothétiques.',
+  manut2:'Au cours des consultations de maintenance, l\'état des tissus péri-implantaires et la capacité d\'hygiène bucco-dentaire du patient seront évalués, ce qui déterminera le nombre de consultations annuelles à réaliser : les patients atteints de parodontite ou présentant une hygiène bucco-dentaire insuffisante ont tendance à nécessiter davantage de consultations de suivi par an que les patients ayant une hygiène correcte et sans parodontite associée.',
+  manut3:'J\'ai été informé(e) que tout traitement nécessaire en raison de complications liées aux implants ou à la réhabilitation prothétique sera traité de la manière suivante : sous réserve du respect des consignes postopératoires et de maintenance, et de ma présence aux consultations de maintenance nécessaires et programmées par la clinique, au cours des deux premières années, tout implant présentant un problème sera remplacé sans aucun frais pour moi, et la réhabilitation prothétique ou tout composant prothétique sera remplacé ou réparé sans honoraires médicaux, seuls les frais de laboratoire étant facturés, après présentation d\'une estimation de ces frais. Si je ne respecte pas l\'hygiène bucco-dentaire indispensable, si je ne me présente pas aux consultations de maintenance, ou en cas de pertes osseuses, de complications ou d\'échecs liés au tabagisme ou à la consommation de drogues, ceux-ci ne seront pas couverts par la garantie et j\'assumerai les coûts du traitement nécessaire, sur devis préalable.',
+  manut4:'J\'ai également été informé(e) que certains composants devront être remplacés au fil du temps, notamment les vis de fixation des couronnes ou prothèses fixes placées sur les implants. La nécessité et la fréquence de ce remplacement dépendent, entre autres, des habitudes parafonctionnelles et de la régularité des consultations de maintenance. Chaque fois que le remplacement de l\'un de ces composants sera nécessaire, le devis correspondant me sera présenté.',
+  manut5:'J\'ai également été informé(e) que je pourrai devoir porter une gouttière occlusale, si le médecin me le recommande. Je comprends que l\'utilisation de cette gouttière est indispensable pour prévenir les pertes osseuses autour des implants, la fracture de composants ou des implants eux-mêmes, l\'usure des dents, la fracture de la prothèse et d\'autres complications. Le traitement dépend toujours d\'une évaluation individuelle de chaque situation ; je m\'engage donc à suivre les conseils médicaux qui me seront donnés.',
+  estrang:'Je déclare avoir informé la clinique que je résiderai à l\'étranger après la fin du traitement. Je comprends que le suivi — y compris la résolution des complications, telles que la fracture ou le desserrage de couronnes ou de prothèses, et les consultations de maintenance — n\'est assuré qu\'en présentiel, à la clinique où la chirurgie a été réalisée ou dans un lieu désigné par celle-ci, et qu\'en cas de complication, je dois contacter la clinique et me présenter en consultation dans les meilleurs délais. Je comprends que la clinique n\'est pas responsable des complications résultant du report de ce suivi ni des traitements réalisés dans une autre clinique, pour quelque motif que ce soit, et que ces frais, ainsi que les autres frais en découlant, tels que les voyages ou le séjour, ne feront l\'objet d\'aucun remboursement. La clinique s\'engage à fournir toutes les informations nécessaires et à apporter tout le soutien à sa portée pour une résolution rapide de la situation.',
+  reg1:'J\'autorise l\'utilisation des photographies, radiographies, modèles, enregistrements vidéo et autres documents relatifs à mon traitement à des fins d\'enseignement et de diffusion scientifique, par le biais de publications ou de présentations scientifiques, sans que mon identité soit révélée.',
+  reg2:'J\'autorise en outre la réalisation de photographies et de vidéos extra-orales (visage et sourire) avant, pendant et après le traitement, nécessaires à la planification, à l\'exécution et à la documentation correctes du cas.',
+  reg3:'Je déclare également autoriser la publication d\'images « avant et après » de mon traitement sur les réseaux sociaux et le site internet de la clinique (Instagram, Facebook ou autres), en acceptant qu\'à cette fin, mon identité puisse être reconnaissable. Je comprends que cette diffusion a pour but de montrer l\'impact que ce type de traitement peut avoir sur la qualité de vie et le bien-être des personnes, en aidant d\'autres personnes à savoir que ce traitement existe et est possible. Je comprends également que cette diffusion ne constitue en aucun cas une promesse de résultat, qu\'aucune compensation ne m\'est due à ce titre, et que je peux retirer cette autorisation à tout moment en contactant la clinique, sans que cela n\'affecte mon traitement ou mon suivi.',
+  regBox:'Autorisation de publication sur les réseaux sociaux', yes:'Oui', no:'Non',
+  decl1:'J\'ai été pleinement informé(e), dans un langage que j\'ai compris, de la nature du traitement par implants dentaires, des techniques utilisées, des risques et bénéfices de la chirurgie, des alternatives disponibles et de la nécessité d\'une maintenance à la clinique et à domicile. J\'ai eu le temps de réfléchir et la possibilité de poser des questions, auxquelles il a été répondu. Je sais que je peux révoquer ce consentement à tout moment avant la réalisation de l\'intervention et que je recevrai une copie de ce document.',
+  decl2:'Je certifie avoir lu et pleinement compris ce document et j\'autorise en conséquence la réalisation du traitement décrit.',
+  local:'Lieu', data:'Date', sigMed:'Médecin dentiste', sigPac:'Patient(e) / Représentant légal',
+  meta:(id,ts,ver)=>`Document n° ${id} · généré le ${ts} · Modèle implantologie ${ver}`,
+  foot:(nome,id,ver)=>`Consentement implantologie · Patient : ${nome} · Doc. ${id} · Modèle ${ver} · Signature du patient en dernière page`,
+  transNote:'Traduction fournie à titre d\'information pour le patient. La version portugaise est le document signé faisant foi.'
+}};
+const VER='v2.0';
+const SIG={pac:'',med:''};
+
+// Caneta/rato escrevem; um dedo apaga. Uma só interação ativa por tela.
+function canvasHasInk(canvas){
+  const data=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=3;i<data.length;i+=4) if(data[i]>8) return true;
+  return false;
+}
+function attachInk(canvas,onChange,options={}){
+  const ctx=canvas.getContext('2d');
+  let active=null,last=null,erasing=false,ready=true,generation=0,lastPen=-Infinity;
+  canvas.style.touchAction='none';
+  const pos=e=>{const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};};
+  function notify(){onChange(canvasHasInk(canvas));}
+  function release(){const id=active;active=null;last=null;if(id!==null&&canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);}
+  function paint(p){
+    ctx.save();ctx.globalCompositeOperation=erasing?'destination-out':'source-over';
+    ctx.lineWidth=erasing?(options.eraserWidth||28):(options.width||2.2);
+    ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0b1d51';ctx.fillStyle='#0b1d51';
+    ctx.beginPath();
+    if(last&&((last.x!==p.x)||(last.y!==p.y))){ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();}
+    else{ctx.arc(p.x,p.y,ctx.lineWidth/2,0,Math.PI*2);ctx.fill();}
+    ctx.restore();last=p;
+  }
+  canvas.addEventListener('pointerdown',e=>{
+    if(!ready)return;
+    const pen=e.pointerType==='pen';
+    if(pen)lastPen=Date.now();
+    if(e.pointerType==='touch'&&(Date.now()-lastPen<400||e.width>35||e.height>35))return;
+    if((pen||e.pointerType==='mouse')&&e.button!==0&&e.button!==5)return;
+    if(active!==null){if(!pen||!erasing)return;release();notify();}
+    e.preventDefault();active=e.pointerId;erasing=e.pointerType==='touch'||e.button===5;last=null;
+    canvas.setPointerCapture(active);paint(pos(e));
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(e.pointerType==='pen')lastPen=Date.now();
+    if(e.pointerId!==active)return;
+    e.preventDefault();paint(pos(e));
+  });
+  function end(e){if(e.pointerId!==active)return;if(e.pointerType==='pen')lastPen=Date.now();release();notify();}
+  canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);canvas.addEventListener('lostpointercapture',end);
+  return {
+    reset(silent=false){generation++;ready=true;release();ctx.clearRect(0,0,canvas.width,canvas.height);if(!silent)notify();},
+    load(data){
+      this.reset(true);if(!data)return;
+      ready=false;const token=generation;const img=new Image();
+      img.onload=()=>{if(token!==generation)return;const r=canvas.getBoundingClientRect();ctx.drawImage(img,0,0,r.width,r.height);ready=true;notify();};
+      img.onerror=()=>{if(token===generation){ready=true;notify();}};img.src=data;
+    }
+  };
+}
+
+let sigWho='';const pad=$('sigPad');let hasInk=false;
+const signatureInk=attachInk(pad,ink=>{hasInk=ink;});
+function padResize(){const r=pad.getBoundingClientRect();const dpr=window.devicePixelRatio||1;pad.width=Math.max(1,Math.round(r.width*dpr));pad.height=Math.max(1,Math.round(r.height*dpr));pad.getContext('2d').scale(dpr,dpr);signatureInk.reset();}
+function openSig(who){sigWho=who;$('sigTitle').textContent=who==='pac'?'Assinatura do paciente':'Assinatura do médico';$('sigModal').style.display='flex';padResize();signatureInk.load(SIG[who]);}
+$('sigClear').onclick=()=>signatureInk.reset();
+$('sigCancel').onclick=()=>{$('sigModal').style.display='none';signatureInk.reset();};
+$('sigOk').onclick=()=>{if(!canvasHasInk(pad)){toast('A assinatura está vazia. Assine com a caneta antes de confirmar.');return;}SIG[sigWho]=pad.toDataURL('image/png');$('sigModal').style.display='none';render();};
+
+function showSaveStatus(r,email){
+  let status=$('saveStatus');
+  if(!status){status=document.createElement('div');status.id='saveStatus';status.setAttribute('role','status');status.style.cssText='margin:12px 0;padding:12px;border:1px solid #ccc;border-radius:8px;font-size:14px;white-space:normal';$('btnSave').parentNode.appendChild(status);}
+  status.textContent='PDF guardado: '+r.fileName+'. ';
+  const message=!email?'Sem email indicado: cópia não enviada.':r.emailSent?'Email submetido para envio por '+r.sender+', com cópia para a clínica. A entrega ao destinatário não está confirmada.':'Email NÃO enviado. '+r.emailError;
+  status.appendChild(document.createTextNode(message+' '));
+  const link=document.createElement('a');link.textContent='Abrir PDF guardado';link.href=r.url;link.target='_blank';link.rel='noopener';status.appendChild(link);
+  if(r.logUrl){status.appendChild(document.createTextNode(' · '));const log=document.createElement('a');log.textContent='Abrir registo de envios';log.href=r.logUrl;log.target='_blank';log.rel='noopener';status.appendChild(log);}
+  if(r.logError)status.appendChild(document.createTextNode(' ATENÇÃO: não foi possível concluir o registo de controlo: '+r.logError));
+
+}
+function toast(m,ms){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',ms||3500)}
+
+let lang='pt';
+
+function buildDoc(T, docId, sigLine){
+  const teeth=parseFDI($('pos').value);
+  const nome=v('nome')||miss(T.missNome);
+  const nascN=normDate(v('nasc'));
+  const nasc = nascN || (v('nasc')?miss(T.missNascInv):miss(T.missNasc));
+  const nNum=parseInt(v('nImpl'))||0;
+  const locKey = v('loc')==='maxila'?'max':v('loc')==='mandíbula'?'man':v('loc')?'both':'';
+  const loc = locKey?T.jaw[locKey]:miss(T.missLoc);
+  const reab = v('reab') ? (T.reab[v('reab')]||v('reab')) : miss(T.missReab);
+  const medico=v('medico')||'Dr. Gonçalo Jesus';
+  const implTxt = nNum ? T.impl(nNum) : `${miss(T.missN)}`;
+  const upper=teeth.filter(t=>t[0]==='1'||t[0]==='2'), lower=teeth.filter(t=>t[0]==='3'||t[0]==='4');
+  const planTxt = (upper.length && lower.length)
+    ? T.planBoth(implTxt,T.cnt(upper.length),T.posLabel(upper),T.cnt(lower.length),T.posLabel(lower),reab)
+    : T.planOne(implTxt,loc,teeth.length?T.posLabel(teeth):'',reab);
+
+  const proc=[];
+  const exo=$('exoOn').checked?$('exo').value:'none';
+  if(exo==='pos') proc.push(teeth.length ? T.exo(T.fmtTeeth(teeth)) : `${T.exoPosMiss} ${miss(T.missPos)}`);
+  if(exo==='dentes'){ const ex=parseFDI(v('exoDentes')); proc.push(ex.length ? T.exo(T.fmtTeeth(ex)) : `${T.exoMiss} ${miss(T.missPos)}`); }
+  if(exo==='sup') proc.push(T.exoSup); if(exo==='inf') proc.push(T.exoInf); if(exo==='ambos') proc.push(T.exoAmbos);
+  if($('expl').checked) proc.push(T.expl(v('explPos')||miss(T.missPosSingle)));
+  if($('geng').checked) proc.push(T.geng);
+  if($('osso').checked) proc.push(T.osso);
+  const s=$('sinusOn').checked?$('sinus').value:'none';
+  if(T.sinus[s]) proc.push(T.sinus[s]+T.sinusTail);
+  if($('outroOn').checked && v('outro')) proc.push(esc(v('outro')));
+  let procTxt='';
+  if(proc.length){
+    const lista = proc.length===1?proc[0]:proc.slice(0,-1).join('; ')+T.listAnd+proc[proc.length-1];
+    procTxt=T.proc(lista,proc.length===1);
+  }
+  const regen = $('osso').checked || s!=='none';
+  const integTxt = regen?T.integRegen:T.integ;
+
+  const carga=$('carga').checked;
+  let pt=$('provTipo').value;
+  if(pt==='auto'){ const r=v('reab'); pt = r.startsWith('coroa cerâmica') ? 'coroa' : r.startsWith('coroas') ? 'coroas' : 'ppf'; }
+  const provTeeth = parseFDI(v('provPos')).length ? parseFDI(v('provPos')) : teeth;
+  const where = provTeeth.length ? ` (${T.posLabel(provTeeth)})` : (locKey?T.whereLoc(T.jaw[locKey]):'');
+  const provNome = T.prov[pt](where);
+  const provCuid = pt==='ppf'?T.cuidPpf:pt==='coroa'?T.cuidCoroa:T.cuidCoroas;
+  const cargaTxt = carga ? T.carga1(provNome,provCuid)+T.carga2+`<p>${T.carga3}${$('estrang').checked?T.carga3e:''}</p>` : '';
+
+  const redes=$('redes').value;
+  let secN=0; const sec=()=>++secN;
+  const add = k => ($('addOn').checked && $('addSec').value===k && v('addTxt')) ? `<p>${esc(v('addTxt'))}</p>` : '';
+  const P=t=>`<p>${t}</p>`;
+  return `
+  ${T.transNote?`<p class="meta" style="margin-bottom:8pt;font-style:italic">${T.transNote}</p>`:''}
+  <h1>JESUS MAR COUTO</h1><div class="sub-t">${T.sub} · ${esc(unidade())||miss(T.missUnid)}</div>
+  <h2>${T.title}</h2>
+  <p><b>${T.pac}:</b> ${nome} &nbsp;·&nbsp; <b>${T.nasc}:</b> ${nasc}<br><b>${T.med}:</b> ${esc(medico)}<br><b>${T.dateLbl}:</b> ${fmtDate(v('dataAss'))}</p>
+  <h3>${sec()}. ${T.h.diag}</h3>${P(T.diag1)}${P(planTxt)}${add('diag')}
+  <h3>${sec()}. ${T.h.cir}</h3>${P(T.cir1)}${procTxt}${P(T.cir2)}${integTxt}${add('cir')}
+  <h3>${sec()}. ${T.h.risc}</h3>${P(T.risc1)}${exo!=='none'?P(T.riscExo):''}${add('risc')}
+  ${carga?`<h3>${sec()}. ${T.h.carga}</h3>${cargaTxt}${add('carga')}`:''}
+  <h3>${sec()}. ${T.h.saude}</h3>${P(T.saude1)}${P(T.saude2)}${P(T.saude3)}${P(T.saude4)}${add('saude')}
+  <h3>${sec()}. ${T.h.prog}</h3>${P(T.prog1)}${add('prog')}
+  <h3>${sec()}. ${T.h.prot}</h3>${P(T.prot1)}${add('prot')}
+  <h3>${sec()}. ${T.h.manut}</h3>${P(T.manut1)}${P(T.manut2)}${P(T.manut3)}${P(T.manut4)}${P(T.manut5)}${$('estrang').checked?P(T.estrang):''}${add('manut')}
+  <h3>${sec()}. ${T.h.reg}</h3>${P(T.reg1)}${P(T.reg2)}${redes==='nao'?'':P(T.reg3)+`<p>${T.regBox}: &nbsp; <span class="redes-opt" data-v="sim" style="cursor:pointer;padding:6px 4px">${box(redes==='sim')} ${T.yes}</span> &nbsp;&nbsp; <span class="redes-opt" data-v="naop" style="cursor:pointer;padding:6px 4px">${box(redes==='naop')} ${T.no}</span></p>`}
+  <h3>${sec()}. ${T.h.decl}</h3>${P(T.decl1)}${P(T.decl2)}
+  <p>${T.local}: ${esc(unidade())||miss(T.missUnid)} &nbsp;&nbsp;&nbsp; ${T.data}: ${fmtDate(v('dataAss'))}</p>
+  ${sigLine?`<div class="sig">
+    <div><div class="sigbox" data-who="med">${SIG.med?`<img src="${SIG.med}" alt="">`:`<span class="sighint">${T===L.en?'Tap to sign':T===L.fr?'Touchez pour signer':'Toque para assinar'}</span>`}</div><div class="sigline">${esc(medico)}<br>${T.sigMed}</div></div>
+    <div><div class="sigbox" data-who="pac">${SIG.pac?`<img src="${SIG.pac}" alt="">`:`<span class="sighint">${T===L.en?'Tap to sign':T===L.fr?'Touchez pour signer':'Toque para assinar'}</span>`}</div><div class="sigline">${nome}<br>${T.sigPac}</div></div>
+  </div>`:''}
+  <p class="meta">${T.meta(docId,new Date().toLocaleString(T.locale),VER)}</p>`;
+}
+
+function render(){
+  $('unidadeOutra').style.display = $('unidade').value==='outra'?'block':'none';
+  const teeth=autoFromPositions();
+  $('posHint').textContent = teeth.length ? `Detetado: ${teeth.join(', ')} → ${teeth.length} posição(ões), ${$('loc').value}` : 'Se escreveres posições, o n.º de implantes e a localização preenchem-se sozinhos. Numa total, deixa em branco e indica só o n.º e a arcada.';
+  $('exo').style.display = $('exoOn').checked?'block':'none';
+  $('exoDentes').style.display = ($('exoOn').checked && $('exo').value==='dentes')?'block':'none';
+  $('sinus').style.display = $('sinusOn').checked?'block':'none';
+  $('outro').style.display = $('outroOn').checked?'block':'none';
+  $('explPos').style.display = $('expl').checked?'block':'none';
+  $('cargaOpts').style.display = $('carga').checked?'block':'none';
+  $('addOpts').style.display = $('addOn').checked?'block':'none';
+  const nascN=normDate(v('nasc')); $('nascHint').textContent = v('nasc') ? (nascN?`→ ${nascN}`:'Data não reconhecida') : '';
+  if(!window.__docId){ const d=new Date(); window.__docId = 'IMP-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+String(d.getSeconds()).padStart(2,'0'); }
+  const docId=window.__docId;
+  const nome=v('nome')||'—';
+  let html = buildDoc(L.pt, docId, true);
+  if(lang!=='pt') html += `<div class="pagebreak"></div>` + buildDoc(L[lang], docId, true);
+  html += `<div class="pfoot">${L.pt.foot(esc(nome),docId,VER)}</div>`;
+  $('paper').innerHTML = html;
+  document.querySelectorAll('.sigbox').forEach(b=>b.addEventListener('click',()=>openSig(b.dataset.who)));
+  // Autorização de redes sociais: o paciente toca em «Sim» ou «Não» no próprio documento (tocar de novo limpa)
+  document.querySelectorAll('.redes-opt').forEach(b=>b.addEventListener('click',()=>{const s=$('redes');s.value=s.value===b.dataset.v?'':b.dataset.v;s.dispatchEvent(new Event('input',{bubbles:true}));s.dispatchEvent(new Event('change',{bubbles:true}));render();}));
+  $('btnSave').disabled = !SIG.pac;
+  $('btnSave').title = SIG.pac ? '' : 'O paciente tem de assinar primeiro';
+  const safe=(v('nome')||'Paciente').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  document.title = `Consentimento_Implantologia_${safe}_${(v('dataAss')||'').replace(/-/g,'')}${lang!=='pt'?'_'+lang.toUpperCase():''}`;
+
+  const missing=[];
+  if(!v('nome'))missing.push('nome do paciente');if(!v('nImpl'))missing.push('n.º de implantes');if(!v('loc'))missing.push('arcada');if(!v('reab'))missing.push('reabilitação');
+  if(teeth.length && v('nImpl') && parseInt(v('nImpl'))!==teeth.length) missing.push(`atenção: ${v('nImpl')} implante(s) mas ${teeth.length} posição(ões) indicada(s)`);
+  const w=$('warn');w.style.display=missing.length?'block':'none';w.textContent=missing.length?'Em falta: '+missing.join(', '):'';
+}
+ids.forEach(id=>{$(id).addEventListener('input',render);$(id).addEventListener('change',render)});
+function ask(msg){return new Promise(res=>{$('modalMsg').textContent=msg;$('modal').style.display='flex';
+  const done=r=>{$('modal').style.display='none';$('modalYes').onclick=null;$('modalNo').onclick=null;res(r)};
+  $('modalYes').onclick=()=>done(true);$('modalNo').onclick=()=>done(false);});}
+$('btnPrint').addEventListener('click',async()=>{
+  render();
+  const teeth=parseFDI($('pos').value); const n=parseInt(v('nImpl'))||0;
+  const missing=[];
+  if(!v('nome'))missing.push('nome do paciente');if(!n)missing.push('n.º de implantes');if(!v('loc'))missing.push('arcada');if(!v('reab'))missing.push('reabilitação');
+  if(missing.length && !(await ask('Faltam campos: '+missing.join(', ')+'.\n\nGerar o PDF mesmo assim?'))) return;
+  if(teeth.length && n && n!==teeth.length && !(await ask(`Selecionou ${n} implante(s), mas escreveu ${teeth.length} posição(ões) dentária(s).\n\nPretende continuar assim?`))) return;
+  window.print();
+});
+$('btnReset').addEventListener('click',()=>{ids.forEach(id=>{const e=$(id);if(e.type==='checkbox')e.checked=false;else if(id==='medico')e.value='Dr. Gonçalo Jesus';else if(id==='dataAss')e.value=today();else e.value=e.tagName==='SELECT'?e.options[0].value:'';});SIG.pac='';SIG.med='';window.__docId=null;clinicalDraftReset();$('btnSave').textContent='Guardar no Drive e enviar';render()});
+const PDF_CSS=`<style>
+body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.35;color:#111;margin:0}
+h1{font-size:15pt;letter-spacing:2pt;text-align:center;margin:0}
+.sub-t{text-align:center;font-size:9.5pt;color:#444;margin-bottom:10pt}
+h2{font-size:12.5pt;text-align:center;margin:6pt 0 12pt}
+h3{font-size:10.5pt;margin:12pt 0 4pt;text-transform:uppercase;letter-spacing:.5pt;border-bottom:1px solid #bbb;padding-bottom:2pt}
+p{margin:0 0 6pt;text-align:justify}
+.box{display:inline-block;width:10pt;height:10pt;border:1px solid #111;text-align:center;font-size:8pt;line-height:10pt;vertical-align:middle}
+.sig{margin-top:28pt}.sig table{width:100%}.sig td{width:50%;text-align:center;font-size:9.5pt;vertical-align:bottom;padding:0 12pt}
+.sigimg{height:60pt;display:block;margin:0 auto 4pt}
+.sigline{border-top:1px solid #111;padding-top:4pt}
+.meta{font-size:8.5pt;color:#444;margin-top:6pt}
+.pagebreak{page-break-before:always}
+.miss{background:#fde68a}
+</style>`;
+function pdfHtml(){
+  let inner=$('paper').innerHTML;
+  const medico=v('medico')||'Dr. Gonçalo Jesus', nome=v('nome')||'';
+  const img=d=>d?`<img class="sigimg" src="${d}">`:'<div style="height:60pt"></div>';
+  const content=document.createElement('div');content.innerHTML=inner;
+  content.querySelectorAll('.sig').forEach(block=>{
+    const cells=Array.from(block.querySelectorAll('.sigbox')).map(box=>{
+      const label=box.parentElement.querySelector('.sigline');
+      return `<td>${img(SIG[box.dataset.who])}<div class="sigline">${label?label.innerHTML:''}</div></td>`;
+    });
+    block.innerHTML='<table><tr>'+cells.join('')+'</tr></table>';
+  });
+  inner=content.innerHTML;
+  inner=inner.replace(/<div class="pfoot">[\s\S]*?<\/div>/,'');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">${PDF_CSS}</head><body>${inner}</body></html>`;
+}
+$('btnSave').addEventListener('click',async()=>{
+  render();
+  if(!SIG.pac){toast('O paciente tem de assinar primeiro.');return;}
+  const teeth=parseFDI($('pos').value); const n=parseInt(v('nImpl'))||0;
+  const missing=[];
+  if(!v('nome'))missing.push('nome do paciente');if(!n)missing.push('n.º de implantes');if(!v('loc'))missing.push('arcada');if(!v('reab'))missing.push('reabilitação');
+  if(missing.length && !(await ask('Faltam campos: '+missing.join(', ')+'.\n\nGuardar mesmo assim?'))) return;
+  if(teeth.length && n && n!==teeth.length && !(await ask(`Selecionou ${n} implante(s), mas escreveu ${teeth.length} posição(ões) dentária(s).\n\nPretende continuar assim?`))) return;
+  if(!SIG.med && !(await ask('A assinatura do médico está em branco. Guardar mesmo assim?'))) return;
+  const email=v('email');
+  if(!email && !(await ask('Sem email do paciente: o PDF será guardado no Drive mas não será enviada cópia. Continuar?'))) return;
+  $('btnSave').disabled=true; $('btnSave').textContent='A guardar…';
+  const payload={...clinicalDraftMeta(),unidade:(window.jmcUnidade?window.jmcUnidade():''),html:pdfHtml(),nome:v('nome'),data:v('dataAss'),email,lang,docId:window.__docId,medico:v('medico'),posicoes:teeth,nImpl:n,sinus:$('sinusOn').checked,osso:$('osso').checked,geng:$('geng').checked,carga:$('carga').checked,teste:!!window.JMC_TESTE};
+  google.script.run.withSuccessHandler(r=>{
+    $('btnSave').textContent='Guardado ✓'; showSaveStatus(r,email);clinicalDraftCompleted();
+    toast(`Guardado: ${r.fileName}`+(email?(r.emailSent?' · email enviado':' · email NÃO enviado: '+r.emailError):''),8000);
+  }).withFailureHandler(e=>{
+    $('btnSave').disabled=false;$('btnSave').textContent='Guardar no Drive e enviar';toast('Erro ao guardar: '+e.message,8000);
+  }).savePdf(payload);
+});
+document.querySelectorAll('.lang').forEach(b=>b.addEventListener('click',()=>{ lang=b.dataset.l; document.querySelectorAll('.lang').forEach(x=>x.classList.toggle('on',x===b)); render(); }));
+render();
+</script>
+<dialog id="clinical-dialog" aria-labelledby="clinical-title"><h2 id="clinical-title">Retomar rascunho</h2><p>Preenchimentos guardados na Drive da clínica.</p><label for="clinical-search">Pesquisar por paciente</label><input type="search" id="clinical-search"><button type="button" id="clinical-refresh">Atualizar lista</button><div id="clinical-list" role="status"></div><button type="button" id="clinical-close">Fechar</button></dialog><script>// Estado apenas em memória; os rascunhos persistem na Drive privada da clínica.
+const clinicalKind=typeof A==='undefined'?'implantologia':'admissao';
+let clinicalId=null,clinicalRevision=0,clinicalPending=null,clinicalBusy=false,clinicalList=[],clinicalLoaded=false,clinicalListPromise=null;
+const clinicalClone=v=>JSON.parse(JSON.stringify(v));
+function clinicalCapture(){const fields={};for(const id of ids){const e=$(id);fields[id]=e.type==='checkbox'?e.checked:e.value;}return clinicalKind==='admissao'?{fields,F:clinicalClone(F),A:clinicalClone(A),writing:clinicalClone(writingDrafts),lines:clinicalClone(detailLineCounts)}:{fields,signatures:clinicalClone(SIG),language:lang};}
+let clinicalBaseline=JSON.stringify(clinicalCapture());
+function clinicalDirty(){return JSON.stringify(clinicalCapture())!==clinicalBaseline;}
+function clinicalRpc(name,payload){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](payload));}
+function clinicalStatus(t){$('clinical-status').textContent=t;}
+function clinicalReplace(target,source){Object.keys(target).forEach(k=>delete target[k]);Object.assign(target,source||{});}
+function clinicalRestore(d){for(const id of ids){const e=$(id),value=d.data.fields[id];if(e.type==='checkbox')e.checked=value===true;else e.value=typeof value==='string'?value:'';}
+ if(clinicalKind==='admissao'){clinicalReplace(F,d.data.F);clinicalReplace(A,d.data.A);clinicalReplace(writingDrafts,d.data.writing);clinicalReplace(detailLineCounts,d.data.lines);}else{clinicalReplace(SIG,d.data.signatures);lang=['pt','en','fr','es'].includes(d.data.language)?d.data.language:'pt';document.querySelectorAll('.lang').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));}
+ window.__docId=null;render();$('saveStatus')?.remove();$('btnSave').textContent='Guardar no Drive e enviar';clinicalId=d.id;clinicalRevision=d.revision;clinicalPending=null;clinicalBaseline=JSON.stringify(clinicalCapture());clinicalStatus('Rascunho retomado — '+d.patient+'. Pode alterar e voltar a guardar.');}
+function clinicalDraftMeta(){return clinicalId?{draftId:clinicalId,draftRevision:clinicalRevision}:{};}
+function clinicalDraftCompleted(){clinicalList=clinicalList.filter(d=>d.id!==clinicalId);clinicalId=null;clinicalRevision=0;clinicalPending=null;clinicalBaseline=JSON.stringify(clinicalCapture());clinicalStatus('PDF final guardado. O rascunho foi concluído.');}
+function clinicalDraftReset(){clinicalId=null;clinicalRevision=0;clinicalPending=null;setTimeout(()=>{clinicalBaseline=JSON.stringify(clinicalCapture());clinicalStatus('Novo preenchimento. Guarde um rascunho para continuar no tablet.');},0);}
+/* Depois de guardar o rascunho do consentimento de implantologia: pergunta (uma vez por rascunho) se cria já os rascunhos seguintes */
+const jmcNextAsked={};
+function jmcAskNext(id,data){if(clinicalKind!=='implantologia'||jmcNextAsked[id])return;const f=(data&&data.fields)||{};if(!String(f.nome||'').trim())return;jmcNextAsked[id]=1;
+ setTimeout(()=>{if(!confirm('Deseja criar também os rascunhos dos cuidados pós-operatórios e do guia de implantes?'))return;clinicalStatus('A criar os rascunhos seguintes…');
+  clinicalRpc('createNextDrafts',{from:'implantologia',draftId:id,nome:f.nome,email:f.email,data:f.dataAss,unidade:f.unidade,medico:f.medico,nasc:f.nasc,osso:f.osso,geng:f.geng,carga:f.carga,sinus:f.sinusOn,nImpl:f.nImpl,pos:f.pos,lang:(typeof lang==='string'?lang:'pt'),teste:!!window.JMC_TESTE})
+   .then(()=>clinicalStatus('Rascunho guardado. Criados também os rascunhos dos cuidados pós-operatórios e do guia de implantes.'))
+   .catch(e=>clinicalStatus('Rascunho guardado, mas os seguintes não foram criados: '+(e.message||e)));},60);}
+async function clinicalSave(){if(clinicalBusy)return;if(['sigModal','writingModal','modal'].some(id=>$(id)&&$(id).style.display==='flex')){toast('Confirme ou cancele o painel aberto antes de guardar.');return;}clinicalBusy=true;document.body.inert=true;clinicalStatus('A guardar rascunho na Drive…');try{const data=clinicalCapture();if(!clinicalPending||JSON.stringify(clinicalPending.data)!==JSON.stringify(data))clinicalPending={id:clinicalId||clinicalPending?.id||crypto.randomUUID(),revision:clinicalRevision,writeToken:crypto.randomUUID(),key:clinicalKind,data};const d=await clinicalRpc('saveClinicalDraft',clinicalPending);clinicalId=d.id;clinicalRevision=d.revision;clinicalPending=null;clinicalBaseline=JSON.stringify(data);clinicalList=[d,...clinicalList.filter(x=>x.id!==d.id)];clinicalStatus('Rascunho guardado na Drive às '+new Date(d.updatedAt).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+'. Pode retomar no computador ou tablet.');jmcAskNext(d.id,data);}catch(e){clinicalStatus('Não foi possível confirmar a gravação: '+e.message+'. Mantenha esta página aberta.');}finally{clinicalBusy=false;document.body.inert=false;}}
+function clinicalFetch(refresh=false){if(clinicalListPromise)return clinicalListPromise;clinicalListPromise=clinicalRpc('listClinicalDrafts',{key:clinicalKind,refresh}).then(list=>{clinicalList=list;clinicalLoaded=true;return list;}).finally(()=>clinicalListPromise=null);return clinicalListPromise;}
+function clinicalRenderList(){const out=$('clinical-list'),q=$('clinical-search').value.toLocaleLowerCase('pt-PT');out.replaceChildren();const list=clinicalList.filter(d=>d.patient.toLocaleLowerCase('pt-PT').includes(q));if(!list.length)out.textContent=q?'Nenhum rascunho corresponde à pesquisa.':'Ainda não há rascunhos guardados.';for(const d of list){const b=document.createElement('button');b.type='button';b.className='clinical-row';b.textContent=d.patient+' · '+new Date(d.updatedAt).toLocaleString('pt-PT');b.onclick=()=>clinicalResume(d.id);const row=document.createElement('div');row.style.cssText='display:flex;gap:6px;align-items:stretch';b.style.flex='1';const x=document.createElement('button');x.type='button';x.textContent='Remover';x.title='Remover rascunho';x.style.cssText='border:1px solid #e2bdb5;background:#fff;color:#a1382b;border-radius:8px;padding:0 12px;cursor:pointer;font:inherit;font-size:13px;margin-bottom:8px';x.onclick=async ev=>{ev.stopPropagation();if(!window.confirm('Deseja remover o rascunho de '+d.patient+'?'))return;x.disabled=true;try{await clinicalRpc('deleteClinicalDraft',{key:clinicalKind,id:d.id});clinicalList=clinicalList.filter(y=>y.id!==d.id);if(clinicalId===d.id)clinicalDraftReset();clinicalRenderList();}catch(err){x.disabled=false;window.alert('Não foi possível remover: '+(err.message||err));}};row.append(b,x);out.append(row);}}
+async function clinicalRefresh(force=false){$('clinical-refresh').disabled=true;try{await clinicalFetch(force);if($('clinical-dialog').open)clinicalRenderList();}catch(e){$('clinical-list').textContent='Não foi possível carregar: '+e.message;}finally{$('clinical-refresh').disabled=false;}}
+async function clinicalResume(id){if(clinicalBusy)return;if(clinicalDirty()&&!window.confirm('Existem alterações por guardar. Quer substituí-las pelo rascunho escolhido?'))return;clinicalBusy=true;document.body.inert=true;$('clinical-list').textContent='A abrir rascunho…';try{const d=await clinicalRpc('loadClinicalDraft',{key:clinicalKind,id});clinicalRestore(d);$('clinical-dialog').close();}catch(e){$('clinical-list').textContent='Não foi possível retomar: '+e.message;}finally{clinicalBusy=false;document.body.inert=false;}}
+$('clinical-save').onclick=clinicalSave;
+$('clinical-resume').onclick=()=>{if(clinicalBusy)return;$('clinical-search').value='';$('clinical-dialog').showModal();if(clinicalLoaded||clinicalList.length)clinicalRenderList();else $('clinical-list').textContent='A procurar rascunhos na Drive…';clinicalRefresh();};
+$('clinical-close').onclick=()=>$('clinical-dialog').close();$('clinical-refresh').onclick=()=>clinicalRefresh(true);$('clinical-search').oninput=clinicalRenderList;
+window.addEventListener('beforeunload',e=>{if(clinicalDirty()){e.preventDefault();e.returnValue='';}});
+setTimeout(()=>clinicalFetch().catch(()=>{}),100);
+</script><style>
+.reader-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.reader-tools button{min-height:40px;min-width:42px}.reader-tools select{padding:8px;border:1px solid #ccd9d8;border-radius:7px;background:white;color:#203b43}.reader-tools button[aria-pressed=true]{background:#0f6b5c;color:white}.reader-status{padding:9px 18px;color:#365258;background:#edf4f3;font:13px Arial,sans-serif}.reader-status:empty{display:none}.doc-translated{page-break-before:always;border-top:1px solid #bbb;margin-top:32px;padding-top:24px}.reader-language{font:600 11px Arial,sans-serif;letter-spacing:.07em;text-transform:uppercase;margin:0 0 18px;color:#526b70}
+body.focus .reader-status{position:sticky;top:58px;z-index:19}.doc-original,.doc-translated{scroll-margin-top:108px}
+body.focus aside,body.focus .clinical-bar,body.focus #saveStatus{display:none!important}body.focus main{display:block!important}body.focus header{position:sticky!important;top:0;right:auto;width:100%;background:#f4f5f7!important;display:flex;justify-content:flex-end;padding:6px 10px!important;z-index:20;border-bottom:1px solid #ddd!important}body.focus header>div:first-child{display:none!important}body.focus header button:not(.reader-button):not(.lang),body.focus header #langSel{display:none!important}body.focus header .reader-tools button,body.focus header .reader-tools select{display:inline-block!important}body.focus .preview-wrap{padding:12px}body.focus #btnFocus{opacity:1}body.reader-second .doc-original,body.reader-second .pfoot{display:none}body.reader-second .doc-translated{border:0;margin:0;padding:0}body.focus .paper{max-width:100%;box-sizing:border-box}
+@media print{.reader-tools,.reader-status,.reader-language{display:none!important}body.reader-second .doc-original,body.reader-second .doc-translated{display:block!important}.doc-translated{page-break-before:always;border:0;margin:0;padding:0}body.focus header{display:none!important}}
+</style>
+<script>
+/* Reading modes never remove either version from the exported PDF. */
+(()=>{
+ const kind=clinicalKind,native=kind==='implantologia';
+ const names={pt:'Português',en:'English',fr:'Français'};
+ let mode='',epoch=0,ready=false,pending=Promise.resolve(),timer=null,focusTranslation=false;
+ const memo=new Map(),flights=new Map();
+ const clinicalLabels={"en": {"CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE": "INFORMED AND FREELY GIVEN CONSENT", "Exodontia de terceiros molares (dentes do siso)": "Extraction of third molars (wisdom teeth)", "Data do esclarecimento e da assinatura:": "Date of information and signature:", "2. CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE PARA EXAMES DE RADIOLOGIA DENTÁRIA": "2. INFORMED AND FREELY GIVEN CONSENT FOR DENTAL RADIOLOGICAL EXAMINATIONS", "Toque para assinar": "Tap to sign", "Médico(a) Dentista": "Dentist", "Paciente / Representante legal": "Patient / Legal representative", "Representante legal": "Legal representative", "Toque para escrever num painel maior": "Tap to write by hand in a larger panel", "Limpar": "Clear", "Cancelar": "Cancel", "Confirmar escrita": "Confirm writing", "Confirmar assinatura": "Confirm signature", "+ Adicionar mais informação": "+ Add more information", "Nome completo": "Full name", "Nome do representante legal": "Name of the legal representative", "Medicação habitual": "Regular medication", "Alergias": "Allergies", "Outras informações": "Other information", "Assinatura do paciente": "Patient signature", "Assinatura do representante legal": "Legal representative signature", "Assinatura do médico": "Dentist signature", "Escreva sobre a linha. Há espaço acima e abaixo para as letras.": "Write on the line. There is room above and below for your letters.", "Caneta para escrever. Para apagar com o dedo, afaste primeiro a caneta do ecrã.": "Write with the pen. To erase with your finger, first move the pen away from the screen.", "Escreva com a caneta. Para apagar, afaste a caneta do ecrã e passe o dedo sobre o traço. No computador, use o rato para escrever.": "Write with the pen. To erase, move the pen away and rub the stroke with your finger. On a computer, write with the mouse.", "Tem ou já teve…": "Do you have or have you ever had…", ", escreva ao lado os detalhes (qual, desde quando, medicação). Esta informação é confidencial e destina-se exclusivamente à segurança do seu tratamento.": ", write the details next to it (which condition, since when, medication). This information is confidential and is used exclusively to ensure the safety of your treatment."}, "fr": {"CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE": "CONSENTEMENT INFORMÉ, ÉCLAIRÉ ET LIBRE", "Exodontia de terceiros molares (dentes do siso)": "Extraction des troisièmes molaires (dents de sagesse)", "Data do esclarecimento e da assinatura:": "Date de l’information et de la signature :", "2. CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE PARA EXAMES DE RADIOLOGIA DENTÁRIA": "2. CONSENTEMENT INFORMÉ, ÉCLAIRÉ ET LIBRE AUX EXAMENS DE RADIOLOGIE DENTAIRE", "Toque para assinar": "Touchez pour signer", "Médico(a) Dentista": "Chirurgien-dentiste", "Paciente / Representante legal": "Patient / Représentant légal", "Representante legal": "Représentant légal", "Toque para escrever num painel maior": "Touchez pour écrire à la main dans un panneau agrandi", "Limpar": "Effacer", "Cancelar": "Annuler", "Confirmar escrita": "Confirmer le texte manuscrit", "Confirmar assinatura": "Confirmer la signature", "+ Adicionar mais informação": "+ Ajouter des informations", "Nome completo": "Nom complet", "Nome do representante legal": "Nom du représentant légal", "Medicação habitual": "Traitement habituel", "Alergias": "Allergies", "Outras informações": "Autres informations", "Assinatura do paciente": "Signature du patient", "Assinatura do representante legal": "Signature du représentant légal", "Assinatura do médico": "Signature du chirurgien-dentiste", "Escreva sobre a linha. Há espaço acima e abaixo para as letras.": "Écrivez sur la ligne. Il y a de la place au-dessus et au-dessous pour les lettres.", "Caneta para escrever. Para apagar com o dedo, afaste primeiro a caneta do ecrã.": "Écrivez avec le stylet. Pour effacer avec le doigt, éloignez d’abord le stylet de l’écran.", "Escreva com a caneta. Para apagar, afaste a caneta do ecrã e passe o dedo sobre o traço. No computador, use o rato para escrever.": "Écrivez avec le stylet. Pour effacer, éloignez le stylet et passez le doigt sur le trait. Sur ordinateur, utilisez la souris.", "Tem ou já teve…": "Avez-vous ou avez-vous déjà eu…", ", escreva ao lado os detalhes (qual, desde quando, medicação). Esta informação é confidencial e destina-se exclusivamente à segurança do seu tratamento.": ", indiquez à côté les détails (quelle affection, depuis quand, médicaments). Ces informations sont confidentielles et servent exclusivement à assurer la sécurité de votre traitement."}};
+ function translatedNode(original,text){const prefix=original.match(/^[\s,;:]*/)[0];const punct=prefix.trim();return (punct&&!text.trim().startsWith(punct)?prefix:original.match(/^\s*/)[0])+text.trim()+original.match(/\s*$/)[0];}
+ function translatedValue(text,target){return clinicalLabels[target]?.[text.trim()]??memo.get(target+"\n"+text);}
+ const header=document.querySelector('header>div:last-child');
+ document.getElementById('btnFocus')?.remove();
+ const tools=document.createElement('div');tools.className='reader-tools';
+ tools.innerHTML='<label><span class="reader-language" style="display:none">Idioma</span><select id="readerLanguage" aria-label="Língua do paciente"><option value="pt">PT · Português</option><option value="en">EN · English</option><option value="fr">FR · Français</option></select></label><button type="button" class="btn secondary reader-button" id="btnFocus" title="Ecrã inteiro: português e tradução" aria-label="Ecrã inteiro: português e tradução">⛶</button><button type="button" class="btn secondary reader-button" id="btnTranslation" title="Ecrã inteiro: só a língua do paciente" aria-label="Ecrã inteiro: só a língua do paciente">⛶<sub>2</sub></button><button type="button" class="btn secondary reader-button" id="btnReaderExit" aria-label="Voltar ao preenchimento" title="Voltar ao preenchimento" hidden>✕</button>';
+ header.append(tools);
+ const status=document.createElement('div');status.className='reader-status';status.setAttribute('role','status');document.querySelector('.clinical-bar').after(status);
+ function revealLanguage(){
+  if(!focusTranslation||!mode||!ready)return;
+  const target=$('paper').querySelector(lang==='pt'?'.doc-original':'.doc-translated');
+  if(!target)return;
+  focusTranslation=false;
+  requestAnimationFrame(()=>{if(mode&&target.isConnected)target.scrollIntoView({block:'start',behavior:'instant'});});
+ }
+ function setMode(next,gesture=false){
+  mode=next==='second'&&lang==='pt'?'all':next;
+  document.body.classList.toggle('focus',!!mode);document.body.classList.toggle('reader-second',mode==='second');
+  $('btnFocus').setAttribute('aria-pressed',String(mode==='all'));$('btnTranslation').setAttribute('aria-pressed',String(mode==='second'));$('btnReaderExit').hidden=!mode;
+  focusTranslation=!!mode;revealLanguage();
+  if(gesture&&mode&&document.documentElement.requestFullscreen&&!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});
+  if(!mode&&document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+ }
+ $('btnFocus').onclick=()=>setMode(mode==='all'?'':'all',true);
+ $('btnTranslation').onclick=()=>setMode(mode==='second'?'':'second',true);
+ $('btnReaderExit').onclick=()=>setMode('');
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]')&&!document.querySelector('#sigModal[style*="flex"],#writingModal[style*="flex"]'))setMode('');});
+ document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&mode)setMode('');});
+ function selectLanguage(next){if(!names[next])next='pt';if(next===lang)return;lang=next;ready=false;focusTranslation=!!mode;if(typeof finalRequest!=='undefined'){finalRequest=null;window.__docId=null;}document.querySelectorAll('.lang').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));if(mode)setMode(lang==='pt'?'all':mode);render();}
+ $('readerLanguage').onchange=e=>selectLanguage(e.target.value);
+ // Implantology keeps its existing reviewed translations and language buttons.
+ if(native)document.querySelectorAll('.lang').forEach(b=>{const copy=b.cloneNode(true);b.replaceWith(copy);copy.onclick=()=>selectLanguage(copy.dataset.l);});
+ function splitNative(){
+  const paper=$('paper'),pt=document.createElement('section'),tr=document.createElement('section');pt.className='doc-original';pt.lang='pt';tr.className='doc-translated';tr.lang=lang;let translated=false;
+  for(const node of Array.from(paper.childNodes)){if(node.nodeType===1&&node.classList.contains('pagebreak')){translated=true;node.remove();continue;}(translated?tr:pt).append(node);}
+  paper.append(pt);if(lang!=='pt')paper.append(tr);ready=true;status.textContent='';revealLanguage();
+ }
+ function collect(root){
+  const result=[],walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  const protectedValues=['JESUS MAR COUTO','Jesus Mar Couto',...['nome','nomeF','medico','unidade','unidadeOutra'].map(id=>$(id)?.value||'')].filter(x=>x&&x!=='outra').sort((a,b)=>b.length-a.length);
+  let node;while(node=walker.nextNode()){
+   if(!node.textContent.trim()||node.parentElement.closest('.meta,input,textarea,.box')||!/[A-Za-zÀ-ÿ]/.test(node.textContent))continue;
+   let text=node.textContent;const values=[];
+   for(const value of protectedValues)if(text.includes(value)){const token='JMCVALUE'+values.length+'END';text=text.split(value).join(token);values.push(value);}
+   if(!text.replace(/JMCVALUE\d+END/g,'').trim())continue;
+   result.push({node,text,values});
+  }return result;
+ }
+ function key(text){return lang+'\n'+text;}
+ async function request(texts,target){
+  const id=target+'\n'+JSON.stringify(texts);if(flights.has(id))return flights.get(id);
+  const task=new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).translateConsentText({language:target,texts})).then(html=>{
+   const parsed=new DOMParser().parseFromString(html,'text/html'),out=[];
+   for(let i=0;i<texts.length;i++){const matches=parsed.querySelectorAll('[id="jmc'+i+'"]');if(matches.length!==1)throw Error('A tradução recebida está incompleta.');const value=matches[0].textContent;if(!value.trim())throw Error('Falta texto na tradução.');const tokens=texts[i].match(/JMCVALUE\d+END/g)||[];for(const token of tokens)if(value.split(token).length!==texts[i].split(token).length)throw Error('Não foi possível preservar um campo na tradução.');out.push(value);}
+   out.forEach((value,i)=>memo.set(target+'\n'+texts[i],value));return out;
+  }).finally(()=>flights.delete(id));flights.set(id,task);return task;
+ }
+ function reflectInteraction(source,copy){
+  // Forward to the original controls, whose handlers remain the only data writers.
+  copy.addEventListener('click',event=>{
+   const element=event.target.closest('[data-writing],.sigbox,.opt');if(!element)return;
+   const attr=element.hasAttribute('data-writing')?'data-writing':element.hasAttribute('data-who')?'data-who':element.hasAttribute('data-q')?'data-q':element.hasAttribute('data-r')?'data-r':'data-ref';
+   const match=Array.from(source.querySelectorAll('['+attr+']')).find(e=>e.getAttribute(attr)===element.getAttribute(attr)&&e.getAttribute('data-v')===element.getAttribute('data-v'));match?.click();
+  });
+  copy.addEventListener('change',event=>{const e=event.target;if(!e.matches('select[data-f]'))return;const original=source.querySelector('select[data-f="'+e.dataset.f+'"]');if(original){original.value=e.value;original.dispatchEvent(new Event('change',{bubbles:true}));}});
+ }
+ async function translateCopy(source,copy,version,target){
+  copy.querySelectorAll('option').forEach(o=>o.setAttribute('value',o.value));
+  const items=collect(copy),missing=[...new Set(items.map(x=>x.text))].filter(text=>translatedValue(text,target)===undefined);
+  const chunks=[];let chunk=[],size=0;for(const text of missing){if(size+text.length>3500&&chunk.length){chunks.push(chunk);chunk=[];size=0;}chunk.push(text);size+=text.length;}if(chunk.length)chunks.push(chunk);
+  // At most two batches in flight; stop superseded work before starting more.
+  let cursor=0;
+  async function worker(){while(cursor<chunks.length){if(version!==epoch||target!==lang)return;const texts=chunks[cursor++];await request(texts,target);}}
+  if(chunks.length)await Promise.all(Array.from({length:Math.min(2,chunks.length)},worker));
+  if(version!==epoch||target!==lang)return;
+  for(const item of items){let text=translatedValue(item.text,target);if(typeof text!=='string')throw Error('Tradução incompleta.');item.values.forEach((value,i)=>{text=text.split('JMCVALUE'+i+'END').join(value);});item.node.textContent=translatedNode(item.text,text);}
+  copy.className='doc-translated';copy.lang=target;copy.removeAttribute('id');
+  const label=document.createElement('div');label.className='reader-language';label.textContent=names[target];copy.prepend(label);
+  reflectInteraction(source,copy);$('paper').querySelector('.doc-translated')?.remove();$('paper').append(copy);ready=true;status.textContent='Português + '+names[target]+' · Tradução automática'+(kind==='admissao'?' · Respostas manuscritas reproduzidas no original.':'.');revealLanguage();
+ }
+ const originalRender=render;
+ render=function(){
+  originalRender();const version=++epoch;clearTimeout(timer);ready=lang==='pt';$('readerLanguage').value=lang;$('btnTranslation').disabled=lang==='pt';if(lang==='pt'&&mode==='second')setMode('all');
+  if(native){splitNative();return;}
+  const paper=$('paper'),source=document.createElement('section');source.className='doc-original';source.lang='pt';while(paper.firstChild)source.append(paper.firstChild);paper.append(source);
+  if(lang==='pt'){status.textContent='';pending=Promise.resolve();revealLanguage();return;}
+  const target=lang,copy=source.cloneNode(true);status.textContent='A preparar tradução em '+names[target]+'…';
+  pending=new Promise(resolve=>{const run=()=>{translateCopy(source,copy,version,target).catch(error=>{if(version===epoch){ready=false;status.textContent='Não foi possível concluir a tradução: '+error.message+' Volte a selecionar a língua para tentar novamente.';}}).finally(resolve);};if(collect(copy).every(item=>translatedValue(item.text,target)!==undefined))run();else timer=setTimeout(run,0);});
+ };
+ async function ensure(){
+  if(native||lang==='pt')return true;
+  // Starting afresh avoids waiting for a cancelled debounce from an earlier render.
+  const copy=$('paper').querySelector('.doc-original').cloneNode(true),version=epoch;
+  try{await translateCopy($('paper').querySelector('.doc-original'),copy,version,lang);if(version!==epoch)return false;return ready;}catch(error){status.textContent='Tradução não concluída: '+error.message;return false;}
+ }
+ window.bilingualReady=()=>native||lang==='pt'||ready;
+ window.bilingualBeforeOutput=async()=>{if(native||lang==='pt')return true;return ensure();};
+ function bilingualPdf(html){
+  if(lang==='pt')return html;
+  if(!ready)throw Error('A tradução ainda não está pronta.');
+  const parsed=new DOMParser().parseFromString(html,'text/html'),copy=parsed.body.cloneNode(true);
+  for(const item of collect(copy)){let text=translatedValue(item.text,lang);if(typeof text!=='string')throw Error('Falta uma parte da tradução do PDF. Volte a selecionar a língua.');item.values.forEach((value,i)=>text=text.split('JMCVALUE'+i+'END').join(value));item.node.textContent=translatedNode(item.text,text);}
+  const original=document.createElement('section');original.lang='pt';while(parsed.body.firstChild)original.append(parsed.body.firstChild);parsed.body.append(original);
+  const translated=document.createElement('section');translated.lang=lang;translated.style.pageBreakBefore='always';translated.innerHTML=copy.innerHTML;parsed.body.append(translated);
+  return '<!doctype html>'+parsed.documentElement.outerHTML;
+ }
+ if(!native){if(kind==='sisos'){const oldPdf=sisosPdfHtml;sisosPdfHtml=()=>bilingualPdf(oldPdf());}else{const oldPdf=pdfHtml;pdfHtml=()=>bilingualPdf(oldPdf());}}
+ function localizePanel(id){
+  const root=$(id);if(!root)return;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;
+  while(node=walker.nextNode()){if(!node.textContent.trim())continue;const original=node._readerOriginal||node.textContent;node._readerOriginal=original;node.textContent=mode==='second'?(translatedValue(original,lang)||original):original;}
+ }
+ if(typeof openWriting==='function'){const oldWriting=openWriting;openWriting=function(...args){oldWriting(...args);localizePanel('writingModal');};}
+ const oldSignature=openSig;openSig=function(...args){oldSignature(...args);localizePanel('sigModal');};
+ // Remember the selected language in shared drafts, including admission drafts.
+ const oldCapture=clinicalCapture;clinicalCapture=function(){const data=oldCapture();data.language=lang;return data;};
+ const oldRestore=clinicalRestore;clinicalRestore=function(d){lang=names[d.data.language]?d.data.language:'pt';oldRestore(d);};
+ render();clinicalBaseline=JSON.stringify(clinicalCapture());
+})();
+</script>
+<script>
+/* Unidade por aparelho: ?unidade=aveiro|faiscas fixa; senão, o valor guardado neste aparelho; a lista continua editável para exceções. */
+(()=>{
+ const MAP={aveiro:'Aveiro',faiscas:'Faíscas'};
+ const fromUrl=(typeof window.JMC_UNIDADE==='string'&&window.JMC_UNIDADE)||'';
+ const stored=localStorage.getItem('jmc_unidade')||'';
+ if(fromUrl&&MAP[fromUrl]&&fromUrl!==stored){try{localStorage.setItem('jmc_unidade',fromUrl);}catch(e){}} // o link fixa a unidade deste aparelho
+ const key=fromUrl||stored;
+ window.jmcUnidade=()=>{const sel=document.getElementById('unidade')||document.getElementById('local');const txt=sel?String(sel.value||''):'';const k=txt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');return MAP[k]?k:(key||'aveiro')};
+ function apply(){const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel||!key||!MAP[key])return;
+   const opt=[...sel.options].find(o=>o.value===MAP[key]||o.text===MAP[key]);if(opt){sel.value=opt.value;sel.dispatchEvent(new Event('change'));}
+   let tag=document.getElementById('jmcUnidTag');if(!tag){tag=document.createElement('div');tag.id='jmcUnidTag';tag.style.cssText='font-size:11px;color:#6b7280;margin-top:4px';sel.insertAdjacentElement('afterend',tag);}
+   tag.innerHTML=(fromUrl?'Unidade fixa por link: ':'Este aparelho: ')+'<b>'+MAP[key]+'</b>'+(fromUrl?'':' · <a href="#" id="jmcUnidSet" style="color:#0f6b5c">definir este aparelho</a>');
+   const a=document.getElementById('jmcUnidSet');if(a)a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
+ // Sem unidade definida: oferecer definir
+ if(!key){document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel)return;const tag=document.createElement('div');tag.style.cssText='font-size:11px;color:#b7791f;margin-top:4px';tag.innerHTML='Este aparelho ainda não tem unidade definida · <a href="#" style="color:#0f6b5c">definir agora</a>';sel.insertAdjacentElement('afterend',tag);tag.querySelector('a').addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});});}
+ // Acrescenta a unidade a todos os pedidos savePdf feitos via google.script.run
+ const wrap=()=>{if(!window.google||!google.script||!google.script.run||google.script.run.__jmc)return;const run=google.script.run;const proto=Object.getPrototypeOf(run);
+   const patch=obj=>{if(typeof obj.savePdf!=='function'||obj.savePdf.__jmc)return;const orig=obj.savePdf;obj.savePdf=function(p){if(p&&typeof p==='object'&&!p.unidade)p=Object.assign({},p,{unidade:window.jmcUnidade()});return orig.call(this,p)};obj.savePdf.__jmc=true;};
+   patch(run);if(proto&&proto!==Object.prototype)patch(proto);
+   ['withSuccessHandler','withFailureHandler','withUserObject'].forEach(m=>{const o=run[m];if(typeof o!=='function'||o.__jmc)return;run[m]=function(){const r=o.apply(this,arguments);patch(r);return r};run[m].__jmc=true;});
+   run.__jmc=true;};
+ wrap();document.addEventListener('DOMContentLoaded',wrap);
+})();
+</script>
+<style>
+.jmc-paste{margin:0 0 12px}
+.jmc-paste textarea{width:100%;box-sizing:border-box;font:inherit;font-size:12px;border:1px dashed #c9b88f;background:#f5eedc;border-radius:8px;padding:7px 9px;height:36px;resize:none;color:#2f3a33}
+.jmc-paste textarea:focus{outline:none;border-style:solid;height:90px}
+.jmc-paste p{font-size:11px;color:#3d6b4f;margin:4px 0 0}
+</style>
+<script>
+/* Colar a ficha do paciente copiada do iMED: preenche automaticamente os campos que existirem nesta página */
+(()=>{
+ if(document.getElementById('paste'))return; // os cuidados pós-operatórios já têm o seu próprio campo
+ function parseIMED(t){
+ // Rótulos tolerantes a cópias mal feitas («ome:», «ata nasc.:», «Esdo:»): compara com os rótulos conhecidos por semelhança
+ const K={nome:'nome',datanasc:'nasc',profissao:'prof',local:'local',estado:'estado',nif:'nif',cartaodecidadao:'cc',nutente:'utente',utente:'utente',entidade:'entidade',nbenef:'benef',morada:'morada',telemovel:'tel',telefone:'tel',email:'email'};
+ const norm=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,'');
+ const lev=(a,b)=>{const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const q=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=q;}}return d[b.length];};
+ const key=l=>{const n=norm(l);if(n.length<2)return '';let best='',bd=9;
+  for(const k in K){const dd=k===n?0:(k.endsWith(n)||k.startsWith(n))&&n.length>=3?1:lev(n,k);if(dd<bd){bd=dd;best=K[k];}}
+  return bd<=Math.max(1,Math.floor(norm(l).length/3))?best:'';};
+ const o={}, lines=t.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
+ lines.forEach((ln,i)=>{
+  // separa rótulos na mesma linha («… Profissão: …», «… Cartão de Cidadão: …»)
+  const parts=ln.split(/\s+(?=(?:Profiss\S*|Cart\S* de Cidad\S*)\s*:)/);
+  parts.forEach(pt=>{const c=pt.indexOf(':');if(c<0||c>25){if(i===0&&!o.nome&&!o._first)o._first=pt;return;}
+   const k=key(pt.slice(0,c)),v=pt.slice(c+1).replace(/\s+/g,' ').trim();
+   if(k&&!o[k])o[k]=v;else if(i===0&&!o._first)o._first=v;});});
+ if(!o.nome&&o._first&&/^[A-Za-zÀ-ÿ'’. -]{3,}$/.test(o._first)&&o._first.split(' ').length>=2)o.nome=o._first;
+ if(!o.email){const e=t.match(/[^\s@:]+@[^\s@]+\.[a-z]{2,}/i);if(e)o.email=e[0];}
+ if(!o.local){const u=t.match(/Jesus Mar Couto\s*-\s*(Aveiro|Fa[ií]scas)/i);if(u)o.local=u[0];}
+ const r={};
+ if(o.nome)r.nome=o.nome;
+ if(o.nasc)r.nasc=(o.nasc.match(/\d{4}-\d{2}-\d{2}/)||[''])[0];
+ if(o.nif)r.nif=o.nif.replace(/\D/g,'');
+ if(o.cc)r.cc=o.cc.replace(/\s/g,'');
+ if(o.utente)r.utente=o.utente.replace(/\D/g,'');
+ if(o.morada)r.morada=o.morada;
+ if(o.tel)r.tel=o.tel.replace(/\s/g,'');
+ if(o.email)r.email=(o.email.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)||[''])[0];
+ if(o.local)r.unidade=/fa[ií]scas/i.test(o.local)?'faiscas':/aveiro/i.test(o.local)?'aveiro':'';
+ return r;}
+ const q=id=>document.getElementById(id);
+ const first=ids=>ids.map(q).find(Boolean);
+ const nameEl=first(['nome','nomeF','patient']);
+ if(!nameEl)return;
+ const fire=el=>{el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};
+ const set=(el,v)=>{if(!el||!v)return false;el.value=v;fire(el);return true;};
+ const box=document.createElement('div');box.className='jmc-paste';
+ box.innerHTML='<textarea placeholder="Colar informação do paciente (iMED)" aria-label="Colar informação do paciente"></textarea><p hidden></p>';
+ const sec=nameEl.closest('section'),h2=sec&&sec.querySelector(':scope > h2');
+ if(h2)h2.after(box);else if(sec)sec.before(box);else(nameEl.closest('form')||nameEl.closest('label')||nameEl).before(box);
+ const ta=box.querySelector('textarea'),ok=box.querySelector('p');
+ ta.addEventListener('input',()=>{
+  const r=parseIMED(ta.value),done=[];
+  if(set(nameEl,r.nome))done.push('nome «'+r.nome+'»');
+  if(set(q('email'),r.email))done.push('email');
+  if(r.nasc&&q('nasc')&&set(q('nasc'),r.nasc))done.push('data de nascimento');
+  if(q('tel')&&set(q('tel'),r.tel))done.push('telemóvel');
+  if(q('nif')&&set(q('nif'),r.nif))done.push('NIF');
+  if(q('cc')&&set(q('cc'),r.cc))done.push('cartão de cidadão');
+  if(r.morada&&q('rua')){ // contrato: morada do iMED «Localidade, Concelho, rua…, Nº. X, 1234-567»
+   const cp=(r.morada.match(/\d{4}-\d{3}/)||[''])[0];
+   const parts=r.morada.replace(cp,'').split(',').map(x=>x.trim()).filter(Boolean);
+   const local=parts[0]||'',rua=parts.slice(parts.length>2?2:1).join(', ');
+   if(set(q('rua'),rua))done.push('morada');set(q('cp'),cp);if(q('loc')&&q('loc').tagName==='INPUT')set(q('loc'),local);
+  }
+  const uSel=[q('unidade'),q('local'),q('location')].find(e=>e&&e.tagName==='SELECT');
+  if(r.unidade&&uSel){const want=r.unidade==='faiscas'?'Faíscas':'Aveiro';const o=[...uSel.options].find(o=>o.value===want||o.text===want||o.value===r.unidade);if(o){uSel.value=o.value;fire(uSel);done.push('unidade');}}
+  // ortodontia: a morada vai depois da unidade (mudar a unidade repõe a morada da clínica)
+  if(r.morada&&!q('rua')&&q('address')&&set(q('address'),r.morada))done.push('morada');
+  if(!done.length)return;
+  ta.value='';ta.blur();ok.hidden=false;
+  ok.textContent='✓ Preenchido: '+done.join(', ')+(r.nome?'':' — falta o nome, escreva-o abaixo')+'. Confirme antes de assinar.';
+ });
+})();
+</script>
+</body></html>

@@ -849,9 +849,12 @@ async function editarDoc(){ try{ if(!await supervisao('Editar o texto do documen
  docEditado=true; $('doc').contentEditable='true'; $('doc').classList.add('editing'); toast('Edição ativa — clique em qualquer texto para alterar. O PDF sai como está aqui.'); }
 function abrirDocLimpo(){ docEditado=false; $('doc').contentEditable='false'; $('doc').classList.remove('editing'); abrirDoc(); }
 // ---------- contrato ----------
-function contrato(){ const tot=totalCom(subtotal()), ep=+$('eR').value; const d={orcamento:ORC.numero,paciente:$('pNome').value,nif:$('pNif').value,morada:$('pMor').value,email:$('pEmail').value,total:Math.round(tot*100)/100,entradaPct:ep,entrada:Math.round(tot*ep)/100,prestacoes:prest,taxa:75,dia:10};
+async function contrato(){ if(!LS.length) return toast('Ainda sem linhas');
+ const w=window.open('about:blank','_blank'); toast('A guardar o orçamento com o PDF…');
+ try{ await guardarComPdf(); }catch(e){ if(w) w.close(); return toast('Erro ao guardar o orçamento: '+e.message); }
+ const tot=totalCom(subtotal()), ep=+$('eR').value; const d={id:ORC.id||'',orcamento:ORC.numero,paciente:$('pNome').value,nif:$('pNif').value,morada:$('pMor').value,email:$('pEmail').value,total:Math.round(tot*100)/100,entradaPct:ep,entrada:Math.round(tot*ep)/100,prestacoes:prest,taxa:75,dia:10};
  try{ localStorage.setItem('jmc_orc_para_contrato',JSON.stringify(d)); }catch(e){}
- window.open('../contratos/'+(TESTE?'?teste=1':''),'_blank'); toast('Contrato aberto · valores: '+eur(tot)+', entrada '+eur(d.entrada)+', '+prest+'×'); }
+ const url='../contratos/'+(TESTE?'?teste=1':''); if(w) w.location.href=url; else window.open(url,'_blank'); toast('Contrato aberto com o orçamento '+ORC.numero+' em anexo · '+eur(tot)+', entrada '+eur(d.entrada)+', '+prest+'×'); }
 // ---------- pasta ----------
 const EST={'Rascunho':'p-r','Entregue':'p-e','Aceite':'p-a','Parcialmente aceite':'p-pa','Recusado':'p-x','Expirado':'p-v'};
 function estadoVisto(o){ if(o.estado==='Entregue'||o.estado==='Rascunho'){ const d=new Date(o.criado); if(!isNaN(d)&&(Date.now()-d)/864e5>31) return 'Expirado'; } return o.estado||'Rascunho'; }

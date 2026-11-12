@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<script>
+/* JMC — documentos migrados da app antiga (Apps Script) para o GitHub.
+   Mantém o mesmo código da página: google.script.run passa a falar com o servidor "JMC Documentos API" (código pessoal uma vez por aparelho). */
+(function(){
+ const qs=new URLSearchParams(location.search);
+ const u=(qs.get('unidade')||'').toLowerCase();
+ if(u==='aveiro'||u==='faiscas'){window.JMC_UNIDADE=u;try{localStorage.setItem('jmc_unidade',u);}catch(e){}}
+ else{try{const s=localStorage.getItem('jmc_unidade');if(s==='aveiro'||s==='faiscas')window.JMC_UNIDADE=s;}catch(e){}}
+ window.JMC_TESTE=qs.get('teste')==='1';
+ const API='https://script.google.com/macros/s/AKfycbz4r7u2KxQK2NLh-4julAkcAMj8qOmp-kKaI5vZC6HXJfTkhWyIpEVqoXt16HUmwwjFjQ/exec',TK='jmc_docs_token';
+ const tok=()=>{try{return localStorage.getItem(TK)||'';}catch(e){return '';}};
+ const post=(fn,payload,token)=>fetch(API,{method:'POST',body:JSON.stringify({fn,payload,token}),redirect:'follow'}).then(r=>{if(!r.ok)throw Error('Sem ligação ao servidor (HTTP '+r.status+').');return r.json();});
+ let wait=null;
+ function overlay(){let el=document.getElementById('jmcLogin');if(el)return el;el=document.createElement('div');el.id='jmcLogin';
+  el.style.cssText='display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(20,24,28,.55);align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif';
+  el.innerHTML='<div style="background:#fff;border-radius:16px;padding:22px 22px 18px;width:min(340px,100%);box-shadow:0 20px 50px rgba(0,0,0,.25);text-align:center"><div style="font-weight:700;font-size:17px;margin-bottom:4px">Código pessoal</div><div style="font-size:13px;color:#6b7280;margin-bottom:14px">O mesmo do fecho de caixa. Só é pedido uma vez neste aparelho.</div><input id="jmcPin" type="password" inputmode="numeric" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:22px;letter-spacing:.3em;text-align:center;padding:10px;border:1px solid #d9dbe0;border-radius:10px"><div id="jmcPinErr" style="min-height:18px;font-size:12.5px;color:#a1382b;margin:8px 0"></div><button id="jmcPinGo" type="button" style="width:100%;padding:11px;border:0;border-radius:10px;background:#1f2a2e;color:#fff;font-size:15px;font-weight:600;cursor:pointer">Entrar</button></div>';
+  document.body.appendChild(el);return el;}
+ function login(){if(wait)return wait;const el=overlay();el.style.display='flex';const pin=document.getElementById('jmcPin'),err=document.getElementById('jmcPinErr'),go=document.getElementById('jmcPinGo');pin.value='';err.textContent='';setTimeout(()=>pin.focus(),50);
+  wait=new Promise(res=>{const run=async()=>{const code=pin.value.trim();if(!code)return;go.disabled=true;err.textContent='A verificar…';
+   try{const o=await post('login',{code,aparelho:(navigator.userAgent.match(/\(([^)]+)\)/)||[])[1]||''});if(!o.ok)throw Error(o.erro);try{localStorage.setItem(TK,o.r.token);localStorage.setItem('jmc_docs_nome',o.r.nome||'');}catch(e){}
+    el.style.display='none';wait=null;res(o.r.token);}catch(e){err.textContent=e.message||String(e);}finally{go.disabled=false;}};
+   go.onclick=run;pin.onkeydown=e=>{if(e.key==='Enter')run();};});return wait;}
+ async function api(fn,payload){let t=tok();if(!t)t=await login();let o=await post(fn,payload,t);
+  if(!o.ok&&o.auth){try{localStorage.removeItem(TK);}catch(e){}t=await login();o=await post(fn,payload,t);}
+  if(!o.ok)throw Error(o.erro||'Erro no servidor.');return o.r;}
+ window.jmcApi=api;
+ const ORTHO_V='ortho-preview-2026-09-21-v17',cacheJ={};
+ const getJ=u=>cacheJ[u]||(cacheJ[u]=fetch(u,{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Não foi possível carregar o modelo ('+r.status+').');return r.json();}).catch(e=>{delete cacheJ[u];throw e;}));
+ const ORTHO_KEYS=['hyrax','ocluso','ortodontia'];
+ const LOCAL={
+  getOrthoPreview:k=>{if(!ORTHO_KEYS.includes(k))return Promise.reject(Error('Documento desconhecido.'));return getJ('modelos/preview_'+k+'.json').then(p=>Object.assign({},p,{version:ORTHO_V}));},
+  getOrthoPrintPdf:k=>{if(!ORTHO_KEYS.includes(k))return Promise.reject(Error('Documento desconhecido.'));return getJ('modelos/asset_'+k+'.json').then(a=>a.pdf);},
+  getAlimentacaoAsset:()=>getJ('modelo.json')
+ };
+ function runner(){const st={ok:null,fail:null};const p=new Proxy({},{get(_,k){
+   if(k==='withSuccessHandler')return f=>{st.ok=f;return p;};
+   if(k==='withFailureHandler')return f=>{st.fail=f;return p;};
+   if(k==='withUserObject')return ()=>p;
+   if(typeof k!=='string'||k==='then')return undefined;
+   return (arg)=>{(LOCAL[k]?Promise.resolve().then(()=>LOCAL[k](arg)):api(k,arg===undefined?{}:arg)).then(r=>{if(st.ok)st.ok(r);}).catch(e=>{if(st.fail)st.fail(e);else console.error(e);});};}});return p;}
+ window.google=window.google||{};window.google.script={get run(){return runner();},url:{getLocation:f=>f({parameter:Object.fromEntries(qs.entries()),parameters:{}})}};
+})();
+</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ficha de admissão — Jesus Mar Couto</title>
+<style>
+:root{--bg:#f4f5f7;--panel:#fff;--ink:#1c1c1e;--muted:#6b7280;--line:#d9dbe0;--accent:#0f6b5c;--accent-ink:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+header h1{font-size:16px;margin:0}header small{color:var(--muted)}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+main{display:grid;grid-template-columns:360px 1fr;min-height:calc(100vh - 56px)}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:16px 18px 40px;overflow:auto}
+section.card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+section.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 10px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input[type=text],input[type=date],select,textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chk{display:flex;align-items:flex-start;gap:8px;font-size:13px}.chk input{margin-top:3px}
+.hint{font-size:11px;color:var(--muted);margin-top:4px}.req{color:#c0392b}
+.warn{background:#fff3b0;color:#7a5a00;border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:12px;display:none}
+.preview-wrap{padding:22px;overflow:auto;display:flex;justify-content:center}
+.paper{background:#fff;color:#111;width:210mm;min-height:297mm;padding:16mm 15mm;box-shadow:0 2px 14px rgba(0,0,0,.15);font:10.5pt/1.42 Arial,Helvetica,sans-serif;text-align:justify}
+.paper h1{text-align:center;font-size:13pt;margin:0 0 2pt}.paper .sub-t{text-align:center;font-size:10pt;margin:0 0 8pt}
+.paper h2{text-align:center;font-size:12pt;border-bottom:1px solid #000;padding-bottom:4pt;margin:14pt 0 10pt}
+.paper h3{font-size:10.5pt;margin:11pt 0 4pt}.paper p{margin:0 0 6pt}
+.paper .miss{background:#fff3b0;color:#7a5a00;padding:0 3px;border-radius:3px}
+.paper ul{margin:0 0 6pt 16pt;padding:0}.paper li{margin-bottom:6pt}
+.opt{display:inline-flex;align-items:center;gap:5pt;margin-right:18pt;cursor:pointer;user-select:none}
+.box{display:inline-block;width:11pt;height:11pt;border:1px solid #000;text-align:center;line-height:10pt;font-size:8pt;vertical-align:-2pt}
+table.q{width:100%;border-collapse:collapse;font-size:9.5pt}
+table.q td{border-bottom:1px solid #ddd;padding:3pt 4pt;vertical-align:top}
+table.q td.lbl{width:44%}table.q td.yn{width:14%;white-space:nowrap}
+table.q input[type=text]{border:0;border-bottom:1px dotted #999;border-radius:0;background:transparent;padding:1pt 2pt;font-size:9.5pt;width:100%}
+.paper textarea.det{width:100%;border:1px dotted #999;background:transparent;font:9.5pt Arial;min-height:28pt;border-radius:0}
+.paper table.id{width:100%;border-collapse:collapse;margin:6pt 0 4pt;font-size:10pt}
+.paper table.id td{padding:3pt 4pt;vertical-align:middle}.paper table.id td:first-child{width:28%;color:#444}
+.paper input.fi,.paper select.fi{border:0;border-bottom:1px solid #999;border-radius:0;background:#fffdf3;padding:2pt 4pt;font:10.5pt Arial;color:#111}
+.paper .sig{display:grid;grid-template-columns:1fr 1fr;gap:24pt;margin-top:24pt;text-align:center;font-size:9.5pt}
+.paper .sigbox{height:70pt;border:1px dashed #999;border-radius:4pt;display:flex;align-items:center;justify-content:center;margin-bottom:4pt;cursor:pointer;background:#fff}
+.paper .sigbox img{max-height:66pt;max-width:100%}.paper .sighint{color:#999;font-size:9pt}
+.paper .sigline{border-top:1px solid #000;padding-top:4pt}
+.paper .meta{font-size:9pt;color:#444;margin-top:6pt}
+#sigModal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:60}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50}
+#modal .dlg{background:#fff;color:#111;border-radius:12px;padding:20px 22px;max-width:420px;width:90%}
+#modal .dlg p{margin:0 0 16px;white-space:pre-line}#modal .acts{display:flex;gap:8px;justify-content:flex-end}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:8px;display:none;z-index:70;max-width:90vw}
+@media (max-width:980px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}.paper{width:100%;min-height:0;padding:14px}}
+@media print{body{background:#fff}header,aside,.warn{display:none!important}main{display:block}.preview-wrap{padding:0}.paper{box-shadow:none;width:auto;min-height:0;padding:0;font-size:10pt}.paper .sigbox{border-color:transparent}.paper .sighint{display:none}@page{size:A4;margin:16mm 15mm}}
+</style>
+<style>.clinical-bar{padding:12px 20px;background:#edf4f3;color:#203b43;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #ccd9d8}.clinical-bar span{font-size:13px}#clinical-dialog{color:#203b43;background:white;width:min(90vw,620px);max-height:80vh;border:1px solid #ccd9d8;border-radius:12px;padding:22px}#clinical-dialog::backdrop{background:#0008}#clinical-dialog button{cursor:pointer;padding:10px 14px;margin:5px 0}#clinical-search{width:100%;padding:10px;box-sizing:border-box}#clinical-list{margin:14px 0}.clinical-row{display:block;width:100%;text-align:left;background:#f1f6f5;border:1px solid #ccd9d8;border-radius:6px}@media print{.clinical-bar,#clinical-dialog{display:none!important}}header{flex-wrap:wrap}</style></head>
+<body>
+<header>
+  <div><h1>Ficha de admissão — dados pessoais, radiologia e saúde</h1><small>v2.0 · caneta escreve, dedo apaga</small></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="btn secondary" id="btnReset">Limpar</button>
+    <button class="btn secondary" id="btnPrint">Imprimir</button>
+    <button class="btn" id="btnSave" disabled>Guardar no Drive e enviar</button>
+  </div>
+</header><section class="clinical-bar" aria-label="Rascunhos"><div><button class="btn" id="clinical-save" type="button">Guardar rascunho</button> <button class="btn secondary" id="clinical-resume" type="button">Retomar rascunho</button></div><span id="clinical-status" role="status">Prepare no computador e retome no tablet, com a mesma conta da clínica.</span></section>
+<main>
+<aside>
+  <div class="warn" id="warn"></div>
+  <section class="card">
+    <h2>Paciente</h2>
+    <label>Nome do paciente <span class="req">*</span></label><input type="text" id="nomeF" placeholder="copiar do iMED — dá o nome ao PDF">
+    <label>Email (opcional — envia a cópia ao paciente)</label><input type="text" id="email" inputmode="email" placeholder="paciente@exemplo.com">
+    <div class="chk" style="margin-top:8px"><input type="checkbox" id="menor"><span>Menor de 18 anos / assina o representante legal</span></div>
+  </section>
+  <section class="card">
+    <h2>Unidade e data</h2>
+    <div class="row">
+      <div><label>Unidade clínica</label><select id="unidade"><option>Aveiro</option><option>Faíscas</option><option value="outra">Outra…</option></select><input type="text" id="unidadeOutra" placeholder="nome da unidade" style="margin-top:6px;display:none"></div>
+      <div><label>Data</label><input type="date" id="dataAss"></div>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Documento</h2>
+    <div class="hint">O paciente escreve o nome à mão na linha, responde ao questionário, assinala as autorizações e assina — tudo no documento, com a S Pen. <b>A caneta escreve, o dedo apaga.</b> Afaste a caneta do ecrã antes de apagar com o dedo.</div>
+  </section>
+</aside>
+
+<div id="writingModal" role="dialog" aria-modal="true" aria-labelledby="writingTitle" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:65;padding:8px">
+<div style="background:#fff;color:#111;border-radius:12px;padding:16px;width:min(96vw,1000px);max-height:96vh;overflow:auto;box-sizing:border-box">
+<div id="writingTitle" style="font-weight:600;font-size:18px">Escrever resposta</div>
+<p style="font-size:13px;margin:8px 0">Escreva sobre a linha. Há espaço acima e abaixo para as letras.</p>
+<div id="writingLines"></div><button type="button" id="writingAdd" style="display:none;margin:8px 0;padding:4px 0;border:0;background:none;color:#0f6b5c;text-decoration:underline;font-size:13px;cursor:pointer">+ Adicionar mais informação</button>
+<p style="font-size:12px;color:#555;margin:8px 0">Caneta para escrever. Para apagar com o dedo, afaste primeiro a caneta do ecrã.</p>
+<div style="position:sticky;bottom:-16px;background:#fff;padding:10px 0;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn secondary" id="writingClear">Limpar</button><button class="btn secondary" id="writingCancel">Cancelar</button><button class="btn" id="writingOk">Confirmar escrita</button></div>
+</div></div>
+<div id="sigModal"><div style="background:#fff;color:#111;border-radius:12px;padding:16px;width:min(96vw,900px)">
+  <div id="sigTitle" style="font-weight:600;margin-bottom:8px">Assinatura</div>
+  <div style="font-size:13px;color:#555;margin:6px 0">Escreva com a caneta. Para apagar, afaste a caneta do ecrã e passe o dedo sobre o traço. No computador, use o rato para escrever.</div><canvas id="sigPad" style="width:100%;height:300px;border:1px dashed #999;border-radius:8px;touch-action:none;background:#fff"></canvas>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button class="btn secondary" id="sigClear">Limpar</button><button class="btn secondary" id="sigCancel">Cancelar</button><button class="btn" id="sigOk">Confirmar assinatura</button></div>
+</div></div>
+<div id="toast"></div>
+<div id="modal"><div class="dlg"><p id="modalMsg"></p><div class="acts"><button class="btn secondary" id="modalNo">Cancelar</button><button class="btn" id="modalYes">Continuar</button></div></div></div>
+<div class="preview-wrap"><div class="paper" id="paper"></div></div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const VER='v2.0';
+let lang='pt';
+const ids=['nomeF','email','menor','unidade','unidadeOutra','dataAss'];
+const F={repQual:'mãe'};
+function v(id){ if(id in F) return (F[id]||'').trim(); const e=$(id); return e&&e.type!=='checkbox'?e.value.trim():''; }
+function nomeFile(){return v('nomeF')}
+const today=()=>new Date().toISOString().slice(0,10);
+$('dataAss').value=today();
+function normDate(t){t=(t||'').trim();if(!t)return '';let m=t.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return `${m[3].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[1]}`;m=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/);if(m)return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[3]}`;m=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2})$/);if(m)return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${(+m[3]>30?'19':'20')+m[3]}`;return null}
+function ageFrom(dmy){if(!dmy)return null;const [d,m,y]=dmy.split('/').map(Number);const b=new Date(y,m-1,d),n=new Date();let a=n.getFullYear()-y;if(n.getMonth()<m-1||(n.getMonth()===m-1&&n.getDate()<d))a--;return a}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function fmtDate(v){if(!v)return '____/____/________';const [y,m,d]=v.split('-');return `${d}/${m}/${y}`}
+function miss(l){return `<span class="miss">${l}</span>`}
+function unidade(){return $('unidade').value==='outra'?(v('unidadeOutra')||''):$('unidade').value}
+
+// ---------- estado das respostas (vive fora do DOM para sobreviver ao re-render) ----------
+const A={ rgpd:{sms:'',rx:''}, q:{}, det:{}, med:'', alerg:'', obs:'', sigPac:'', ink:{}, ref:{} };
+const REF=[['rec','Recomendação de familiar ou amigo'],['redes','Redes sociais (Instagram, Facebook)'],['google','Pesquisa na internet (Google)'],['ia','Inteligência artificial (ChatGPT, Claude, Gemini…)'],['medico','Indicação de outro médico'],['local','Passei pela clínica'],['outro','Outro']];
+function refCell(k,l){return `<span class="opt" data-ref="${k}">${box(!!A.ref[k])} ${l}</span>`}
+// campo de escrita à mão (canvas inline)
+function inkField(k,forPdf,h,lines){
+  h=h||26;const H=lines?lines*22:h*1.6;
+  const label=k==='nome'?'Escrever nome completo':k==='rep'?'Escrever nome do representante legal':'Escrever resposta';
+  const image=A.ink[k]?'<img alt="Texto manuscrito" src="'+A.ink[k]+'" style="width:100%;height:100%;object-fit:contain;object-position:left center;display:block">':'';
+  if(forPdf)return '<div style="height:'+H+'pt;width:100%;border-bottom:1px solid #999">'+image+'</div>';
+  return '<button type="button" class="writing-field" data-writing="'+k+'" aria-label="'+label+'" style="height:'+H+'pt;width:100%;display:block;padding:3px 8px;border:0;border-bottom:1px solid #999;border-radius:3px;background:#fffdf3;cursor:pointer;text-align:left">'+(image||'<span style="color:#666;font-size:12px">Toque para escrever num painel maior</span>')+'</button>';
+}
+// Caneta/rato escrevem; um dedo apaga. Uma só interação ativa por tela.
+function canvasHasInk(canvas){
+  const data=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=3;i<data.length;i+=4) if(data[i]>8) return true;
+  return false;
+}
+function attachInk(canvas,onChange,options={}){
+  const ctx=canvas.getContext('2d');
+  let active=null,last=null,erasing=false,ready=true,generation=0,lastPen=-Infinity;
+  canvas.style.touchAction='none';
+  const pos=e=>{const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};};
+  function notify(){onChange(canvasHasInk(canvas));}
+  function release(){const id=active;active=null;last=null;if(id!==null&&canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);}
+  function paint(p){
+    ctx.save();ctx.globalCompositeOperation=erasing?'destination-out':'source-over';
+    ctx.lineWidth=erasing?(options.eraserWidth||28):(options.width||2.2);
+    ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0b1d51';ctx.fillStyle='#0b1d51';
+    ctx.beginPath();
+    if(last&&((last.x!==p.x)||(last.y!==p.y))){ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();}
+    else{ctx.arc(p.x,p.y,ctx.lineWidth/2,0,Math.PI*2);ctx.fill();}
+    ctx.restore();last=p;
+  }
+  canvas.addEventListener('pointerdown',e=>{
+    if(!ready)return;
+    const pen=e.pointerType==='pen';
+    if(pen)lastPen=Date.now();
+    if(e.pointerType==='touch'&&(Date.now()-lastPen<400||e.width>35||e.height>35))return;
+    if((pen||e.pointerType==='mouse')&&e.button!==0&&e.button!==5)return;
+    if(active!==null){if(!pen||!erasing)return;release();notify();}
+    e.preventDefault();active=e.pointerId;erasing=e.pointerType==='touch'||e.button===5;last=null;
+    canvas.setPointerCapture(active);paint(pos(e));
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(e.pointerType==='pen')lastPen=Date.now();
+    if(e.pointerId!==active)return;
+    e.preventDefault();paint(pos(e));
+  });
+  function end(e){if(e.pointerId!==active)return;if(e.pointerType==='pen')lastPen=Date.now();release();notify();}
+  canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);canvas.addEventListener('lostpointercapture',end);
+  return {
+    reset(silent=false){generation++;ready=true;release();ctx.clearRect(0,0,canvas.width,canvas.height);if(!silent)notify();},
+    load(data){
+      this.reset(true);if(!data)return;
+      ready=false;const token=generation;const img=new Image();
+      img.onload=()=>{if(token!==generation)return;const r=canvas.getBoundingClientRect();if(options.contain){const scale=Math.min(r.width/img.width,r.height/img.height);ctx.drawImage(img,(r.width-img.width*scale)/2,(r.height-img.height*scale)/2,img.width*scale,img.height*scale);}else ctx.drawImage(img,0,0,r.width,r.height);ready=true;notify();};
+      img.onerror=()=>{if(token===generation){ready=true;notify();}};img.src=data;
+    }
+  };
+}
+
+
+function inkBounds(data,width,height){
+  let left=width,top=height,right=-1,bottom=-1;
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++)if(data[(y*width+x)*4+3]>8){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
+  return right<0?null:{left,top,width:right-left+1,height:bottom-top+1};
+}
+function cropHandwriting(canvas){
+  const ctx=canvas.getContext('2d'),bounds=inkBounds(ctx.getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height);
+  if(!bounds)return '';
+  const out=document.createElement('canvas'),margin=12;
+  out.width=bounds.width+margin*2;out.height=bounds.height+margin*2;
+  out.getContext('2d').drawImage(canvas,bounds.left,bounds.top,bounds.width,bounds.height,margin,margin,bounds.width,bounds.height);
+  return out.toDataURL('image/png');
+}
+const writingDrafts={};let writingKey='',writingReturn=null,writingQuestion='',writingEntries=[];
+function updateWritingReady(){ $('writingOk').disabled=writingEntries.some(entry=>!entry.ready); }
+function addWritingLine(savedKey){
+  const index=writingEntries.length;
+  const key=writingQuestion?detailKey(writingQuestion,index):writingKey;
+  const canvas=document.createElement('canvas');
+  canvas.setAttribute('aria-label','Linha de escrita '+(index+1));
+  canvas.style.cssText='width:100%;height:120px;display:block;margin-bottom:8px;border:1px dashed #999;border-radius:8px;touch-action:none;background:linear-gradient(to bottom,#fffdf3 62%,#677b94 62%,#677b94 calc(62% + 2px),#fffdf3 calc(62% + 2px))';
+  $('writingLines').appendChild(canvas);
+  const r=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+  canvas.width=Math.max(1,Math.round(r.width*dpr));canvas.height=Math.max(1,Math.round(r.height*dpr));canvas.getContext('2d').scale(dpr,dpr);
+  const saved=savedKey?(writingDrafts[savedKey]||A.ink[savedKey]||''):'';
+  const entry={key,canvas,ready:!saved,ink:null};writingEntries.push(entry);
+  entry.ink=attachInk(canvas,()=>{entry.ready=true;updateWritingReady();},{width:2.2,eraserWidth:28,contain:true});
+  entry.ink.load(saved);updateWritingReady();
+  return canvas;
+}
+function openWriting(key,button){
+  writingKey=key;writingReturn=button;writingQuestion=key.startsWith('det_')?key.slice(4).split('__')[0]:'';
+  writingEntries=[];$('writingLines').replaceChildren();
+  $('writingTitle').textContent=writingQuestion?(PERG.find(item=>item[0]===writingQuestion)?.[1]||'Informação de saúde'):detailTitle(key);
+  $('writingAdd').style.display=writingQuestion?'inline-block':'none';
+  $('writingOk').textContent=writingQuestion?'Confirmar todas as linhas':'Confirmar escrita';
+  $('writingModal').style.display='flex';
+  const count=writingQuestion?(detailLineCounts[writingQuestion]||1):1;
+  for(let i=0;i<count;i++)addWritingLine(writingQuestion?detailKey(writingQuestion,i):key);
+  $('writingClear').focus();
+}
+function closeWriting(){
+  $('writingModal').style.display='none';writingEntries.forEach(entry=>entry.ink.reset(true));writingEntries=[];$('writingLines').replaceChildren();
+  if(writingReturn&&writingReturn.isConnected)writingReturn.focus();
+}
+$('writingAdd').onclick=()=>{const canvas=addWritingLine();canvas.scrollIntoView({block:'center',behavior:'smooth'});};
+$('writingClear').onclick=()=>writingEntries.forEach(entry=>entry.ink.reset());
+$('writingCancel').onclick=closeWriting;
+$('writingOk').onclick=()=>{
+  if(writingEntries.some(entry=>!entry.ready))return;
+  writingEntries.forEach(entry=>{
+    const cropped=cropHandwriting(entry.canvas);
+    if(cropped){A.ink[entry.key]=cropped;writingDrafts[entry.key]=entry.canvas.toDataURL('image/png');}
+    else{delete A.ink[entry.key];delete writingDrafts[entry.key];}
+  });
+  if(writingQuestion)detailLineCounts[writingQuestion]=writingEntries.length;
+  const key=writingKey;closeWriting();render();document.querySelector('[data-writing="'+key+'"]')?.focus();
+};
+$('writingModal').addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();closeWriting();}
+  if(e.key==='Tab'){
+    const buttons=Array.from($('writingModal').querySelectorAll('button')).filter(button=>!button.disabled&&button.getClientRects().length);
+    if(e.shiftKey&&document.activeElement===buttons[0]){e.preventDefault();buttons[buttons.length-1].focus();}
+    else if(!e.shiftKey&&document.activeElement===buttons[buttons.length-1]){e.preventDefault();buttons[0].focus();}
+  }
+});
+function bindInk(){
+  document.querySelectorAll('[data-writing]').forEach(button=>{button.onclick=()=>openWriting(button.dataset.writing,button);});
+}
+const PERG=[
+ ['cardio','Problemas cardíacos (doença cardiovascular, hipertensão, enfarte, AVC, válvulas cardíacas ou pacemaker)'],
+ ['diab','Diabetes'],
+ ['coag','Problemas de coagulação / hemorragias fáceis / toma de anticoagulantes ou antiagregantes (ex.: varfarina, Xarelto, Eliquis, aspirina, clopidogrel)'],
+ ['bifos','Toma de bifosfonatos ou outros medicamentos para os ossos (ex.: Fosamax, Prolia, Zometa)'],
+ ['radio','Radioterapia da cabeça/pescoço e/ou quimioterapia ou imunossupressores','Há quanto tempo? Que medicação?'],
+ ['renal','Doença renal ou hepática'],
+ ['resp','Doença respiratória / asma'],
+ ['epil','Epilepsia ou desmaios frequentes'],
+ ['tiro','Doença da tiroide'],
+ ['osteo','Osteoporose'],
+ ['infec','Doença infecciosa (hepatite B/C, HIV, tuberculose ou outra)'],
+ ['psi','Ansiedade, depressão ou outra condição em acompanhamento'],
+ ['anest','Já teve reação a algum tipo de anestesia dentária ou geral'],
+ ['grav','Gravidez ou amamentação (atual)'],
+ ['fumo','Fumador','Quantos cigarros por dia?'],
+ ['alcool','Consumidor de álcool'],
+ ['drog','Consumo de substâncias ilícitas ou não prescritas'],
+ ['brux','Range ou aperta os dentes (bruxismo)'],
+];
+
+
+const detailLineCounts={};
+function detailKey(key,index){return 'det_'+key+(index?'__'+index:'');}
+function detailTitle(key){
+  if(!key.startsWith('det_'))return key==='nome'?'Nome completo':key==='rep'?'Nome do representante legal':key==='med'?'Medicação habitual':key==='alerg'?'Alergias':'Outras informações';
+  const [question,index]=key.slice(4).split('__');
+  const label=PERG.find(item=>item[0]===question)?.[1]||'Informação de saúde';
+  return label+' — linha '+(Number(index||0)+1);
+}
+function healthQuestionRows(forPdf){
+  return PERG.map(([key,label,hint])=>{
+    const yes=A.q[key]==='sim';
+    const count=yes?(detailLineCounts[key]||1):1;
+    const rows=[];
+    for(let i=0;i<count;i++){
+      const field=detailKey(key,i);
+      if(forPdf&&i>0&&!A.ink[field])continue;
+      const heading=i?label+' (continuação)':label;
+      const answer=i?'':ynCell(key,'sim','Sim')+ynCell(key,'nao','Não');
+      const detail=yes?((!i&&hint?'<div style="font-size:8.5pt;color:#555">'+hint+'</div>':'')+inkField(field,forPdf,0,2)):'';
+      rows.push('<tr style="break-inside:avoid;page-break-inside:avoid"><td class="lbl">'+heading+'</td><td class="yn">'+answer+'</td><td>'+detail+'</td></tr>');
+    }
+    return rows.join('');
+  }).join('');
+}
+
+function box(on){return `<span class="box">${on?'X':''}</span>`}
+function ynCell(key,val,label){return `<span class="opt" data-q="${key}" data-v="${val}">${box(A.q[key]===val)} ${label}</span>`}
+function rgpdOpt(key,val,label){return `<span class="opt" data-r="${key}" data-v="${val}">${box(A.rgpd[key]===val)} ${label}</span>`}
+
+function build(forPdf){
+  const menor=$('menor').checked;
+  const T=(id,val)=>forPdf?`<span>${esc(val)||'—'}</span>`:`<input type="text" data-t="${id}" value="${esc(val)}">`;
+  const TA=(id,val)=>forPdf?`<p style="border-bottom:1px dotted #999;min-height:14pt">${esc(val)||'—'}</p>`:`<textarea class="det" data-ta="${id}">${esc(val)}</textarea>`;
+  const rows=healthQuestionRows(forPdf);
+  const sigbox=(who,img,lbl)=>`<div><div class="sigbox" data-who="${who}">${img?`<img src="${img}" alt="">`:'<span class="sighint">Toque para assinar</span>'}</div><div class="sigline">${lbl}</div></div>`;
+  return `
+  <h1>JESUS MAR COUTO</h1>
+  <h2 style="margin-top:4pt">FICHA DE ADMISSÃO DO DOENTE</h2>
+  <h2>1. DADOS PESSOAIS, COMUNICAÇÕES E EXAMES RADIOLÓGICOS</h2>
+  <p style="margin-bottom:2pt">Eu (nome completo),</p>${inkField('nome',forPdf)}
+  ${menor?`<p style="margin:6pt 0 2pt">representado(a) por (nome do representante legal),</p>${inkField('rep',forPdf)}<p style="margin:4pt 0 2pt">na qualidade de ${forPdf?`<b>${esc(F.repQual)}</b>`:`<select class="fi" data-f="repQual" style="width:auto">${['mãe','pai','tutor(a) legal','outro'].map(o=>`<option${F.repQual===o?' selected':''}>${o}</option>`).join('')}</select>`},</p>`:''}
+  <p style="margin-top:6pt">ao abrigo do Regulamento Geral de Proteção de Dados da União Europeia 2016/679, declaro o seguinte:</p>
+  <p><b>Tratamento dos meus dados.</b> Tomei conhecimento de que a Jesus Mar Couto trata os meus dados pessoais e de saúde para a prestação de cuidados de medicina dentária, gestão do processo clínico, prescrição eletrónica de medicamentos, faturação e cumprimento de obrigações legais, sendo os dados de saúde tratados por profissionais sujeitos a sigilo. Serei contactado(a) por SMS, email ou telefone para lembretes de consulta e para informação relativa ao meu tratamento, marcações, faturação e envio de documentos.</p>
+  <p><b>Exames radiológicos durante as consultas.</b> Autorizo a captura de imagens radiológicas — periapicais, ortopantomografia e/ou CBCT — sempre que o médico dentista a considere necessária, durante as consultas e ao longo do meu plano de tratamento, sem necessidade de assinatura individual por cada exame, nos termos explicados na secção 2 deste documento.<br>${rgpdOpt('rx','sim','Autorizo')}${rgpdOpt('rx','nao','Não autorizo')}</p>
+  <p><b>Comunicações sobre serviços.</b> Autorizo a Jesus Mar Couto a enviar-me, por SMS, email ou telefone, informação sobre os seus serviços, novidades e campanhas.<br>${rgpdOpt('sms','sim','Autorizo')}${rgpdOpt('sms','nao','Não autorizo')}</p>
+  <p>Os meus dados pessoais não serão transmitidos a terceiros exceto com o meu consentimento, salvo quando a lei o exija (por exemplo, à Autoridade Tributária ou a entidades de saúde) ou quando necessário à prestação dos cuidados (por exemplo, laboratório de prótese ou seguradora por mim indicada). O responsável pelo tratamento é Couto e Jesus, NIF 514531592 (nome comercial Jesus Mar Couto). Os dados do processo clínico são conservados pelo prazo legalmente exigido. Posso, a qualquer momento, aceder aos meus dados, pedir a sua alteração ou, quando aplicável, a sua remoção, assim como alterar as autorizações acima, contactando a clínica, sem que isso afete o meu acompanhamento e os cuidados que me são prestados, bem como apresentar reclamação à Comissão Nacional de Proteção de Dados.</p>
+
+  <h2>2. CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE PARA EXAMES DE RADIOLOGIA DENTÁRIA</h2>
+  <h3>Diagnóstico e/ou descrição da situação clínica</h3>
+  <p>O exame a realizar constitui um meio complementar de diagnóstico com recurso a radiações ionizantes, utilizado no diagnóstico e/ou tratamento em diversas áreas da medicina dentária, tais como ortodontia, endodontia, implantologia, cirurgia, doenças periodontais ou diagnóstico de cáries. O exame proposto de radiologia dentária intraoral e/ou extra oral possibilita a aquisição de imagens anatómicas, com o objetivo de auxiliar o médico no diagnóstico e/ou definição do plano de tratamento mais adequado e eficaz, resultando num benefício para a sua saúde.</p>
+  <h3>Riscos graves e riscos frequentes</h3>
+  <p>Atualmente, os exames com radiação ionizante são realizados com base no princípio da otimização, utilizando a menor dose possível que permita garantir um correto diagnóstico, minimizando os riscos associados. Graças à evolução tecnológica dos detetores de radiação, os valores da dose efetiva foram significativamente reduzidos. Nos exames de raios-X intraorais, cefalografias e panorâmicas, o valor de dose efetiva recebida é equivalente a menos de 1,5 dias de exposição à radiação natural. No caso de uma tomografia multidirecional, comummente designada CBCT ou TAC 3D, o valor de dose efetiva poderá corresponder até cerca de 5 meses de radiação natural, dependendo do equipamento utilizado. Estes valores correspondem a um risco muito reduzido para o paciente.</p>
+  <h3>Atos/intervenções alternativas fiáveis e cientificamente reconhecidas, e risco de não tratamento</h3>
+  <p>Um estudo de revisão sistemática concluiu que, na maioria dos casos, o uso de radiografia intraoral ou panorâmica é suficiente para o planeamento de intervenções nos terceiros molares. Contudo, o CBCT poderá ser indicado quando as técnicas convencionais revelarem sinais de grande proximidade entre o dente e o canal mandibular. Nestes casos, deverá recorrer-se a imagens de CBCT se o clínico considerar que estas poderão alterar o diagnóstico e o planeamento face às imagens iniciais. A não realização do exame poderá implicar a não identificação de alterações patológicas e consequente limitação no tratamento adequado.</p>
+  <h3>Grávidas</h3>
+  <p>Os exames de raios-X durante a gravidez estão relacionados com a possibilidade de provocar defeitos genéticos no feto, que podem resultar em doenças ou malformações. A dose fetal de um exame de raios-X dentário, incluindo a Tomografia Computorizada de Feixe Cónico (CBCT), foi estimada entre 0,9 μSv e 7,97 μSv(1). Em termos comparativos, esta dose é geralmente inferior à dose diária de radiação natural recebida pelo feto. A gestante pode realizar um exame de raios-X sempre que recomendado, devendo, no entanto, informar previamente o médico sobre a gravidez, para que o avental de chumbo destinado à proteção contra radiação seja corretamente posicionado.</p>
+  <p>O utente/representante/cuidador abaixo identificado declara ter recebido, de forma adequada e compreensível, a informação relativa aos procedimentos descritos no presente documento. Todas as dúvidas foram esclarecidas e foi concedido um período de reflexão suficiente para a tomada de decisão.</p>
+  <p>Em caso de recusa, serão assegurados os melhores cuidados possíveis dentro deste contexto, no respeito pelos direitos do utente. Contudo, a clínica não poderá ser responsabilizada por eventuais limitações no diagnóstico ou no plano de tratamento decorrentes da não realização dos exames radiológicos recomendados. No caso de a prescrição do exame ter origem externa, a identificação e assinatura do prescritor encontram-se na respetiva requisição.</p>
+  <p>Não hesite em solicitar informações adicionais caso persistam dúvidas.</p>
+  <p>Declaro ainda que autorizo que todos os exames radiológicos dentários intraorais e/ou extra orais que se revelem clinicamente necessários no decurso do meu plano de tratamento possam ser realizados mediante o meu consentimento verbal, a obter no momento da consulta, em conformidade com o Decreto-Lei n.º 108/2018, sem necessidade de recolha de assinatura individual por cada exame, de forma a garantir a eficiência e a manutenção das boas práticas de assepsia clínica.</p>
+
+  <h2>3. QUESTIONÁRIO DE SAÚDE</h2>
+  <p style="font-size:9.5pt">Responda a todas as perguntas. Se responder <b>Sim</b>, escreva ao lado os detalhes (qual, desde quando, medicação). Esta informação é confidencial e destina-se exclusivamente à segurança do seu tratamento.</p>
+  <table class="q"><tr><td class="lbl"><b>Tem ou já teve…</b></td><td class="yn"></td><td><b>Detalhes</b></td></tr>${rows}</table>
+  <p style="margin-top:10pt"><b>Toma alguma medicação de forma habitual?</b> &nbsp; ${ynCell('medq','sim','Sim')}${ynCell('medq','nao','Não')}</p>
+  ${A.q.medq==='sim'?`<p style="font-size:9.5pt;margin-bottom:2pt">Indique o nome e a dose, incluindo suplementos e contracetivos:</p>${inkField('med',forPdf,0,4)}`:''}
+  <p style="margin-top:10pt"><b>Tem alergias a medicamentos, anestésicos, látex ou outras?</b> &nbsp; ${ynCell('alq','sim','Sim')}${ynCell('alq','nao','Não')}</p>
+  ${A.q.alq==='sim'?`<p style="font-size:9.5pt;margin-bottom:2pt">Indique quais e que tipo de reação teve:</p>${inkField('alerg',forPdf,0,3)}`:''}
+  ${A.q.alq==='nao'?`<p style="font-size:9.5pt">Declaro que, até ao momento, não tive qualquer reação alérgica conhecida a medicamentos, anestésicos, látex ou outros materiais.</p>`:''}
+  <p style="margin-top:10pt"><b>Outras informações que considere relevantes:</b></p>${inkField('obs',forPdf,0,3)}
+  <p>Declaro que as informações prestadas neste questionário são verdadeiras e completas, e comprometo-me a informar a clínica de qualquer alteração do meu estado de saúde ou da minha medicação ao longo do tratamento.</p>
+
+  <p style="margin-top:12pt"><b>Como teve conhecimento da clínica?</b> <span style="color:#555;font-size:9pt">(opcional; pode assinalar mais do que uma)</span><br>
+  <span style="display:inline-block;margin-top:3pt;line-height:1.9">${REF.map(([k,l])=>refCell(k,l)).join('')}</span></p>
+
+  <p style="margin-top:10pt">Local: ${esc(unidade())||miss('unidade')} &nbsp;&nbsp;&nbsp; Data: ${fmtDate(v('dataAss'))}</p>
+  <div class="sig" style="grid-template-columns:1fr;justify-items:center"><div style="width:60%">${sigbox('pac',A.sigPac,menor?'Representante legal':'Paciente')}</div></div>
+  <p class="meta">Documento n.º ${docId()} · gerado em ${new Date().toLocaleString('pt-PT')} · Ficha de admissão ${VER}</p>`;
+}
+function docId(){if(!window.__docId){const d=new Date();window.__docId='ADM-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+String(d.getSeconds()).padStart(2,'0')}return window.__docId}
+
+function render(){
+  $('unidadeOutra').style.display=$('unidade').value==='outra'?'block':'none';
+  $('paper').innerHTML=build(false);
+  bindInk();
+  document.querySelectorAll('.fi[data-f]').forEach(i=>{
+    i.addEventListener('input',()=>{F[i.dataset.f]=i.value; if(i.dataset.f==='nasc'||i.dataset.f==='nome'){}});
+    i.addEventListener('change',()=>{F[i.dataset.f]=i.value;render()});
+    i.addEventListener('blur',()=>{F[i.dataset.f]=i.value;render()});
+  });
+
+  // ligações
+  document.querySelectorAll('.opt[data-q]').forEach(o=>o.addEventListener('click',()=>{A.q[o.dataset.q]=o.dataset.v;render()}));
+  document.querySelectorAll('.opt[data-r]').forEach(o=>o.addEventListener('click',()=>{A.rgpd[o.dataset.r]=o.dataset.v;render()}));
+  document.querySelectorAll('input[data-t]').forEach(i=>i.addEventListener('input',()=>{const k=i.dataset.t.replace('det:','');A.det[k]=i.value}));
+  document.querySelectorAll('textarea[data-ta]').forEach(t=>t.addEventListener('input',()=>{A[t.dataset.ta]=t.value}));
+  document.querySelectorAll('.sigbox').forEach(b=>b.addEventListener('click',()=>openSig(b.dataset.who)));
+  document.querySelectorAll('.opt[data-ref]').forEach(o=>o.addEventListener('click',()=>{A.ref[o.dataset.ref]=!A.ref[o.dataset.ref];render()}));
+  const missing=[];
+  if(!v('nomeF'))missing.push('nome do paciente (painel)');
+  const w=$('warn');w.style.display=missing.length?'block':'none';w.textContent=missing.length?'Em falta: '+missing.join(', '):'';
+  $('btnSave').disabled=!A.sigPac;
+  const safe=(v('nomeF')||'Paciente').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  document.title=`${safe}_${v('dataAss')}_Ficha_Admissao`;
+  const safe2=safe;
+}
+ids.forEach(id=>{$(id).addEventListener('input',render);$(id).addEventListener('change',render)});
+
+// ---------- assinatura ----------
+
+let sigWho='';const pad=$('sigPad');let hasInk=false;
+const signatureInk=attachInk(pad,ink=>{hasInk=ink;});
+function padResize(){const r=pad.getBoundingClientRect();const dpr=window.devicePixelRatio||1;pad.width=Math.max(1,Math.round(r.width*dpr));pad.height=Math.max(1,Math.round(r.height*dpr));pad.getContext('2d').scale(dpr,dpr);signatureInk.reset();}
+function openSig(who){sigWho=who;$('sigTitle').textContent=$('menor').checked?'Assinatura do representante legal':'Assinatura do paciente';$('sigModal').style.display='flex';padResize();signatureInk.load(A.sigPac);}
+$('sigClear').onclick=()=>signatureInk.reset();
+$('sigCancel').onclick=()=>{$('sigModal').style.display='none';signatureInk.reset();};
+$('sigOk').onclick=()=>{if(!canvasHasInk(pad)){toast('A assinatura está vazia. Assine com a caneta antes de confirmar.');return;}A.sigPac=pad.toDataURL('image/png');$('sigModal').style.display='none';render();};
+
+function showSaveStatus(r,email){
+  let status=$('saveStatus');
+  if(!status){status=document.createElement('div');status.id='saveStatus';status.setAttribute('role','status');status.style.cssText='margin:12px 0;padding:12px;border:1px solid #ccc;border-radius:8px;font-size:14px;white-space:normal';$('btnSave').parentNode.appendChild(status);}
+  status.textContent='PDF guardado: '+r.fileName+'. ';
+  const message=!email?'Sem email indicado: cópia não enviada.':r.emailSent?'Email submetido para envio por '+r.sender+', com cópia para a clínica. A entrega ao destinatário não está confirmada.':'Email NÃO enviado. '+r.emailError;
+  status.appendChild(document.createTextNode(message+' '));
+  const link=document.createElement('a');link.textContent='Abrir PDF guardado';link.href=r.url;link.target='_blank';link.rel='noopener';status.appendChild(link);
+  if(r.logUrl){status.appendChild(document.createTextNode(' · '));const log=document.createElement('a');log.textContent='Abrir registo de envios';log.href=r.logUrl;log.target='_blank';log.rel='noopener';status.appendChild(log);}
+  if(r.logError)status.appendChild(document.createTextNode(' ATENÇÃO: não foi possível concluir o registo de controlo: '+r.logError));
+
+}
+function toast(m,ms){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',ms||3500)}
+function ask(msg){return new Promise(res=>{$('modalMsg').textContent=msg;$('modal').style.display='flex';const done=r=>{$('modal').style.display='none';res(r)};$('modalYes').onclick=()=>done(true);$('modalNo').onclick=()=>done(false)})}
+
+// ---------- guardar ----------
+const PDF_CSS=`<style>body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.35;color:#111;margin:0}h1{font-size:15pt;letter-spacing:2pt;text-align:center;margin:0}.sub-t{text-align:center;font-size:9.5pt;color:#444;margin-bottom:10pt}h2{font-size:11.5pt;text-align:center;margin:12pt 0 8pt;border-bottom:1px solid #999;padding-bottom:3pt}h3{font-size:10.5pt;margin:8pt 0 3pt}p{margin:0 0 6pt;text-align:justify}ul{margin:0 0 6pt 16pt;padding:0}li{margin-bottom:6pt}.box{display:inline-block;width:10pt;height:10pt;border:1px solid #111;text-align:center;font-size:8pt;line-height:10pt;vertical-align:middle}.opt{margin-right:14pt}table.q{width:100%;border-collapse:collapse;font-size:9.5pt}table.q td{border-bottom:1px solid #ccc;padding:2pt 4pt;vertical-align:top}table.q td.lbl{width:44%}table.q td.yn{width:14%;white-space:nowrap}.sig{margin-top:24pt}.sig table{width:100%}.sig td{width:50%;text-align:center;font-size:9.5pt;vertical-align:bottom;padding:0 12pt}.sigimg{height:60pt;display:block;margin:0 auto 4pt}.sigline{border-top:1px solid #111;padding-top:4pt}.meta{font-size:8.5pt;color:#444;margin-top:6pt}.miss{background:#fde68a}</style>`;
+function pdfHtml(){
+  let inner=build(true);
+  const menor=$('menor').checked;
+  const img=d=>d?`<img class="sigimg" src="${d}">`:'<div style="height:60pt"></div>';
+  const sigTable=`<div class="sig"><table><tr><td style="width:25%"></td><td style="width:50%">${img(A.sigPac)}<div class="sigline">${menor?'Representante legal':'Paciente'}</div></td><td></td></tr></table></div>`;
+  const s=inner.indexOf('<div class="sig">'),e=inner.indexOf('<p class="meta">',s);
+  if(s>-1&&e>-1)inner=inner.slice(0,s)+sigTable+inner.slice(e);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">${PDF_CSS}</head><body>${inner}</body></html>`;
+}
+$('btnPrint').addEventListener('click',async()=>{render();if(window.bilingualBeforeOutput&&!await window.bilingualBeforeOutput())return;window.print()});
+$('btnReset').addEventListener('click',async()=>{if(!(await ask('Limpar tudo, incluindo respostas e assinaturas?')))return;ids.forEach(id=>{const e=$(id);if(e.type==='checkbox')e.checked=false;else if(id==='dataAss')e.value=today();else e.value=e.tagName==='SELECT'?e.options[0].value:''});Object.keys(F).forEach(k=>delete F[k]);Object.assign(F,{repQual:'mãe'});Object.assign(A,{rgpd:{sms:'',rx:''},q:{},det:{},med:'',alerg:'',obs:'',sigPac:'',ink:{},ref:{}});Object.keys(writingDrafts).forEach(k=>delete writingDrafts[k]);Object.keys(detailLineCounts).forEach(k=>delete detailLineCounts[k]);window.__docId=null;clinicalDraftReset();$('btnSave').textContent='Guardar no Drive e enviar';render()});
+$('btnSave').addEventListener('click',async()=>{
+  render();
+  if(!A.sigPac){toast('O paciente tem de assinar primeiro.');return}
+  const missing=[];if(!v('nomeF'))missing.push('nome do paciente (painel)');if(!A.ink.nome)missing.push('nome escrito à mão no documento');
+  if($('menor').checked&&!A.ink.rep)missing.push('nome do representante legal');
+  if(missing.length&&!(await ask('Faltam: '+missing.join(', ')+'.\n\nGuardar mesmo assim?')))return;
+  const semR=Object.entries(A.rgpd).filter(([k,x])=>!x).length, semQ=PERG.filter(([k])=>!A.q[k]).length+(A.q.medq?0:1)+(A.q.alq?0:1);
+  if((semR||semQ)&&!(await ask(`Há respostas por assinalar (${semR} autorização(ões), ${semQ} pergunta(s) de saúde).\n\nGuardar mesmo assim?`)))return;
+  const email=v('email');
+  if(!email&&!(await ask('Sem email do paciente: o PDF será guardado no Drive mas não será enviada cópia. Continuar?')))return;
+  if(window.bilingualBeforeOutput&&!await window.bilingualBeforeOutput()){toast('A tradução ainda não está pronta.');return;}
+  $('btnSave').disabled=true;$('btnSave').textContent='A guardar…';
+  const payload={...clinicalDraftMeta(),unidade:(window.jmcUnidade?window.jmcUnidade():''),tipo:'admissao',html:pdfHtml(),nome:v('nomeF'),data:v('dataAss'),email,docId:docId()};
+  google.script.run.withSuccessHandler(r=>{$('btnSave').textContent='Guardado ✓';showSaveStatus(r,email);clinicalDraftCompleted();toast(`Guardado: ${r.fileName}`+(email?(r.emailSent?' · email enviado':' · email NÃO enviado: '+r.emailError):''),8000)})
+  .withFailureHandler(e=>{$('btnSave').disabled=false;$('btnSave').textContent='Guardar no Drive e enviar';toast('Erro ao guardar: '+e.message,8000)})
+  .savePdf(payload);
+});
+render();
+</script>
+<dialog id="clinical-dialog" aria-labelledby="clinical-title"><h2 id="clinical-title">Retomar rascunho</h2><p>Preenchimentos guardados na Drive da clínica.</p><label for="clinical-search">Pesquisar por paciente</label><input type="search" id="clinical-search"><button type="button" id="clinical-refresh">Atualizar lista</button><div id="clinical-list" role="status"></div><button type="button" id="clinical-close">Fechar</button></dialog><script>// Estado apenas em memória; os rascunhos persistem na Drive privada da clínica.
+const clinicalKind=typeof A==='undefined'?'implantologia':'admissao';
+let clinicalId=null,clinicalRevision=0,clinicalPending=null,clinicalBusy=false,clinicalList=[],clinicalLoaded=false,clinicalListPromise=null;
+const clinicalClone=v=>JSON.parse(JSON.stringify(v));
+function clinicalCapture(){const fields={};for(const id of ids){const e=$(id);fields[id]=e.type==='checkbox'?e.checked:e.value;}return clinicalKind==='admissao'?{fields,F:clinicalClone(F),A:clinicalClone(A),writing:clinicalClone(writingDrafts),lines:clinicalClone(detailLineCounts)}:{fields,signatures:clinicalClone(SIG),language:lang};}
+let clinicalBaseline=JSON.stringify(clinicalCapture());
+function clinicalDirty(){return JSON.stringify(clinicalCapture())!==clinicalBaseline;}
+function clinicalRpc(name,payload){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](payload));}
+function clinicalStatus(t){$('clinical-status').textContent=t;}
+function clinicalReplace(target,source){Object.keys(target).forEach(k=>delete target[k]);Object.assign(target,source||{});}
+function clinicalRestore(d){for(const id of ids){const e=$(id),value=d.data.fields[id];if(e.type==='checkbox')e.checked=value===true;else e.value=typeof value==='string'?value:'';}
+ if(clinicalKind==='admissao'){clinicalReplace(F,d.data.F);clinicalReplace(A,d.data.A);clinicalReplace(writingDrafts,d.data.writing);clinicalReplace(detailLineCounts,d.data.lines);}else{clinicalReplace(SIG,d.data.signatures);lang=['pt','en','fr','es'].includes(d.data.language)?d.data.language:'pt';document.querySelectorAll('.lang').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));}
+ window.__docId=null;render();$('saveStatus')?.remove();$('btnSave').textContent='Guardar no Drive e enviar';clinicalId=d.id;clinicalRevision=d.revision;clinicalPending=null;clinicalBaseline=JSON.stringify(clinicalCapture());clinicalStatus('Rascunho retomado — '+d.patient+'. Pode alterar e voltar a guardar.');}
+function clinicalDraftMeta(){return clinicalId?{draftId:clinicalId,draftRevision:clinicalRevision}:{};}
+function clinicalDraftCompleted(){clinicalList=clinicalList.filter(d=>d.id!==clinicalId);clinicalId=null;clinicalRevision=0;clinicalPending=null;clinicalBaseline=JSON.stringify(clinicalCapture());clinicalStatus('PDF final guardado. O rascunho foi concluído.');}
+function clinicalDraftReset(){clinicalId=null;clinicalRevision=0;clinicalPending=null;setTimeout(()=>{clinicalBaseline=JSON.stringify(clinicalCapture());clinicalStatus('Novo preenchimento. Guarde um rascunho para continuar no tablet.');},0);}
+/* Depois de guardar o rascunho do consentimento de implantologia: pergunta (uma vez por rascunho) se cria já os rascunhos seguintes */
+const jmcNextAsked={};
+function jmcAskNext(id,data){if(clinicalKind!=='implantologia'||jmcNextAsked[id])return;const f=(data&&data.fields)||{};if(!String(f.nome||'').trim())return;jmcNextAsked[id]=1;
+ setTimeout(()=>{if(!confirm('Deseja criar também os rascunhos dos cuidados pós-operatórios e do guia de implantes?'))return;clinicalStatus('A criar os rascunhos seguintes…');
+  clinicalRpc('createNextDrafts',{from:'implantologia',draftId:id,nome:f.nome,email:f.email,data:f.dataAss,unidade:f.unidade,medico:f.medico,nasc:f.nasc,osso:f.osso,geng:f.geng,carga:f.carga,sinus:f.sinusOn,nImpl:f.nImpl,pos:f.pos,lang:(typeof lang==='string'?lang:'pt'),teste:!!window.JMC_TESTE})
+   .then(()=>clinicalStatus('Rascunho guardado. Criados também os rascunhos dos cuidados pós-operatórios e do guia de implantes.'))
+   .catch(e=>clinicalStatus('Rascunho guardado, mas os seguintes não foram criados: '+(e.message||e)));},60);}
+async function clinicalSave(){if(clinicalBusy)return;if(['sigModal','writingModal','modal'].some(id=>$(id)&&$(id).style.display==='flex')){toast('Confirme ou cancele o painel aberto antes de guardar.');return;}clinicalBusy=true;document.body.inert=true;clinicalStatus('A guardar rascunho na Drive…');try{const data=clinicalCapture();if(!clinicalPending||JSON.stringify(clinicalPending.data)!==JSON.stringify(data))clinicalPending={id:clinicalId||clinicalPending?.id||crypto.randomUUID(),revision:clinicalRevision,writeToken:crypto.randomUUID(),key:clinicalKind,data};const d=await clinicalRpc('saveClinicalDraft',clinicalPending);clinicalId=d.id;clinicalRevision=d.revision;clinicalPending=null;clinicalBaseline=JSON.stringify(data);clinicalList=[d,...clinicalList.filter(x=>x.id!==d.id)];clinicalStatus('Rascunho guardado na Drive às '+new Date(d.updatedAt).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+'. Pode retomar no computador ou tablet.');jmcAskNext(d.id,data);}catch(e){clinicalStatus('Não foi possível confirmar a gravação: '+e.message+'. Mantenha esta página aberta.');}finally{clinicalBusy=false;document.body.inert=false;}}
+function clinicalFetch(refresh=false){if(clinicalListPromise)return clinicalListPromise;clinicalListPromise=clinicalRpc('listClinicalDrafts',{key:clinicalKind,refresh}).then(list=>{clinicalList=list;clinicalLoaded=true;return list;}).finally(()=>clinicalListPromise=null);return clinicalListPromise;}
+function clinicalRenderList(){const out=$('clinical-list'),q=$('clinical-search').value.toLocaleLowerCase('pt-PT');out.replaceChildren();const list=clinicalList.filter(d=>d.patient.toLocaleLowerCase('pt-PT').includes(q));if(!list.length)out.textContent=q?'Nenhum rascunho corresponde à pesquisa.':'Ainda não há rascunhos guardados.';for(const d of list){const b=document.createElement('button');b.type='button';b.className='clinical-row';b.textContent=d.patient+' · '+new Date(d.updatedAt).toLocaleString('pt-PT');b.onclick=()=>clinicalResume(d.id);const row=document.createElement('div');row.style.cssText='display:flex;gap:6px;align-items:stretch';b.style.flex='1';const x=document.createElement('button');x.type='button';x.textContent='Remover';x.title='Remover rascunho';x.style.cssText='border:1px solid #e2bdb5;background:#fff;color:#a1382b;border-radius:8px;padding:0 12px;cursor:pointer;font:inherit;font-size:13px;margin-bottom:8px';x.onclick=async ev=>{ev.stopPropagation();if(!window.confirm('Deseja remover o rascunho de '+d.patient+'?'))return;x.disabled=true;try{await clinicalRpc('deleteClinicalDraft',{key:clinicalKind,id:d.id});clinicalList=clinicalList.filter(y=>y.id!==d.id);if(clinicalId===d.id)clinicalDraftReset();clinicalRenderList();}catch(err){x.disabled=false;window.alert('Não foi possível remover: '+(err.message||err));}};row.append(b,x);out.append(row);}}
+async function clinicalRefresh(force=false){$('clinical-refresh').disabled=true;try{await clinicalFetch(force);if($('clinical-dialog').open)clinicalRenderList();}catch(e){$('clinical-list').textContent='Não foi possível carregar: '+e.message;}finally{$('clinical-refresh').disabled=false;}}
+async function clinicalResume(id){if(clinicalBusy)return;if(clinicalDirty()&&!window.confirm('Existem alterações por guardar. Quer substituí-las pelo rascunho escolhido?'))return;clinicalBusy=true;document.body.inert=true;$('clinical-list').textContent='A abrir rascunho…';try{const d=await clinicalRpc('loadClinicalDraft',{key:clinicalKind,id});clinicalRestore(d);$('clinical-dialog').close();}catch(e){$('clinical-list').textContent='Não foi possível retomar: '+e.message;}finally{clinicalBusy=false;document.body.inert=false;}}
+$('clinical-save').onclick=clinicalSave;
+$('clinical-resume').onclick=()=>{if(clinicalBusy)return;$('clinical-search').value='';$('clinical-dialog').showModal();if(clinicalLoaded||clinicalList.length)clinicalRenderList();else $('clinical-list').textContent='A procurar rascunhos na Drive…';clinicalRefresh();};
+$('clinical-close').onclick=()=>$('clinical-dialog').close();$('clinical-refresh').onclick=()=>clinicalRefresh(true);$('clinical-search').oninput=clinicalRenderList;
+window.addEventListener('beforeunload',e=>{if(clinicalDirty()){e.preventDefault();e.returnValue='';}});
+setTimeout(()=>clinicalFetch().catch(()=>{}),100);
+</script><style>
+.reader-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.reader-tools button{min-height:40px;min-width:42px}.reader-tools select{padding:8px;border:1px solid #ccd9d8;border-radius:7px;background:white;color:#203b43}.reader-tools button[aria-pressed=true]{background:#0f6b5c;color:white}.reader-status{padding:9px 18px;color:#365258;background:#edf4f3;font:13px Arial,sans-serif}.reader-status:empty{display:none}.doc-translated{page-break-before:always;border-top:1px solid #bbb;margin-top:32px;padding-top:24px}.reader-language{font:600 11px Arial,sans-serif;letter-spacing:.07em;text-transform:uppercase;margin:0 0 18px;color:#526b70}
+body.focus .reader-status{position:sticky;top:58px;z-index:19}.doc-original,.doc-translated{scroll-margin-top:108px}
+body.focus aside,body.focus .clinical-bar,body.focus #saveStatus{display:none!important}body.focus main{display:block!important}body.focus header{position:sticky!important;top:0;right:auto;width:100%;background:#f4f5f7!important;display:flex;justify-content:flex-end;padding:6px 10px!important;z-index:20;border-bottom:1px solid #ddd!important}body.focus header>div:first-child{display:none!important}body.focus header button:not(.reader-button):not(.lang),body.focus header #langSel{display:none!important}body.focus header .reader-tools button,body.focus header .reader-tools select{display:inline-block!important}body.focus .preview-wrap{padding:12px}body.focus #btnFocus{opacity:1}body.reader-second .doc-original,body.reader-second .pfoot{display:none}body.reader-second .doc-translated{border:0;margin:0;padding:0}body.focus .paper{max-width:100%;box-sizing:border-box}
+@media print{.reader-tools,.reader-status,.reader-language{display:none!important}body.reader-second .doc-original,body.reader-second .doc-translated{display:block!important}.doc-translated{page-break-before:always;border:0;margin:0;padding:0}body.focus header{display:none!important}}
+</style>
+<script>
+/* Reading modes never remove either version from the exported PDF. */
+(()=>{
+ const kind=clinicalKind,native=kind==='implantologia';
+ const names={pt:'Português',en:'English',fr:'Français'};
+ let mode='',epoch=0,ready=false,pending=Promise.resolve(),timer=null,focusTranslation=false;
+ const memo=new Map(),flights=new Map();
+ const clinicalLabels={"en": {"CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE": "INFORMED AND FREELY GIVEN CONSENT", "Exodontia de terceiros molares (dentes do siso)": "Extraction of third molars (wisdom teeth)", "Data do esclarecimento e da assinatura:": "Date of information and signature:", "2. CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE PARA EXAMES DE RADIOLOGIA DENTÁRIA": "2. INFORMED AND FREELY GIVEN CONSENT FOR DENTAL RADIOLOGICAL EXAMINATIONS", "Toque para assinar": "Tap to sign", "Médico(a) Dentista": "Dentist", "Paciente / Representante legal": "Patient / Legal representative", "Representante legal": "Legal representative", "Toque para escrever num painel maior": "Tap to write by hand in a larger panel", "Limpar": "Clear", "Cancelar": "Cancel", "Confirmar escrita": "Confirm writing", "Confirmar assinatura": "Confirm signature", "+ Adicionar mais informação": "+ Add more information", "Nome completo": "Full name", "Nome do representante legal": "Name of the legal representative", "Medicação habitual": "Regular medication", "Alergias": "Allergies", "Outras informações": "Other information", "Assinatura do paciente": "Patient signature", "Assinatura do representante legal": "Legal representative signature", "Assinatura do médico": "Dentist signature", "Escreva sobre a linha. Há espaço acima e abaixo para as letras.": "Write on the line. There is room above and below for your letters.", "Caneta para escrever. Para apagar com o dedo, afaste primeiro a caneta do ecrã.": "Write with the pen. To erase with your finger, first move the pen away from the screen.", "Escreva com a caneta. Para apagar, afaste a caneta do ecrã e passe o dedo sobre o traço. No computador, use o rato para escrever.": "Write with the pen. To erase, move the pen away and rub the stroke with your finger. On a computer, write with the mouse.", "Tem ou já teve…": "Do you have or have you ever had…", ", escreva ao lado os detalhes (qual, desde quando, medicação). Esta informação é confidencial e destina-se exclusivamente à segurança do seu tratamento.": ", write the details next to it (which condition, since when, medication). This information is confidential and is used exclusively to ensure the safety of your treatment."}, "fr": {"CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE": "CONSENTEMENT INFORMÉ, ÉCLAIRÉ ET LIBRE", "Exodontia de terceiros molares (dentes do siso)": "Extraction des troisièmes molaires (dents de sagesse)", "Data do esclarecimento e da assinatura:": "Date de l’information et de la signature :", "2. CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE PARA EXAMES DE RADIOLOGIA DENTÁRIA": "2. CONSENTEMENT INFORMÉ, ÉCLAIRÉ ET LIBRE AUX EXAMENS DE RADIOLOGIE DENTAIRE", "Toque para assinar": "Touchez pour signer", "Médico(a) Dentista": "Chirurgien-dentiste", "Paciente / Representante legal": "Patient / Représentant légal", "Representante legal": "Représentant légal", "Toque para escrever num painel maior": "Touchez pour écrire à la main dans un panneau agrandi", "Limpar": "Effacer", "Cancelar": "Annuler", "Confirmar escrita": "Confirmer le texte manuscrit", "Confirmar assinatura": "Confirmer la signature", "+ Adicionar mais informação": "+ Ajouter des informations", "Nome completo": "Nom complet", "Nome do representante legal": "Nom du représentant légal", "Medicação habitual": "Traitement habituel", "Alergias": "Allergies", "Outras informações": "Autres informations", "Assinatura do paciente": "Signature du patient", "Assinatura do representante legal": "Signature du représentant légal", "Assinatura do médico": "Signature du chirurgien-dentiste", "Escreva sobre a linha. Há espaço acima e abaixo para as letras.": "Écrivez sur la ligne. Il y a de la place au-dessus et au-dessous pour les lettres.", "Caneta para escrever. Para apagar com o dedo, afaste primeiro a caneta do ecrã.": "Écrivez avec le stylet. Pour effacer avec le doigt, éloignez d’abord le stylet de l’écran.", "Escreva com a caneta. Para apagar, afaste a caneta do ecrã e passe o dedo sobre o traço. No computador, use o rato para escrever.": "Écrivez avec le stylet. Pour effacer, éloignez le stylet et passez le doigt sur le trait. Sur ordinateur, utilisez la souris.", "Tem ou já teve…": "Avez-vous ou avez-vous déjà eu…", ", escreva ao lado os detalhes (qual, desde quando, medicação). Esta informação é confidencial e destina-se exclusivamente à segurança do seu tratamento.": ", indiquez à côté les détails (quelle affection, depuis quand, médicaments). Ces informations sont confidentielles et servent exclusivement à assurer la sécurité de votre traitement."}};
+ function translatedNode(original,text){const prefix=original.match(/^[\s,;:]*/)[0];const punct=prefix.trim();return (punct&&!text.trim().startsWith(punct)?prefix:original.match(/^\s*/)[0])+text.trim()+original.match(/\s*$/)[0];}
+ function translatedValue(text,target){return clinicalLabels[target]?.[text.trim()]??memo.get(target+"\n"+text);}
+ const header=document.querySelector('header>div:last-child');
+ document.getElementById('btnFocus')?.remove();
+ const tools=document.createElement('div');tools.className='reader-tools';
+ tools.innerHTML='<label><span class="reader-language" style="display:none">Idioma</span><select id="readerLanguage" aria-label="Língua do paciente"><option value="pt">PT · Português</option><option value="en">EN · English</option><option value="fr">FR · Français</option></select></label><button type="button" class="btn secondary reader-button" id="btnFocus" title="Ecrã inteiro: português e tradução" aria-label="Ecrã inteiro: português e tradução">⛶</button><button type="button" class="btn secondary reader-button" id="btnTranslation" title="Ecrã inteiro: só a língua do paciente" aria-label="Ecrã inteiro: só a língua do paciente">⛶<sub>2</sub></button><button type="button" class="btn secondary reader-button" id="btnReaderExit" aria-label="Voltar ao preenchimento" title="Voltar ao preenchimento" hidden>✕</button>';
+ header.append(tools);
+ const status=document.createElement('div');status.className='reader-status';status.setAttribute('role','status');document.querySelector('.clinical-bar').after(status);
+ function revealLanguage(){
+  if(!focusTranslation||!mode||!ready)return;
+  const target=$('paper').querySelector(lang==='pt'?'.doc-original':'.doc-translated');
+  if(!target)return;
+  focusTranslation=false;
+  requestAnimationFrame(()=>{if(mode&&target.isConnected)target.scrollIntoView({block:'start',behavior:'instant'});});
+ }
+ function setMode(next,gesture=false){
+  mode=next==='second'&&lang==='pt'?'all':next;
+  document.body.classList.toggle('focus',!!mode);document.body.classList.toggle('reader-second',mode==='second');
+  $('btnFocus').setAttribute('aria-pressed',String(mode==='all'));$('btnTranslation').setAttribute('aria-pressed',String(mode==='second'));$('btnReaderExit').hidden=!mode;
+  focusTranslation=!!mode;revealLanguage();
+  if(gesture&&mode&&document.documentElement.requestFullscreen&&!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});
+  if(!mode&&document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+ }
+ $('btnFocus').onclick=()=>setMode(mode==='all'?'':'all',true);
+ $('btnTranslation').onclick=()=>setMode(mode==='second'?'':'second',true);
+ $('btnReaderExit').onclick=()=>setMode('');
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]')&&!document.querySelector('#sigModal[style*="flex"],#writingModal[style*="flex"]'))setMode('');});
+ document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&mode)setMode('');});
+ function selectLanguage(next){if(!names[next])next='pt';if(next===lang)return;lang=next;ready=false;focusTranslation=!!mode;if(typeof finalRequest!=='undefined'){finalRequest=null;window.__docId=null;}document.querySelectorAll('.lang').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));if(mode)setMode(lang==='pt'?'all':mode);render();}
+ $('readerLanguage').onchange=e=>selectLanguage(e.target.value);
+ // Implantology keeps its existing reviewed translations and language buttons.
+ if(native)document.querySelectorAll('.lang').forEach(b=>{const copy=b.cloneNode(true);b.replaceWith(copy);copy.onclick=()=>selectLanguage(copy.dataset.l);});
+ function splitNative(){
+  const paper=$('paper'),pt=document.createElement('section'),tr=document.createElement('section');pt.className='doc-original';pt.lang='pt';tr.className='doc-translated';tr.lang=lang;let translated=false;
+  for(const node of Array.from(paper.childNodes)){if(node.nodeType===1&&node.classList.contains('pagebreak')){translated=true;node.remove();continue;}(translated?tr:pt).append(node);}
+  paper.append(pt);if(lang!=='pt')paper.append(tr);ready=true;status.textContent='';revealLanguage();
+ }
+ function collect(root){
+  const result=[],walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  const protectedValues=['JESUS MAR COUTO','Jesus Mar Couto',...['nome','nomeF','medico','unidade','unidadeOutra'].map(id=>$(id)?.value||'')].filter(x=>x&&x!=='outra').sort((a,b)=>b.length-a.length);
+  let node;while(node=walker.nextNode()){
+   if(!node.textContent.trim()||node.parentElement.closest('.meta,input,textarea,.box')||!/[A-Za-zÀ-ÿ]/.test(node.textContent))continue;
+   let text=node.textContent;const values=[];
+   for(const value of protectedValues)if(text.includes(value)){const token='JMCVALUE'+values.length+'END';text=text.split(value).join(token);values.push(value);}
+   if(!text.replace(/JMCVALUE\d+END/g,'').trim())continue;
+   result.push({node,text,values});
+  }return result;
+ }
+ function key(text){return lang+'\n'+text;}
+ async function request(texts,target){
+  const id=target+'\n'+JSON.stringify(texts);if(flights.has(id))return flights.get(id);
+  const task=new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).translateConsentText({language:target,texts})).then(html=>{
+   const parsed=new DOMParser().parseFromString(html,'text/html'),out=[];
+   for(let i=0;i<texts.length;i++){const matches=parsed.querySelectorAll('[id="jmc'+i+'"]');if(matches.length!==1)throw Error('A tradução recebida está incompleta.');const value=matches[0].textContent;if(!value.trim())throw Error('Falta texto na tradução.');const tokens=texts[i].match(/JMCVALUE\d+END/g)||[];for(const token of tokens)if(value.split(token).length!==texts[i].split(token).length)throw Error('Não foi possível preservar um campo na tradução.');out.push(value);}
+   out.forEach((value,i)=>memo.set(target+'\n'+texts[i],value));return out;
+  }).finally(()=>flights.delete(id));flights.set(id,task);return task;
+ }
+ function reflectInteraction(source,copy){
+  // Forward to the original controls, whose handlers remain the only data writers.
+  copy.addEventListener('click',event=>{
+   const element=event.target.closest('[data-writing],.sigbox,.opt');if(!element)return;
+   const attr=element.hasAttribute('data-writing')?'data-writing':element.hasAttribute('data-who')?'data-who':element.hasAttribute('data-q')?'data-q':element.hasAttribute('data-r')?'data-r':'data-ref';
+   const match=Array.from(source.querySelectorAll('['+attr+']')).find(e=>e.getAttribute(attr)===element.getAttribute(attr)&&e.getAttribute('data-v')===element.getAttribute('data-v'));match?.click();
+  });
+  copy.addEventListener('change',event=>{const e=event.target;if(!e.matches('select[data-f]'))return;const original=source.querySelector('select[data-f="'+e.dataset.f+'"]');if(original){original.value=e.value;original.dispatchEvent(new Event('change',{bubbles:true}));}});
+ }
+ async function translateCopy(source,copy,version,target){
+  copy.querySelectorAll('option').forEach(o=>o.setAttribute('value',o.value));
+  const items=collect(copy),missing=[...new Set(items.map(x=>x.text))].filter(text=>translatedValue(text,target)===undefined);
+  const chunks=[];let chunk=[],size=0;for(const text of missing){if(size+text.length>3500&&chunk.length){chunks.push(chunk);chunk=[];size=0;}chunk.push(text);size+=text.length;}if(chunk.length)chunks.push(chunk);
+  // At most two batches in flight; stop superseded work before starting more.
+  let cursor=0;
+  async function worker(){while(cursor<chunks.length){if(version!==epoch||target!==lang)return;const texts=chunks[cursor++];await request(texts,target);}}
+  if(chunks.length)await Promise.all(Array.from({length:Math.min(2,chunks.length)},worker));
+  if(version!==epoch||target!==lang)return;
+  for(const item of items){let text=translatedValue(item.text,target);if(typeof text!=='string')throw Error('Tradução incompleta.');item.values.forEach((value,i)=>{text=text.split('JMCVALUE'+i+'END').join(value);});item.node.textContent=translatedNode(item.text,text);}
+  copy.className='doc-translated';copy.lang=target;copy.removeAttribute('id');
+  const label=document.createElement('div');label.className='reader-language';label.textContent=names[target];copy.prepend(label);
+  reflectInteraction(source,copy);$('paper').querySelector('.doc-translated')?.remove();$('paper').append(copy);ready=true;status.textContent='Português + '+names[target]+' · Tradução automática'+(kind==='admissao'?' · Respostas manuscritas reproduzidas no original.':'.');revealLanguage();
+ }
+ const originalRender=render;
+ render=function(){
+  originalRender();const version=++epoch;clearTimeout(timer);ready=lang==='pt';$('readerLanguage').value=lang;$('btnTranslation').disabled=lang==='pt';if(lang==='pt'&&mode==='second')setMode('all');
+  if(native){splitNative();return;}
+  const paper=$('paper'),source=document.createElement('section');source.className='doc-original';source.lang='pt';while(paper.firstChild)source.append(paper.firstChild);paper.append(source);
+  if(lang==='pt'){status.textContent='';pending=Promise.resolve();revealLanguage();return;}
+  const target=lang,copy=source.cloneNode(true);status.textContent='A preparar tradução em '+names[target]+'…';
+  pending=new Promise(resolve=>{const run=()=>{translateCopy(source,copy,version,target).catch(error=>{if(version===epoch){ready=false;status.textContent='Não foi possível concluir a tradução: '+error.message+' Volte a selecionar a língua para tentar novamente.';}}).finally(resolve);};if(collect(copy).every(item=>translatedValue(item.text,target)!==undefined))run();else timer=setTimeout(run,0);});
+ };
+ async function ensure(){
+  if(native||lang==='pt')return true;
+  // Starting afresh avoids waiting for a cancelled debounce from an earlier render.
+  const copy=$('paper').querySelector('.doc-original').cloneNode(true),version=epoch;
+  try{await translateCopy($('paper').querySelector('.doc-original'),copy,version,lang);if(version!==epoch)return false;return ready;}catch(error){status.textContent='Tradução não concluída: '+error.message;return false;}
+ }
+ window.bilingualReady=()=>native||lang==='pt'||ready;
+ window.bilingualBeforeOutput=async()=>{if(native||lang==='pt')return true;return ensure();};
+ function bilingualPdf(html){
+  if(lang==='pt')return html;
+  if(!ready)throw Error('A tradução ainda não está pronta.');
+  const parsed=new DOMParser().parseFromString(html,'text/html'),copy=parsed.body.cloneNode(true);
+  for(const item of collect(copy)){let text=translatedValue(item.text,lang);if(typeof text!=='string')throw Error('Falta uma parte da tradução do PDF. Volte a selecionar a língua.');item.values.forEach((value,i)=>text=text.split('JMCVALUE'+i+'END').join(value));item.node.textContent=translatedNode(item.text,text);}
+  const original=document.createElement('section');original.lang='pt';while(parsed.body.firstChild)original.append(parsed.body.firstChild);parsed.body.append(original);
+  const translated=document.createElement('section');translated.lang=lang;translated.style.pageBreakBefore='always';translated.innerHTML=copy.innerHTML;parsed.body.append(translated);
+  return '<!doctype html>'+parsed.documentElement.outerHTML;
+ }
+ if(!native){if(kind==='sisos'){const oldPdf=sisosPdfHtml;sisosPdfHtml=()=>bilingualPdf(oldPdf());}else{const oldPdf=pdfHtml;pdfHtml=()=>bilingualPdf(oldPdf());}}
+ function localizePanel(id){
+  const root=$(id);if(!root)return;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;
+  while(node=walker.nextNode()){if(!node.textContent.trim())continue;const original=node._readerOriginal||node.textContent;node._readerOriginal=original;node.textContent=mode==='second'?(translatedValue(original,lang)||original):original;}
+ }
+ if(typeof openWriting==='function'){const oldWriting=openWriting;openWriting=function(...args){oldWriting(...args);localizePanel('writingModal');};}
+ const oldSignature=openSig;openSig=function(...args){oldSignature(...args);localizePanel('sigModal');};
+ // Remember the selected language in shared drafts, including admission drafts.
+ const oldCapture=clinicalCapture;clinicalCapture=function(){const data=oldCapture();data.language=lang;return data;};
+ const oldRestore=clinicalRestore;clinicalRestore=function(d){lang=names[d.data.language]?d.data.language:'pt';oldRestore(d);};
+ render();clinicalBaseline=JSON.stringify(clinicalCapture());
+})();
+</script>
+<script>
+/* Unidade por aparelho: ?unidade=aveiro|faiscas fixa; senão, o valor guardado neste aparelho; a lista continua editável para exceções. */
+(()=>{
+ const MAP={aveiro:'Aveiro',faiscas:'Faíscas'};
+ const fromUrl=(typeof window.JMC_UNIDADE==='string'&&window.JMC_UNIDADE)||'';
+ const stored=localStorage.getItem('jmc_unidade')||'';
+ if(fromUrl&&MAP[fromUrl]&&fromUrl!==stored){try{localStorage.setItem('jmc_unidade',fromUrl);}catch(e){}} // o link fixa a unidade deste aparelho
+ const key=fromUrl||stored;
+ window.jmcUnidade=()=>{const sel=document.getElementById('unidade')||document.getElementById('local');const txt=sel?String(sel.value||''):'';const k=txt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');return MAP[k]?k:(key||'aveiro')};
+ function apply(){const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel||!key||!MAP[key])return;
+   const opt=[...sel.options].find(o=>o.value===MAP[key]||o.text===MAP[key]);if(opt){sel.value=opt.value;sel.dispatchEvent(new Event('change'));}
+   let tag=document.getElementById('jmcUnidTag');if(!tag){tag=document.createElement('div');tag.id='jmcUnidTag';tag.style.cssText='font-size:11px;color:#6b7280;margin-top:4px';sel.insertAdjacentElement('afterend',tag);}
+   tag.innerHTML=(fromUrl?'Unidade fixa por link: ':'Este aparelho: ')+'<b>'+MAP[key]+'</b>'+(fromUrl?'':' · <a href="#" id="jmcUnidSet" style="color:#0f6b5c">definir este aparelho</a>');
+   const a=document.getElementById('jmcUnidSet');if(a)a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
+ // Sem unidade definida: oferecer definir
+ if(!key){document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel)return;const tag=document.createElement('div');tag.style.cssText='font-size:11px;color:#b7791f;margin-top:4px';tag.innerHTML='Este aparelho ainda não tem unidade definida · <a href="#" style="color:#0f6b5c">definir agora</a>';sel.insertAdjacentElement('afterend',tag);tag.querySelector('a').addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});});}
+ // Acrescenta a unidade a todos os pedidos savePdf feitos via google.script.run
+ const wrap=()=>{if(!window.google||!google.script||!google.script.run||google.script.run.__jmc)return;const run=google.script.run;const proto=Object.getPrototypeOf(run);
+   const patch=obj=>{if(typeof obj.savePdf!=='function'||obj.savePdf.__jmc)return;const orig=obj.savePdf;obj.savePdf=function(p){if(p&&typeof p==='object'&&!p.unidade)p=Object.assign({},p,{unidade:window.jmcUnidade()});return orig.call(this,p)};obj.savePdf.__jmc=true;};
+   patch(run);if(proto&&proto!==Object.prototype)patch(proto);
+   ['withSuccessHandler','withFailureHandler','withUserObject'].forEach(m=>{const o=run[m];if(typeof o!=='function'||o.__jmc)return;run[m]=function(){const r=o.apply(this,arguments);patch(r);return r};run[m].__jmc=true;});
+   run.__jmc=true;};
+ wrap();document.addEventListener('DOMContentLoaded',wrap);
+})();
+</script>
+<style>
+.jmc-paste{margin:0 0 12px}
+.jmc-paste textarea{width:100%;box-sizing:border-box;font:inherit;font-size:12px;border:1px dashed #c9b88f;background:#f5eedc;border-radius:8px;padding:7px 9px;height:36px;resize:none;color:#2f3a33}
+.jmc-paste textarea:focus{outline:none;border-style:solid;height:90px}
+.jmc-paste p{font-size:11px;color:#3d6b4f;margin:4px 0 0}
+</style>
+<script>
+/* Colar a ficha do paciente copiada do iMED: preenche automaticamente os campos que existirem nesta página */
+(()=>{
+ if(document.getElementById('paste'))return; // os cuidados pós-operatórios já têm o seu próprio campo
+ function parseIMED(t){
+ // Rótulos tolerantes a cópias mal feitas («ome:», «ata nasc.:», «Esdo:»): compara com os rótulos conhecidos por semelhança
+ const K={nome:'nome',datanasc:'nasc',profissao:'prof',local:'local',estado:'estado',nif:'nif',cartaodecidadao:'cc',nutente:'utente',utente:'utente',entidade:'entidade',nbenef:'benef',morada:'morada',telemovel:'tel',telefone:'tel',email:'email'};
+ const norm=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,'');
+ const lev=(a,b)=>{const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const q=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=q;}}return d[b.length];};
+ const key=l=>{const n=norm(l);if(n.length<2)return '';let best='',bd=9;
+  for(const k in K){const dd=k===n?0:(k.endsWith(n)||k.startsWith(n))&&n.length>=3?1:lev(n,k);if(dd<bd){bd=dd;best=K[k];}}
+  return bd<=Math.max(1,Math.floor(norm(l).length/3))?best:'';};
+ const o={}, lines=t.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
+ lines.forEach((ln,i)=>{
+  // separa rótulos na mesma linha («… Profissão: …», «… Cartão de Cidadão: …»)
+  const parts=ln.split(/\s+(?=(?:Profiss\S*|Cart\S* de Cidad\S*)\s*:)/);
+  parts.forEach(pt=>{const c=pt.indexOf(':');if(c<0||c>25){if(i===0&&!o.nome&&!o._first)o._first=pt;return;}
+   const k=key(pt.slice(0,c)),v=pt.slice(c+1).replace(/\s+/g,' ').trim();
+   if(k&&!o[k])o[k]=v;else if(i===0&&!o._first)o._first=v;});});
+ if(!o.nome&&o._first&&/^[A-Za-zÀ-ÿ'’. -]{3,}$/.test(o._first)&&o._first.split(' ').length>=2)o.nome=o._first;
+ if(!o.email){const e=t.match(/[^\s@:]+@[^\s@]+\.[a-z]{2,}/i);if(e)o.email=e[0];}
+ if(!o.local){const u=t.match(/Jesus Mar Couto\s*-\s*(Aveiro|Fa[ií]scas)/i);if(u)o.local=u[0];}
+ const r={};
+ if(o.nome)r.nome=o.nome;
+ if(o.nasc)r.nasc=(o.nasc.match(/\d{4}-\d{2}-\d{2}/)||[''])[0];
+ if(o.nif)r.nif=o.nif.replace(/\D/g,'');
+ if(o.cc)r.cc=o.cc.replace(/\s/g,'');
+ if(o.utente)r.utente=o.utente.replace(/\D/g,'');
+ if(o.morada)r.morada=o.morada;
+ if(o.tel)r.tel=o.tel.replace(/\s/g,'');
+ if(o.email)r.email=(o.email.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)||[''])[0];
+ if(o.local)r.unidade=/fa[ií]scas/i.test(o.local)?'faiscas':/aveiro/i.test(o.local)?'aveiro':'';
+ return r;}
+ const q=id=>document.getElementById(id);
+ const first=ids=>ids.map(q).find(Boolean);
+ const nameEl=first(['nome','nomeF','patient']);
+ if(!nameEl)return;
+ const fire=el=>{el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};
+ const set=(el,v)=>{if(!el||!v)return false;el.value=v;fire(el);return true;};
+ const box=document.createElement('div');box.className='jmc-paste';
+ box.innerHTML='<textarea placeholder="Colar informação do paciente (iMED)" aria-label="Colar informação do paciente"></textarea><p hidden></p>';
+ const sec=nameEl.closest('section'),h2=sec&&sec.querySelector(':scope > h2');
+ if(h2)h2.after(box);else if(sec)sec.before(box);else(nameEl.closest('form')||nameEl.closest('label')||nameEl).before(box);
+ const ta=box.querySelector('textarea'),ok=box.querySelector('p');
+ ta.addEventListener('input',()=>{
+  const r=parseIMED(ta.value),done=[];
+  if(set(nameEl,r.nome))done.push('nome «'+r.nome+'»');
+  if(set(q('email'),r.email))done.push('email');
+  if(r.nasc&&q('nasc')&&set(q('nasc'),r.nasc))done.push('data de nascimento');
+  if(q('tel')&&set(q('tel'),r.tel))done.push('telemóvel');
+  if(q('nif')&&set(q('nif'),r.nif))done.push('NIF');
+  if(q('cc')&&set(q('cc'),r.cc))done.push('cartão de cidadão');
+  if(r.morada&&q('rua')){ // contrato: morada do iMED «Localidade, Concelho, rua…, Nº. X, 1234-567»
+   const cp=(r.morada.match(/\d{4}-\d{3}/)||[''])[0];
+   const parts=r.morada.replace(cp,'').split(',').map(x=>x.trim()).filter(Boolean);
+   const local=parts[0]||'',rua=parts.slice(parts.length>2?2:1).join(', ');
+   if(set(q('rua'),rua))done.push('morada');set(q('cp'),cp);if(q('loc')&&q('loc').tagName==='INPUT')set(q('loc'),local);
+  }
+  const uSel=[q('unidade'),q('local'),q('location')].find(e=>e&&e.tagName==='SELECT');
+  if(r.unidade&&uSel){const want=r.unidade==='faiscas'?'Faíscas':'Aveiro';const o=[...uSel.options].find(o=>o.value===want||o.text===want||o.value===r.unidade);if(o){uSel.value=o.value;fire(uSel);done.push('unidade');}}
+  // ortodontia: a morada vai depois da unidade (mudar a unidade repõe a morada da clínica)
+  if(r.morada&&!q('rua')&&q('address')&&set(q('address'),r.morada))done.push('morada');
+  if(!done.length)return;
+  ta.value='';ta.blur();ok.hidden=false;
+  ok.textContent='✓ Preenchido: '+done.join(', ')+(r.nome?'':' — falta o nome, escreva-o abaixo')+'. Confirme antes de assinar.';
+ });
+})();
+</script>
+</body></html>

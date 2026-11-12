@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<script>
+/* JMC — documentos migrados da app antiga (Apps Script) para o GitHub.
+   Mantém o mesmo código da página: google.script.run passa a falar com o servidor "JMC Documentos API" (código pessoal uma vez por aparelho). */
+(function(){
+ const qs=new URLSearchParams(location.search);
+ const u=(qs.get('unidade')||'').toLowerCase();
+ if(u==='aveiro'||u==='faiscas'){window.JMC_UNIDADE=u;try{localStorage.setItem('jmc_unidade',u);}catch(e){}}
+ else{try{const s=localStorage.getItem('jmc_unidade');if(s==='aveiro'||s==='faiscas')window.JMC_UNIDADE=s;}catch(e){}}
+ window.JMC_TESTE=qs.get('teste')==='1';
+ const API='https://script.google.com/macros/s/AKfycbz4r7u2KxQK2NLh-4julAkcAMj8qOmp-kKaI5vZC6HXJfTkhWyIpEVqoXt16HUmwwjFjQ/exec',TK='jmc_docs_token';
+ const tok=()=>{try{return localStorage.getItem(TK)||'';}catch(e){return '';}};
+ const post=(fn,payload,token)=>fetch(API,{method:'POST',body:JSON.stringify({fn,payload,token}),redirect:'follow'}).then(r=>{if(!r.ok)throw Error('Sem ligação ao servidor (HTTP '+r.status+').');return r.json();});
+ let wait=null;
+ function overlay(){let el=document.getElementById('jmcLogin');if(el)return el;el=document.createElement('div');el.id='jmcLogin';
+  el.style.cssText='display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(20,24,28,.55);align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif';
+  el.innerHTML='<div style="background:#fff;border-radius:16px;padding:22px 22px 18px;width:min(340px,100%);box-shadow:0 20px 50px rgba(0,0,0,.25);text-align:center"><div style="font-weight:700;font-size:17px;margin-bottom:4px">Código pessoal</div><div style="font-size:13px;color:#6b7280;margin-bottom:14px">O mesmo do fecho de caixa. Só é pedido uma vez neste aparelho.</div><input id="jmcPin" type="password" inputmode="numeric" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:22px;letter-spacing:.3em;text-align:center;padding:10px;border:1px solid #d9dbe0;border-radius:10px"><div id="jmcPinErr" style="min-height:18px;font-size:12.5px;color:#a1382b;margin:8px 0"></div><button id="jmcPinGo" type="button" style="width:100%;padding:11px;border:0;border-radius:10px;background:#1f2a2e;color:#fff;font-size:15px;font-weight:600;cursor:pointer">Entrar</button></div>';
+  document.body.appendChild(el);return el;}
+ function login(){if(wait)return wait;const el=overlay();el.style.display='flex';const pin=document.getElementById('jmcPin'),err=document.getElementById('jmcPinErr'),go=document.getElementById('jmcPinGo');pin.value='';err.textContent='';setTimeout(()=>pin.focus(),50);
+  wait=new Promise(res=>{const run=async()=>{const code=pin.value.trim();if(!code)return;go.disabled=true;err.textContent='A verificar…';
+   try{const o=await post('login',{code,aparelho:(navigator.userAgent.match(/\(([^)]+)\)/)||[])[1]||''});if(!o.ok)throw Error(o.erro);try{localStorage.setItem(TK,o.r.token);localStorage.setItem('jmc_docs_nome',o.r.nome||'');}catch(e){}
+    el.style.display='none';wait=null;res(o.r.token);}catch(e){err.textContent=e.message||String(e);}finally{go.disabled=false;}};
+   go.onclick=run;pin.onkeydown=e=>{if(e.key==='Enter')run();};});return wait;}
+ async function api(fn,payload){let t=tok();if(!t)t=await login();let o=await post(fn,payload,t);
+  if(!o.ok&&o.auth){try{localStorage.removeItem(TK);}catch(e){}t=await login();o=await post(fn,payload,t);}
+  if(!o.ok)throw Error(o.erro||'Erro no servidor.');return o.r;}
+ window.jmcApi=api;
+ const ORTHO_V='ortho-preview-2026-09-21-v17',cacheJ={};
+ const getJ=u=>cacheJ[u]||(cacheJ[u]=fetch(u,{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Não foi possível carregar o modelo ('+r.status+').');return r.json();}).catch(e=>{delete cacheJ[u];throw e;}));
+ const ORTHO_KEYS=['hyrax','ocluso','ortodontia'];
+ const LOCAL={
+  getOrthoPreview:k=>{if(!ORTHO_KEYS.includes(k))return Promise.reject(Error('Documento desconhecido.'));return getJ('modelos/preview_'+k+'.json').then(p=>Object.assign({},p,{version:ORTHO_V}));},
+  getOrthoPrintPdf:k=>{if(!ORTHO_KEYS.includes(k))return Promise.reject(Error('Documento desconhecido.'));return getJ('modelos/asset_'+k+'.json').then(a=>a.pdf);},
+  getAlimentacaoAsset:()=>getJ('modelo.json')
+ };
+ function runner(){const st={ok:null,fail:null};const p=new Proxy({},{get(_,k){
+   if(k==='withSuccessHandler')return f=>{st.ok=f;return p;};
+   if(k==='withFailureHandler')return f=>{st.fail=f;return p;};
+   if(k==='withUserObject')return ()=>p;
+   if(typeof k!=='string'||k==='then')return undefined;
+   return (arg)=>{(LOCAL[k]?Promise.resolve().then(()=>LOCAL[k](arg)):api(k,arg===undefined?{}:arg)).then(r=>{if(st.ok)st.ok(r);}).catch(e=>{if(st.fail)st.fail(e);else console.error(e);});};}});return p;}
+ window.google=window.google||{};window.google.script={get run(){return runner();},url:{getLocation:f=>f({parameter:Object.fromEntries(qs.entries()),parameters:{}})}};
+})();
+</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ficha de avaliação pré-operatória — Jesus Mar Couto</title>
+<style>
+:root{--bg:#f4f5f7;--panel:#fff;--ink:#1c1c1e;--muted:#6b7280;--line:#d9dbe0;--accent:#0f6b5c;--accent-ink:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+header h1{font-size:16px;margin:0}header small{color:var(--muted)}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+main{display:grid;grid-template-columns:360px 1fr;min-height:calc(100vh - 56px)}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:16px 18px 40px;overflow:auto}
+section.card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+section.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 10px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input[type=text],input[type=date],select,textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chk{display:flex;align-items:flex-start;gap:8px;font-size:13px}.chk input{margin-top:3px}
+.hint{font-size:11px;color:var(--muted);margin-top:4px}.req{color:#c0392b}
+.warn{background:#fff3b0;color:#7a5a00;border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:12px;display:none}
+.preview-wrap{padding:22px;overflow:auto;display:flex;justify-content:center}
+.paper{background:#fff;color:#111;width:210mm;min-height:297mm;padding:16mm 15mm;box-shadow:0 2px 14px rgba(0,0,0,.15);font:10.5pt/1.42 Arial,Helvetica,sans-serif;text-align:justify}
+.paper h1{text-align:center;font-size:13pt;margin:0 0 2pt}.paper .sub-t{text-align:center;font-size:10pt;margin:0 0 8pt}
+.paper h2{text-align:center;font-size:12pt;border-bottom:1px solid #000;padding-bottom:4pt;margin:14pt 0 10pt}
+.paper h3{font-size:10.5pt;margin:11pt 0 4pt}.paper p{margin:0 0 6pt}
+.paper .miss{background:#fff3b0;color:#7a5a00;padding:0 3px;border-radius:3px}
+.paper ul{margin:0 0 6pt 16pt;padding:0}.paper li{margin-bottom:6pt}
+.opt{display:inline-flex;align-items:center;gap:5pt;margin-right:18pt;cursor:pointer;user-select:none}
+.box{display:inline-block;width:11pt;height:11pt;border:1px solid #000;text-align:center;line-height:10pt;font-size:8pt;vertical-align:-2pt}
+table.q{width:100%;border-collapse:collapse;font-size:9.5pt}
+table.q td{border-bottom:1px solid #ddd;padding:3pt 4pt;vertical-align:top}
+table.q td.lbl{width:44%}table.q td.yn{width:14%;white-space:nowrap}
+table.q input[type=text]{border:0;border-bottom:1px dotted #999;border-radius:0;background:transparent;padding:1pt 2pt;font-size:9.5pt;width:100%}
+.paper textarea.det{width:100%;border:1px dotted #999;background:transparent;font:9.5pt Arial;min-height:28pt;border-radius:0}
+.paper table.id{width:100%;border-collapse:collapse;margin:6pt 0 4pt;font-size:10pt}
+.paper table.id td{padding:3pt 4pt;vertical-align:middle}.paper table.id td:first-child{width:28%;color:#444}
+.paper input.fi,.paper select.fi{border:0;border-bottom:1px solid #999;border-radius:0;background:#fffdf3;padding:2pt 4pt;font:10.5pt Arial;color:#111}
+.paper .sig{display:grid;grid-template-columns:1fr 1fr;gap:24pt;margin-top:24pt;text-align:center;font-size:9.5pt}
+.paper .sigbox{height:70pt;border:1px dashed #999;border-radius:4pt;display:flex;align-items:center;justify-content:center;margin-bottom:4pt;cursor:pointer;background:#fff}
+.paper .sigbox img{max-height:66pt;max-width:100%}.paper .sighint{color:#999;font-size:9pt}
+.paper .sigline{border-top:1px solid #000;padding-top:4pt}
+.paper .meta{font-size:9pt;color:#444;margin-top:6pt}
+#sigModal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:60}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50}
+#modal .dlg{background:#fff;color:#111;border-radius:12px;padding:20px 22px;max-width:420px;width:90%}
+#modal .dlg p{margin:0 0 16px;white-space:pre-line}#modal .acts{display:flex;gap:8px;justify-content:flex-end}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:8px;display:none;z-index:70;max-width:90vw}
+@media (max-width:980px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}.paper{width:100%;min-height:0;padding:14px}}
+@media print{body{background:#fff}header,aside,.warn{display:none!important}main{display:block}.preview-wrap{padding:0}.paper{box-shadow:none;width:auto;min-height:0;padding:0;font-size:10pt}.paper .sigbox{border-color:transparent}.paper .sighint{display:none}@page{size:A4;margin:16mm 15mm}}
+.paper table.f{width:100%;border-collapse:collapse;font-size:10pt}.paper table.f td{padding:2pt 3pt;vertical-align:bottom}
+.paper input.fi,.paper select.fi{border:0;border-bottom:1px solid #999;border-radius:0;background:#fffdf3;padding:2pt 4pt;font:10.5pt Arial;color:#111;width:100%}
+.paper textarea.fi{border:1px solid #bbb;border-radius:0;background:#fffdf3;padding:3pt 4pt;font:10pt Arial;width:100%;min-height:40pt;resize:vertical}
+.paper table.chk{width:100%;border-collapse:collapse;font-size:9.5pt}.paper table.chk td{border:1px solid #ccc;padding:3pt 5pt;width:25%}
+.paper .opt{margin-right:12pt}
+body.focus aside{display:none}body.focus main{grid-template-columns:1fr}body.focus header{padding:6px 12px;justify-content:flex-end;background:transparent;border:0;position:fixed;right:0;top:0;width:auto;z-index:20}body.focus header h1,body.focus header small,body.focus header .badge,body.focus #btnReset,body.focus #btnPrint,body.focus #btnSave{display:none!important}body.focus #btnFocus{opacity:.35}
+.locked aside{opacity:.55;pointer-events:none}.badge{font-size:11px;padding:3px 8px;border-radius:999px;background:#fff3b0;color:#7a5a00;font-weight:600}.badge.ok{background:#d9f2e6;color:#0f6b5c}
+button.plus{position:absolute;right:-4px;bottom:-4px;width:22px;height:22px;border-radius:50%;border:1px solid #999;background:#fff;color:#333;font-weight:700;cursor:pointer;line-height:1;padding:0}
+.locked button.plus{display:none}@media print{button.plus{display:none}}
+.lang{background:transparent;color:var(--muted);border:0;padding:6px 9px;cursor:pointer;font-weight:600}.lang.on{background:var(--accent);color:var(--accent-ink)}
+.paper input.txt,.paper textarea.txt{border:0;border-bottom:1px solid #999;border-radius:0;background:#fffdf3;padding:2pt 4pt;font:10.5pt Arial;color:#111}
+.paper textarea.txt{border:1px solid #bbb;width:100%;min-height:24pt;resize:vertical;display:block}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Ficha de avaliação pré-operatória</h1><small>v1.0</small> <span class="badge" id="status">Em preparação</span></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <span style="display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:12px"><button class="lang on" data-m="tablet">Tablet · escrita à mão</button><button class="lang" data-m="pc">PC · teclado</button></span>
+    <button class="btn secondary" id="btnReset">Novo</button>
+    <button class="btn secondary" id="btnPrint">Imprimir</button>
+    <button class="btn" id="btnSave" disabled>Gerar PDF e guardar (interno)</button>
+    <button class="btn secondary" id="btnFocus" title="Modo paciente">⛶</button>
+  </div>
+</header>
+<main>
+<aside>
+  <div class="warn" id="warn"></div>
+  <section class="card">
+    <h2>Paciente</h2>
+    <label>Nome completo <span class="req">*</span></label><input type="text" id="nome" placeholder="copiar do iMED">
+    <div class="row">
+      <div><label>Data de nascimento (cola do iMED)</label><input type="text" id="nasc" placeholder="2026-09-18 ou 18/09/2026"><div class="hint" id="nascHint"></div></div>
+      <div><label>Idade (anos) <span class="req">*</span></label><input type="text" id="idade" inputmode="numeric"><div class="hint">preenche-se sozinha com a data de nascimento</div></div>
+    </div>
+    <div class="row">
+      <div><label>Género</label><select id="genero"><option value="">—</option><option>Feminino</option><option>Masculino</option><option>Outro</option></select></div>
+      <div><label>Contacto telefónico <span class="req">*</span></label><input type="tel" id="tel" inputmode="tel"></div>
+    </div>
+    <div class="row">
+      <div></div>
+      <div><label>Profissão (opcional)</label><input type="text" id="prof"></div>
+    </div>
+    <label>Grau de escolaridade (opcional)</label><select id="escol"><option value="">—</option><option>1.º ciclo</option><option>2.º ciclo</option><option>3.º ciclo</option><option>Ensino secundário</option><option>Ensino superior</option></select>
+  </section>
+  <section class="card">
+    <h2>Unidade, médico e data</h2>
+    <div class="row">
+      <div><label>Unidade clínica</label><select id="unidade"><option>Aveiro</option><option>Faíscas</option><option value="outra">Outra…</option></select><input type="text" id="unidadeOutra" placeholder="nome da unidade" style="margin-top:6px;display:none"></div>
+      <div><label>Data</label><input type="date" id="dataAss"></div>
+    </div>
+    <label>Médico(a) responsável</label><select id="medico"><option>Dr. Gonçalo Jesus</option><option>Dra. Catarina Mar Couto</option><option>Dra. Andreia Hortênsio</option><option>Dra. Angelina Andrade</option><option>Dra. Rafaela Pais</option><option>Dra. Patrícia Martins</option><option>Dr. Carlos Alves</option></select>
+    <label>Assistente</label><input type="text" id="assist">
+    <div class="chk" style="margin-top:6px"><input type="checkbox" id="assSig"><span>Incluir assinatura da assistente</span></div>
+    <div class="chk" style="margin-top:8px"><input type="checkbox" id="menor"><span>Menor / assina o responsável legal</span></div>
+  </section>
+  <section class="card"><h2>Documento</h2><div class="hint"><b>Tablet:</b> os campos escrevem-se à mão com a S Pen (o dedo apaga; toque duplo limpa; o <b>+</b> acrescenta linha). <b>PC:</b> os mesmos campos passam a caixas de texto para escrever ao teclado enquanto o paciente responde; depois guarda-se o rascunho e o paciente assina no tablet. Caixas: toque para assinalar.</div></section>
+</aside>
+<div id="sigModal"><div style="background:#fff;color:#111;border-radius:12px;padding:16px;width:min(96vw,900px)">
+  <div id="sigTitle" style="font-weight:600;margin-bottom:8px">Assinatura</div>
+  <canvas id="sigPad" style="width:100%;height:300px;border:1px dashed #999;border-radius:8px;touch-action:none;background:#fff"></canvas>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button class="btn secondary" id="sigClear">Limpar</button><button class="btn secondary" id="sigCancel">Cancelar</button><button class="btn" id="sigOk">Confirmar assinatura</button></div>
+</div></div>
+<div id="toast"></div>
+<div id="modal"><div class="dlg"><p id="modalMsg"></p><div class="acts"><button class="btn secondary" id="modalNo">Cancelar</button><button class="btn" id="modalYes">Continuar</button></div></div></div>
+<div class="preview-wrap"><div class="paper" id="paper"></div></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const VER='v1.0';
+const ids=['nome','nasc','idade','genero','tel','prof','escol','unidade','unidadeOutra','dataAss','medico','assist','assSig','menor'];
+const today=()=>new Date().toISOString().slice(0,10);$('dataAss').value=today();
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function normDate(t){t=(t||'').trim();if(!t)return '';let m=t.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return `${m[3].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[1]}`;m=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/);if(m)return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[3]}`;m=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2})$/);if(m)return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${(+m[3]>30?'19':'20')+m[3]}`;return null}
+function ageFrom(dmy){if(!dmy)return null;const [d,m,y]=dmy.split('/').map(Number);const n=new Date();let a=n.getFullYear()-y;if(n.getMonth()<m-1||(n.getMonth()===m-1&&n.getDate()<d))a--;return a}
+function fmtDate(v){if(!v)return '____/____/________';const [y,m,d]=v.split('-');return `${d}/${m}/${y}`}
+function v(id){const e=$(id);return e.type==='checkbox'?e.checked:e.value.trim()}
+function miss(l){return `<span class="miss">${l}</span>`}
+function unidade(){return $('unidade').value==='outra'?(v('unidadeOutra')||''):$('unidade').value}
+const box=on=>`<span class="box">${on?'X':''}</span>`;
+// estado do documento (campos inline)
+const F={peso:'',altura:'',pa1:'',pa2:'',paRef:'',urgTel:'',bifos:'',alerg:'',alergMed:'',alcool:'',tabaco:'',drogas:'',analises:'',asa:''};
+const D={}; // doenças assinaladas
+const SIG={med:'',pac:'',ass:''}; let signed=false;
+const INK={}, INKH={}, LINES={}; const LH=22; let MODE='tablet'; const TXT={};
+function inkField(k,pdf,opts){opts=opts||{};
+  if(pdf&&TXT[k]&&TXT[k].trim()) return opts.lines?`<p style="border:1px solid #bbb;padding:3pt;white-space:pre-wrap">${esc(TXT[k])}</p>`:`<b>${esc(TXT[k])}</b>`;
+  if(!pdf&&MODE==='pc') return opts.lines?`<textarea class="txt" data-t="${k}" rows="2">${esc(TXT[k]||'')}</textarea>`:`<input type="text" class="txt" data-t="${k}" value="${esc(TXT[k]||'')}" style="width:${opts.w||'100%'}">`;const lines=opts.lines?(LINES[k]||opts.lines):0;const h=lines?lines*LH:opts.h||30;const w=opts.w||'100%';
+  if(pdf) return INK[k]?`<img src="${INK[k]}" style="width:${w};display:${lines?'block':'inline-block'};vertical-align:bottom;height:${INKH[k]?Math.round(INKH[k]*0.75)+'pt':'auto'}">`:(lines?`<div style="height:${lines*14}pt;border-bottom:1px solid #999"></div>`:`<span style="display:inline-block;width:${w};border-bottom:1px solid #000">&nbsp;</span>`);
+  const ruled=lines?`background:#fffdf3 repeating-linear-gradient(to bottom,transparent 0,transparent ${LH-1}pt,#c9c9c9 ${LH-1}pt,#c9c9c9 ${LH}pt);`:'background:#fffdf3;border-bottom:1px solid #000;';
+  const plus=lines?`<button class="plus" data-plus="${k}" title="Mais uma linha">+</button>`:'';
+  return `<span class="inkwrap" style="display:${lines?'block':'inline-block'};width:${w};position:relative;vertical-align:bottom"><canvas class="ink" data-k="${k}" style="height:${h}pt;width:100%;display:block;${ruled}touch-action:none"></canvas>${plus}</span>`;}
+function bindInk(){
+  document.querySelectorAll('canvas.ink').forEach(c=>{
+    const r=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;c.width=r.width*dpr;c.height=r.height*dpr;
+    const x=c.getContext('2d');if(!x)return;x.scale(dpr,dpr);x.lineWidth=1.8;x.lineCap='round';x.lineJoin='round';x.strokeStyle='#0b1d51';
+    const k=c.dataset.k;if(INK[k]){const im=new Image();im.onload=()=>x.drawImage(im,0,0,r.width,INKH[k]||r.height);im.src=INK[k];}
+    let dr=false,l=null,er=false;const pos=e=>{const b=c.getBoundingClientRect();return{x:e.clientX-b.left,y:e.clientY-b.top}};
+    c.addEventListener('pointerdown',e=>{if(signed)return;e.preventDefault();dr=true;l=pos(e);er=(e.pointerType==='touch')});
+    c.addEventListener('pointermove',e=>{if(!dr)return;const p=pos(e);if(er){x.save();x.globalCompositeOperation='destination-out';x.lineWidth=22;x.beginPath();x.moveTo(l.x,l.y);x.lineTo(p.x,p.y);x.stroke();x.restore()}else{x.beginPath();x.moveTo(l.x,l.y);x.lineTo(p.x,p.y);x.stroke()}l=p});
+    const end=()=>{if(!dr)return;dr=false;INK[k]=c.toDataURL('image/png');INKH[k]=c.getBoundingClientRect().height};
+    c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);c.addEventListener('pointerleave',end);
+    c.addEventListener('dblclick',()=>{if(signed)return;delete INK[k];delete INKH[k];render()});
+  });
+  document.querySelectorAll('button.plus').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.plus;LINES[k]=(LINES[k]||1)+1;render()}));
+  document.querySelectorAll('.txt[data-t]').forEach(i=>{i.addEventListener('input',()=>{TXT[i.dataset.t]=i.value});i.addEventListener('blur',()=>{TXT[i.dataset.t]=i.value;render()})});
+}
+document.querySelectorAll('.lang').forEach(b=>b.addEventListener('click',()=>{MODE=b.dataset.m;document.querySelectorAll('.lang').forEach(x=>x.classList.toggle('on',x===b));render()}));
+const DOENCAS=['Problema cardíaco','Diabetes','Gastrite','Convulsão','Palpitação / Arritmia','Asma','Desmaio','Cancro','Problema respiratório','Pressão alta','Enxaqueca','Hepatite','Problema renal','AVC','Úlcera gástrica','Glaucoma','Problema na tiroide','Depressão','Reumatismo','HIV','Osteoporose','Enfarte agudo do miocárdio','Doença neurológica','Alterações da coagulação'];
+const ASA=[['I','ASA I – Paciente saudável'],['II','ASA II – Doença sistémica leve ou moderada, sem limitação funcional'],['III','ASA III – Doença sistémica severa, com limitação funcional'],['IV','ASA IV – Doença sistémica severa, risco de vida constante'],['V','ASA V – Paciente moribundo, sem expectativa de sobrevivência além de 24 h'],['VI','ASA VI – Morte cerebral, dador de órgãos']];
+function build(pdf){
+  const nascN=normDate(v('nasc')); const age=ageFrom(nascN);
+  const T=(k,w)=>inkField(k,pdf,{w:w||'100%',h:30});
+  const N=(k,w,ph)=>pdf?`<b>${esc(F[k])||'—'}</b>`:`<input type="text" inputmode="decimal" class="fi num" data-f="${k}" value="${esc(F[k])}" placeholder="${ph||''}" style="width:${w||'20%'};text-align:center">`;
+  const TA=(k)=>inkField(k,pdf,{lines:1});
+  const YN=(k,opts)=>opts.map(o=>`<span class="opt" data-yn="${k}" data-v="${o}">${box(F[k]===o)} ${o}</span>`).join('');
+  const chk=DOENCAS.map((d,i)=>`<td><span class="opt" data-d="${i}">${box(!!D[i])} ${d}</span>${D[i]&&!pdf&&!LINES['d'+i]?`<button class="plus" data-plus="d${i}" style="position:static;vertical-align:middle;margin-left:4pt;width:18px;height:18px;font-size:12px" title="Detalhes">+</button>`:''}</td>`);
+  let rows='';for(let i=0;i<chk.length;i+=4)rows+=`<tr>${chk.slice(i,i+4).join('')}</tr>`;
+  const detalhes=DOENCAS.map((d,i)=>(D[i]&&LINES['d'+i])?`<p style="margin:4pt 0 1pt;font-size:9.5pt"><b>${d}</b> — detalhes:</p>${inkField('d'+i,pdf,{lines:1})}`:'').join('');
+  const sigbox=(who,lbl)=>`<div><div class="sigbox" data-who="${who}">${SIG[who]?`<img src="${SIG[who]}" alt="">`:'<span class="sighint">Toque para assinar</span>'}</div><div class="sigline">${lbl}</div></div>`;
+  return `
+  <h1>JESUS MAR COUTO</h1>
+  <h2 style="margin-top:4pt">FICHA DE AVALIAÇÃO PRÉ-OPERATÓRIA</h2>
+  <p><b>Nome:</b> ${v('nome')?esc(v('nome')):miss('NOME')} &nbsp;·&nbsp; ${nascN?`<b>Data de nascimento:</b> ${nascN} &nbsp;·&nbsp; `:''}<b>Idade:</b> ${v('idade')?esc(v('idade'))+' anos':miss('idade')} &nbsp;·&nbsp; <b>Género:</b> ${esc(v('genero'))||'—'} &nbsp;·&nbsp; <b>Contacto:</b> ${v('tel')?esc(v('tel')):miss('contacto')}<br>
+  <b>Profissão:</b> ${esc(v('prof'))||'—'} &nbsp;·&nbsp; <b>Grau de escolaridade:</b> ${esc(v('escol'))||'—'}</p>
+  <table class="f"><tr>
+    <td style="width:22%"><b>Peso</b> (kg) ${N('peso','45%','80')}</td>
+    <td style="width:24%"><b>Altura</b> (cm) ${N('altura','45%','170')}</td>
+    <td><b>Pressão arterial</b> (mmHg) ${N('pa1','18%','120')} / ${N('pa2','18%','80')}${(F.pa1||F.pa2)?'':` &nbsp;<span style="font-size:9pt;color:#555">ou refere:</span> ${YN('paRef',['Normal','Baixa','Elevada'])}`}</td>
+  </tr></table>
+  ${(!F.pa1&&!F.pa2&&F.paRef)?`<p style="font-size:9.5pt;margin-top:2pt">O paciente refere que, nas medições habituais da sua tensão arterial, os valores se apresentam ${F.paRef==='Normal'?'normais':F.paRef==='Elevada'?'tendencialmente elevados':'tendencialmente baixos'}.</p>`:''}
+  <p style="margin-top:6pt"><b>Contacto em caso de urgência:</b></p>
+  <table class="f"><tr><td style="width:60%">Nome ${T('urgNome','85%')}</td><td>Telefone ${pdf?`<b>${esc(F.urgTel)||'—'}</b>`:`<input type="tel" inputmode="tel" pattern="[0-9 +]*" class="fi" data-f="urgTel" value="${esc(F.urgTel)}" placeholder="9xx xxx xxx" style="width:70%">`}</td></tr></table>
+
+  <h3>História médica e cirúrgica pregressa</h3>
+  ${TA('hist')}
+  <p style="margin:6pt 0 2pt"><b>História de cirurgia prévia:</b></p>${TA('cirPrev')}
+  <p style="margin-top:6pt"><b>Bifosfonatos / antirreabsortivos:</b> ${YN('bifos',['Sim','Não'])} ${F.bifos==='Sim'?`&nbsp; Fármaco / período: ${T('bifosPer','45%')}`:''} ${!pdf&&!LINES.bifosMais?'<button class="plus" data-plus="bifosMais" style="position:static;vertical-align:middle" title="Informação adicional">+</button>':''}</p>
+  ${LINES.bifosMais?`<p style="margin:0 0 2pt;font-size:9pt;color:#555">Informação adicional:</p>${TA('bifosMais')}`:''}
+
+  <h3>Medicação atual (medicamentos e doses)</h3>
+  ${TA('med')}
+
+  <h3>Já sofreu ou sofre de</h3>
+  <table class="chk">${rows}</table>
+  ${detalhes}
+  <p style="margin-top:4pt">Outro: ${T('outro','85%')}</p>
+
+  <h3>História de alergia</h3>
+  <p><b>Já teve alguma reação alérgica a materiais ou componentes (látex, metais, anestésicos, alimentos, outros)?</b> ${YN('alerg',['Sim','Não'])}</p>
+  ${F.alerg==='Sim'?`<p style="margin:0 0 2pt;font-size:9.5pt">Quais e que reação:</p>${TA('alergTxt')}`:''}
+  ${F.alerg==='Não'?`<p style="font-size:9.5pt">Declaro que, até ao momento, não tive qualquer reação alérgica conhecida a materiais ou componentes.</p>`:''}
+  <p><b>Alergia a medicamentos?</b> ${YN('alergMed',['Sim','Não'])}</p>
+  ${F.alergMed==='Sim'?`<p style="margin:0 0 2pt;font-size:9.5pt">Quais e que reação:</p>${TA('alergQuais')}`:''}
+  ${F.alergMed==='Não'?`<p style="font-size:9.5pt">Declaro que não tenho qualquer alergia conhecida a medicamentos.</p>`:''}
+
+  <h3>História social</h3>
+  <p><b>Consumo de álcool:</b> ${YN('alcool',['Sim','Não','Socialmente'])}</p>
+  <p><b>Tabaco:</b> ${YN('tabaco',['Sim','Não','Ex-fumador'])} ${F.tabaco==='Sim'?`&nbsp; N.º de cigarros/dia: ${T('cig','15%')}`:''}</p>
+  ${F.tabaco==='Ex-fumador'?`<p style="margin-left:12pt">Parou há: ${T('parou','20%')} &nbsp; Fumou durante: ${T('fumouPer','20%')} &nbsp; Fumava cerca de: ${T('exCig','12%')} cigarros/dia</p>`:''}
+  <p><b>Drogas ilícitas:</b> ${YN('drogas',['Sim','Não'])} ${F.drogas==='Sim'?`&nbsp; Quais: ${T('drogasQ','50%')}`:''}</p>
+
+  <h3>Análises</h3>
+  <p><b>Análises recentes a registar?</b> ${YN('analises',['Sim','Não'])}</p>
+  ${F.analises==='Sim'?`<table class="f"><tr><td style="width:55%">Hemograma / outras: ${T('hemo','70%')}</td><td>Vitamina D: ${T('vitd','60%')}</td></tr></table>`:''}
+
+  <h3>Classificação do estado físico (ASA — American Society of Anesthesiologists)</h3>
+  ${ASA.map(([k,l])=>`<p style="margin:0 0 2pt"><span class="opt" data-yn="asa" data-v="${k}">${box(F.asa===k)} ${l}</span></p>`).join('')}
+
+  <p style="margin-top:8pt"><b>Observações / plano:</b></p>${TA('obs')}
+
+  <p style="margin-top:10pt">Data e local: ${fmtDate(v('dataAss'))}, ${esc(unidade())||miss('unidade')}</p>
+  <div class="sig" style="grid-template-columns:${v('assSig')?'1fr 1fr 1fr':'1fr 1fr'};gap:14pt">
+    ${sigbox('med',`${esc(v('medico'))}<br>Médico(a) Dentista`)}
+    ${sigbox('pac',`${v('nome')?esc(v('nome')):'—'}<br>${v('menor')?'Responsável legal':'Paciente'}`)}
+    ${v('assSig')?sigbox('ass',`${esc(v('assist'))||'—'}<br>Assistente`):''}
+  </div>
+  <p class="meta">Documento n.º ${docId()} · gerado em ${new Date().toLocaleString('pt-PT')} · Ficha pré-operatória ${VER}</p>`;
+}
+function docId(){if(!window.__docId){const d=new Date();window.__docId='PRE-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+String(d.getSeconds()).padStart(2,'0')}return window.__docId}
+function render(){
+  $('unidadeOutra').style.display=$('unidade').value==='outra'?'block':'none';
+  const nN=normDate(v('nasc'));$('nascHint').textContent=v('nasc')?(nN?`→ ${nN}`:'Data não reconhecida'):'';
+  if(nN){const a=ageFrom(nN);if(a!==null)$('idade').value=String(a)}
+  $('tel').value=$('tel').value.replace(/[^0-9 +]/g,'');
+  const act=document.activeElement, actF=act&&act.dataset?(act.dataset.f||null):null, actT=act&&act.dataset?(act.dataset.t||null):null, pos=act&&act.selectionStart;
+  $('paper').innerHTML=build(false);
+  bindInk();
+  document.querySelectorAll('.fi[data-f]').forEach(i=>{i.addEventListener('input',()=>{if(i.type==='tel')i.value=i.value.replace(/[^0-9 +]/g,'');if(i.classList.contains('num'))i.value=i.value.replace(/[^0-9.,]/g,'');F[i.dataset.f]=i.value});i.addEventListener('blur',()=>{F[i.dataset.f]=i.value;render()})});
+  document.querySelectorAll('.opt[data-yn]').forEach(o=>o.addEventListener('click',()=>{if(signed)return;F[o.dataset.yn]=F[o.dataset.yn]===o.dataset.v?'':o.dataset.v;render()}));
+  document.querySelectorAll('.opt[data-d]').forEach(o=>o.addEventListener('click',()=>{if(signed)return;D[o.dataset.d]=!D[o.dataset.d];render()}));
+  document.querySelectorAll('.sigbox').forEach(b=>b.addEventListener('click',()=>{if(signed)return;openSig(b.dataset.who)}));
+  if(actF){const el=document.querySelector(`.fi[data-f="${actF}"]`);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}
+  if(actT){const el=document.querySelector(`.txt[data-t="${actT}"]`);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}
+  const missing=[];if(!v('nome'))missing.push('nome');if(!v('idade'))missing.push('idade');if(!v('tel'))missing.push('contacto telefónico');if(!F.asa)missing.push('classificação ASA');
+  const w=$('warn');w.style.display=missing.length?'block':'none';w.textContent=missing.length?'Em falta: '+missing.join(', '):'';
+  window.__missing=missing;
+  signed=!!(SIG.med&&SIG.pac);document.body.classList.toggle('locked',signed);$('btnSave').disabled=!signed;$('status').textContent=signed?'Assinado — pronto a gerar':'Em preparação';$('status').classList.toggle('ok',signed);
+  const safe=(v('nome')||'Paciente').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_');document.title=`${safe}_${v('dataAss')}_Ficha_Pre_Operatoria`;
+}
+ids.forEach(id=>{$(id).addEventListener('input',render);$(id).addEventListener('change',render)});
+let sigWho='';const pad=$('sigPad');let drawing=false,last=null,hasInk=false,padErase=false;
+function padCtx(){return pad.getContext('2d')}
+function padResize(){const r=pad.getBoundingClientRect();const dpr=window.devicePixelRatio||1;pad.width=r.width*dpr;pad.height=r.height*dpr;const c=padCtx();if(!c)return;c.scale(dpr,dpr);c.lineWidth=2.2;c.lineCap='round';c.lineJoin='round';c.strokeStyle='#0b1d51'}
+function padPos(e){const r=pad.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+pad.addEventListener('pointerdown',e=>{e.preventDefault();drawing=true;last=padPos(e);padErase=(e.pointerType==='touch')});
+pad.addEventListener('pointermove',e=>{if(!drawing)return;const p=padPos(e);const c=padCtx();if(padErase){c.save();c.globalCompositeOperation='destination-out';c.lineWidth=28;c.beginPath();c.moveTo(last.x,last.y);c.lineTo(p.x,p.y);c.stroke();c.restore()}else{c.beginPath();c.moveTo(last.x,last.y);c.lineTo(p.x,p.y);c.stroke();hasInk=true}last=p});
+const stopDraw=()=>{drawing=false};pad.addEventListener('pointerup',stopDraw);pad.addEventListener('pointercancel',stopDraw);pad.addEventListener('pointerleave',stopDraw);
+async function openSig(who){if(who==='pac'&&window.__missing.length&&!(await ask('Faltam: '+window.__missing.join(', ')+'.\n\nAssinar mesmo assim?')))return;sigWho=who;$('sigTitle').textContent={med:'Assinatura do médico',pac:'Assinatura do paciente / responsável',ass:'Assinatura da assistente'}[who];$('sigModal').style.display='flex';hasInk=false;padResize()}
+$('sigClear').onclick=()=>{padResize();hasInk=false};$('sigCancel').onclick=()=>{$('sigModal').style.display='none'};
+$('sigOk').onclick=()=>{if(!hasInk){toast('Assine dentro da caixa.');return}SIG[sigWho]=pad.toDataURL('image/png');$('sigModal').style.display='none';render()};
+function toast(m,ms){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',ms||3500)}
+function ask(msg){return new Promise(res=>{$('modalMsg').textContent=msg;$('modal').style.display='flex';const done=r=>{$('modal').style.display='none';res(r)};$('modalYes').onclick=()=>done(true);$('modalNo').onclick=()=>done(false)})}
+$('btnPrint').addEventListener('click',()=>{render();window.print()});
+$('btnFocus').addEventListener('click',()=>{const on=document.body.classList.toggle('focus');$('btnFocus').textContent=on?'✕':'⛶';if(on&&document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});if(!on&&document.fullscreenElement)document.exitFullscreen().catch(()=>{})});
+$('btnReset').addEventListener('click',async()=>{if(!(await ask('Nova ficha em branco?')))return;ids.forEach(id=>{const e=$(id);if(e.type==='checkbox')e.checked=false;else if(id==='medico')e.value='Dr. Gonçalo Jesus';else if(id==='dataAss')e.value=today();else e.value=e.tagName==='SELECT'?e.options[0].value:''});Object.keys(F).forEach(k=>F[k]='');Object.keys(D).forEach(k=>delete D[k]);Object.keys(INK).forEach(k=>delete INK[k]);Object.keys(TXT).forEach(k=>delete TXT[k]);Object.keys(INKH).forEach(k=>delete INKH[k]);Object.keys(LINES).forEach(k=>delete LINES[k]);SIG.med='';SIG.pac='';SIG.ass='';window.__docId=null;render()});
+$('btnSave').addEventListener('click',()=>toast('Na app da clínica: gera o PDF e grava em 02 Assinados / Pre-operatorio / ano.',6000));
+render();
+</script>
+<style>
+.preop-drafts{padding:12px 18px;background:#edf4f3;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #ccd9d8;font:13px Arial,sans-serif}.preop-drafts select{width:auto;max-width:320px}.preop-result{padding:12px 18px;background:#fff;border-bottom:1px solid #ccd9d8}.preop-result:empty{display:none}body.focus .preop-drafts,body.focus .preop-result{display:none}.locked .paper input,.locked .paper textarea,.locked .paper select{background:white}.locked .paper .opt{cursor:default}@media print{.preop-drafts,.preop-result{display:none!important}}
+</style>
+<script>
+/* Integration only: PreOperatoria.html is preserved byte for byte. */
+const PDF_CSS="<style>body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.35;color:#111;margin:0}h1{font-size:15pt;letter-spacing:2pt;text-align:center;margin:0}.sub-t{text-align:center;font-size:9.5pt;color:#444;margin-bottom:10pt}h2{font-size:11.5pt;text-align:center;margin:12pt 0 8pt;border-bottom:1px solid #999;padding-bottom:3pt}h3{font-size:10.5pt;margin:8pt 0 3pt}p{margin:0 0 6pt;text-align:justify}ul{margin:0 0 6pt 16pt;padding:0}li{margin-bottom:6pt}.box{display:inline-block;width:10pt;height:10pt;border:1px solid #111;text-align:center;font-size:8pt;line-height:10pt;vertical-align:middle}.opt{margin-right:14pt}table.q{width:100%;border-collapse:collapse;font-size:9.5pt}table.q td{border-bottom:1px solid #ccc;padding:2pt 4pt;vertical-align:top}table.q td.lbl{width:44%}table.q td.yn{width:14%;white-space:nowrap}.sig{margin-top:24pt}.sig table{width:100%}.sig td{width:50%;text-align:center;font-size:9.5pt;vertical-align:bottom;padding:0 12pt}.sigimg{height:60pt;display:block;margin:0 auto 4pt}.sigline{border-top:1px solid #111;padding-top:4pt}.meta{font-size:8.5pt;color:#444;margin-top:6pt}.miss{background:#fde68a}</style>";
+function getState(){const state={};for(const id of ids){const e=$(id);state[id]=e.type==='checkbox'?e.checked:e.value;}return state;}
+function pdfHtml(){
+ const container=document.createElement('div');container.innerHTML=build(true);
+ const signature=container.querySelector('.sig');if(signature){const columns=Array.from(signature.children),table=document.createElement('table'),row=table.insertRow();for(const column of columns){const cell=row.insertCell();cell.style.width=(100/columns.length)+'%';cell.innerHTML=column.innerHTML;cell.querySelector('.sighint')?.remove();const img=cell.querySelector('.sigbox img');if(img)img.className='sigimg';}signature.removeAttribute('style');signature.replaceChildren(table);}
+ return '<!doctype html><html lang="pt-PT"><head><meta charset="utf-8">'+PDF_CSS+'<style>@page{size:A4;margin:16mm 15mm}body{font-family:Arial,Helvetica,sans-serif}table.f,table.chk{width:100%;border-collapse:collapse;font-size:10pt}table.f td{padding:2pt 3pt;vertical-align:bottom}table.chk td{border:1px solid #ccc;padding:3pt 5pt;width:25%}tr,.sig{page-break-inside:avoid}h3{page-break-after:avoid}.sigbox{height:70pt;border:0}.sigimg{max-width:100%;object-fit:contain}.sigline{white-space:normal}p[style*="white-space:pre-wrap"]{font-weight:bold}</style></head><body>'+container.innerHTML+'</body></html>';
+}
+(()=>{
+ const clone=x=>JSON.parse(JSON.stringify(x));let draftId=null,revision=0,pendingWrite=null,finalRequest=null,busy=false,completed=false,lastId=window.__docId,baseline='';
+ const bar=document.createElement('section');bar.className='preop-drafts';bar.setAttribute('aria-label','Rascunhos');
+ bar.innerHTML='<label for="preopDraftList" style="margin:0">Rascunhos</label><select id="preopDraftList"><option value="">Selecionar rascunho…</option></select><button type="button" class="btn secondary" id="preopRefresh">Atualizar</button><button type="button" class="btn secondary" id="preopResume">Retomar</button><button type="button" class="btn secondary" id="preopDelete">Remover</button><button type="button" class="btn" id="preopDraftSave">Guardar rascunho</button><span id="preopDraftStatus" role="status">Rascunhos guardam texto e respostas. Manuscritos e assinaturas ficam apenas no PDF final.</span>';
+ document.querySelector('header').after(bar);const result=document.createElement('div');result.className='preop-result';result.setAttribute('role','status');bar.after(result);
+ const setStatus=text=>$('preopDraftStatus').textContent=text;
+ function rpc(name,payload){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](payload));}
+ /* Depois de guardar o rascunho da ficha pré-operatória: pergunta (uma vez por rascunho) se cria já os rascunhos seguintes */
+const jmcNextAsked={};
+function jmcAskNextPreop(id){if(jmcNextAsked[id]||!String(v('nome')||'').trim())return;jmcNextAsked[id]=1;
+ setTimeout(async()=>{if(!await ask('Deseja criar também os rascunhos do consentimento de implantologia, dos cuidados pós-operatórios e do guia de implantes?'))return;setStatus('A criar os rascunhos seguintes…');
+  try{await rpc('createNextDrafts',{from:'preop',draftId:id,nome:v('nome'),data:v('dataAss'),unidade:(window.jmcUnidade?window.jmcUnidade():''),medico:v('medico'),nasc:v('nasc'),teste:!!window.JMC_TESTE});
+   setStatus('Rascunho guardado. Criados também os rascunhos do consentimento de implantologia, dos cuidados pós-operatórios e do guia de implantes.');}
+  catch(e){setStatus('Rascunho guardado, mas os seguintes não foram criados: '+(e.message||e));}},80);}
+const DRAFT_API={list:()=>rpc('listDrafts','preop'),save:d=>rpc('saveDraft',{...d,tipo:'preop'}),load:id=>rpc('loadDraft',{tipo:'preop',id})};
+ function capture(){return {fields:getState(),F:clone(F),D:clone(D),TXT:clone(TXT),LINES:clone(LINES)};}
+ function replace(target,source){for(const k of Object.keys(target))delete target[k];Object.assign(target,clone(source||{}));}
+ function dirty(){return JSON.stringify(capture())!==baseline||Object.values(INK).some(Boolean)||Object.values(SIG).some(Boolean);}
+ function lock(){document.querySelectorAll('aside input,aside select,aside textarea,#paper input,#paper select,#paper textarea,button[data-m]').forEach(e=>e.disabled=signed);$('preopDraftSave').disabled=signed||busy;}
+ function detailRemoval(){
+  document.querySelectorAll('.opt[data-d]').forEach(opt=>{
+   const i=opt.dataset.d,k='d'+i;if(!D[i]||!LINES[k]||signed)return;
+   const button=document.createElement('button');button.type='button';button.className='plus';button.dataset.removeDetail=k;button.textContent='−';button.title='Remover observações';button.setAttribute('aria-label','Remover observações — '+DOENCAS[i]);button.style.cssText='position:static;vertical-align:middle;margin-left:4pt;width:18px;height:18px;font-size:12px';
+   button.onclick=async()=>{if(signed||busy)return;if(((TXT[k]||'').trim()||INK[k])&&!await ask('Pretende apagar as observações?'))return;if(signed||busy)return;delete TXT[k];delete INK[k];delete INKH[k];delete LINES[k];render();};opt.after(button);
+  });
+ }
+ const originalRender=render;render=function(){
+  const reset=!window.__docId&&lastId;originalRender();if(reset){draftId=null;revision=0;pendingWrite=null;finalRequest=null;completed=false;result.replaceChildren();$('btnSave').textContent='Gerar PDF e guardar (interno)';baseline=JSON.stringify(capture());setStatus('Nova ficha. Rascunhos guardam apenas texto e respostas, sem manuscritos nem assinaturas.');}
+  lastId=window.__docId;detailRemoval();lock();
+ };
+ async function refresh(){const selected=draftId||$('preopDraftList').value;$('preopRefresh').disabled=true;try{const list=await DRAFT_API.list();$('preopDraftList').replaceChildren(new Option('Selecionar rascunho…',''));for(const d of list)$('preopDraftList').append(new Option(d.patient+' · '+new Date(d.updatedAt).toLocaleString('pt-PT'),d.id));$('preopDraftList').value=selected;}catch(e){setStatus('Não foi possível listar rascunhos: '+e.message);}finally{$('preopRefresh').disabled=false;}}
+ $('preopRefresh').onclick=refresh;
+ $('preopDelete').onclick=async()=>{const sel=$('preopDraftList'),id=sel.value;if(!id||busy)return;const name=sel.options[sel.selectedIndex].text.split(' · ')[0];if(!await ask('Deseja remover o rascunho de '+name+'?'))return;try{await rpc('deleteClinicalDraft',{key:'preop',id});if(draftId===id){draftId=null;revision=0;pendingWrite=null;}sel.value='';await refresh();setStatus('Rascunho removido.');}catch(e){setStatus('Não foi possível remover: '+e.message);}};
+ $('preopDraftSave').onclick=async()=>{
+  if(busy||signed)return;if($('sigModal').style.display==='flex'){toast('Conclua ou cancele a assinatura antes de guardar.');return;}
+  busy=true;document.body.inert=true;setStatus('A guardar rascunho na Drive…');
+  try{const data=capture();if(!pendingWrite||JSON.stringify(pendingWrite.data)!==JSON.stringify(data))pendingWrite={id:draftId||pendingWrite?.id||crypto.randomUUID(),revision,writeToken:crypto.randomUUID(),data};const saved=await DRAFT_API.save(pendingWrite);draftId=saved.id;revision=saved.revision;pendingWrite=null;baseline=JSON.stringify(data);jmcAskNextPreop(draftId);setStatus('Rascunho guardado na Drive. Texto e respostas disponíveis noutro dispositivo; manuscritos e assinaturas não foram incluídos.');await refresh();}
+  catch(e){setStatus('Não foi possível confirmar a gravação: '+e.message+'. Mantenha a página aberta.');}
+  finally{busy=false;document.body.inert=false;lock();}
+ };
+ $('preopResume').onclick=async()=>{
+  const id=$('preopDraftList').value;if(!id||busy)return;if(dirty()&&!await ask('Retomar o rascunho substitui o preenchimento atual, incluindo manuscritos e assinaturas que não estão guardados. Continuar?'))return;
+  busy=true;document.body.inert=true;setStatus('A abrir rascunho…');
+  try{const saved=await DRAFT_API.load(id),data=saved.data;for(const field of ids){const e=$(field);if(e.type==='checkbox')e.checked=!!data.fields[field];else e.value=data.fields[field]??'';}replace(F,data.F);replace(D,data.D);replace(TXT,data.TXT);replace(LINES,data.LINES);replace(INK,{});replace(INKH,{});Object.keys(SIG).forEach(k=>SIG[k]='');signed=false;window.__docId=null;lastId=null;finalRequest=null;completed=false;pendingWrite=null;draftId=saved.id;revision=saved.revision;result.replaceChildren();$('btnSave').textContent='Gerar PDF e guardar (interno)';render();baseline=JSON.stringify(capture());setStatus('Rascunho retomado — '+saved.patient+'. Manuscritos e assinaturas serão recolhidos nesta ficha.');}
+  catch(e){setStatus('Não foi possível retomar: '+e.message);}
+  finally{busy=false;document.body.inert=false;lock();}
+ };
+ // Replace only the demonstration save handler; attributes and approved label stay intact.
+ const previous=$('btnSave'),save=previous.cloneNode(true);previous.replaceWith(save);
+ save.onclick=async()=>{
+  if(busy||!SIG.med||!SIG.pac)return;render();if(window.__missing.length&&!await ask('Faltam: '+window.__missing.join(', ')+'. Guardar a ficha interna mesmo assim?'))return;
+  busy=true;document.body.inert=true;save.disabled=true;save.textContent='A guardar…';
+  try{finalRequest=finalRequest||{unidade:(window.jmcUnidade?window.jmcUnidade():''),tipo:'preop',html:pdfHtml(),nome:v('nome'),nasc:v('nasc'),medico:v('medico'),teste:!!window.JMC_TESTE,data:v('dataAss'),docId:docId(),...(draftId?{draftId,draftRevision:revision}:{})};const response=await rpc('savePdf',finalRequest);completed=true;save.textContent='Guardado ✓';result.replaceChildren(document.createTextNode('PDF interno guardado: '+response.fileName+'. Nenhum email enviado. '));const link=document.createElement('a');link.textContent='Abrir PDF guardado';link.href=response.url;link.target='_blank';link.rel='noopener';result.append(link);draftId=null;revision=0;pendingWrite=null;baseline=JSON.stringify(capture());setStatus('Ficha interna guardada na Drive.');await refresh();}
+  catch(e){save.textContent='Gerar PDF e guardar (interno)';setStatus('Não foi possível confirmar o PDF: '+e.message+'. Pode tentar novamente.');}
+  finally{busy=false;document.body.inert=false;lock();save.disabled=false;}
+ };
+ baseline=JSON.stringify(capture());render();refresh();
+ window.addEventListener('beforeunload',e=>{if(!completed&&dirty()){e.preventDefault();e.returnValue='';}});
+})();
+</script>
+<script>
+/* Unidade por aparelho: ?unidade=aveiro|faiscas fixa; senão, o valor guardado neste aparelho; a lista continua editável para exceções. */
+(()=>{
+ const MAP={aveiro:'Aveiro',faiscas:'Faíscas'};
+ const fromUrl=(typeof window.JMC_UNIDADE==='string'&&window.JMC_UNIDADE)||'';
+ const stored=localStorage.getItem('jmc_unidade')||'';
+ if(fromUrl&&MAP[fromUrl]&&fromUrl!==stored){try{localStorage.setItem('jmc_unidade',fromUrl);}catch(e){}} // o link fixa a unidade deste aparelho
+ const key=fromUrl||stored;
+ window.jmcUnidade=()=>{const sel=document.getElementById('unidade')||document.getElementById('local');const txt=sel?String(sel.value||''):'';const k=txt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');return MAP[k]?k:(key||'aveiro')};
+ function apply(){const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel||!key||!MAP[key])return;
+   const opt=[...sel.options].find(o=>o.value===MAP[key]||o.text===MAP[key]);if(opt){sel.value=opt.value;sel.dispatchEvent(new Event('change'));}
+   let tag=document.getElementById('jmcUnidTag');if(!tag){tag=document.createElement('div');tag.id='jmcUnidTag';tag.style.cssText='font-size:11px;color:#6b7280;margin-top:4px';sel.insertAdjacentElement('afterend',tag);}
+   tag.innerHTML=(fromUrl?'Unidade fixa por link: ':'Este aparelho: ')+'<b>'+MAP[key]+'</b>'+(fromUrl?'':' · <a href="#" id="jmcUnidSet" style="color:#0f6b5c">definir este aparelho</a>');
+   const a=document.getElementById('jmcUnidSet');if(a)a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
+ // Sem unidade definida: oferecer definir
+ if(!key){document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel)return;const tag=document.createElement('div');tag.style.cssText='font-size:11px;color:#b7791f;margin-top:4px';tag.innerHTML='Este aparelho ainda não tem unidade definida · <a href="#" style="color:#0f6b5c">definir agora</a>';sel.insertAdjacentElement('afterend',tag);tag.querySelector('a').addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});});}
+ // Acrescenta a unidade a todos os pedidos savePdf feitos via google.script.run
+ const wrap=()=>{if(!window.google||!google.script||!google.script.run||google.script.run.__jmc)return;const run=google.script.run;const proto=Object.getPrototypeOf(run);
+   const patch=obj=>{if(typeof obj.savePdf!=='function'||obj.savePdf.__jmc)return;const orig=obj.savePdf;obj.savePdf=function(p){if(p&&typeof p==='object'&&!p.unidade)p=Object.assign({},p,{unidade:window.jmcUnidade()});return orig.call(this,p)};obj.savePdf.__jmc=true;};
+   patch(run);if(proto&&proto!==Object.prototype)patch(proto);
+   ['withSuccessHandler','withFailureHandler','withUserObject'].forEach(m=>{const o=run[m];if(typeof o!=='function'||o.__jmc)return;run[m]=function(){const r=o.apply(this,arguments);patch(r);return r};run[m].__jmc=true;});
+   run.__jmc=true;};
+ wrap();document.addEventListener('DOMContentLoaded',wrap);
+})();
+</script>
+<style>
+.jmc-paste{margin:0 0 12px}
+.jmc-paste textarea{width:100%;box-sizing:border-box;font:inherit;font-size:12px;border:1px dashed #c9b88f;background:#f5eedc;border-radius:8px;padding:7px 9px;height:36px;resize:none;color:#2f3a33}
+.jmc-paste textarea:focus{outline:none;border-style:solid;height:90px}
+.jmc-paste p{font-size:11px;color:#3d6b4f;margin:4px 0 0}
+</style>
+<script>
+/* Colar a ficha do paciente copiada do iMED: preenche automaticamente os campos que existirem nesta página */
+(()=>{
+ if(document.getElementById('paste'))return; // os cuidados pós-operatórios já têm o seu próprio campo
+ function parseIMED(t){
+ // Rótulos tolerantes a cópias mal feitas («ome:», «ata nasc.:», «Esdo:»): compara com os rótulos conhecidos por semelhança
+ const K={nome:'nome',datanasc:'nasc',profissao:'prof',local:'local',estado:'estado',nif:'nif',cartaodecidadao:'cc',nutente:'utente',utente:'utente',entidade:'entidade',nbenef:'benef',morada:'morada',telemovel:'tel',telefone:'tel',email:'email'};
+ const norm=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,'');
+ const lev=(a,b)=>{const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const q=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=q;}}return d[b.length];};
+ const key=l=>{const n=norm(l);if(n.length<2)return '';let best='',bd=9;
+  for(const k in K){const dd=k===n?0:(k.endsWith(n)||k.startsWith(n))&&n.length>=3?1:lev(n,k);if(dd<bd){bd=dd;best=K[k];}}
+  return bd<=Math.max(1,Math.floor(norm(l).length/3))?best:'';};
+ const o={}, lines=t.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
+ lines.forEach((ln,i)=>{
+  // separa rótulos na mesma linha («… Profissão: …», «… Cartão de Cidadão: …»)
+  const parts=ln.split(/\s+(?=(?:Profiss\S*|Cart\S* de Cidad\S*)\s*:)/);
+  parts.forEach(pt=>{const c=pt.indexOf(':');if(c<0||c>25){if(i===0&&!o.nome&&!o._first)o._first=pt;return;}
+   const k=key(pt.slice(0,c)),v=pt.slice(c+1).replace(/\s+/g,' ').trim();
+   if(k&&!o[k])o[k]=v;else if(i===0&&!o._first)o._first=v;});});
+ if(!o.nome&&o._first&&/^[A-Za-zÀ-ÿ'’. -]{3,}$/.test(o._first)&&o._first.split(' ').length>=2)o.nome=o._first;
+ if(!o.email){const e=t.match(/[^\s@:]+@[^\s@]+\.[a-z]{2,}/i);if(e)o.email=e[0];}
+ if(!o.local){const u=t.match(/Jesus Mar Couto\s*-\s*(Aveiro|Fa[ií]scas)/i);if(u)o.local=u[0];}
+ const r={};
+ if(o.nome)r.nome=o.nome;
+ if(o.nasc)r.nasc=(o.nasc.match(/\d{4}-\d{2}-\d{2}/)||[''])[0];
+ if(o.nif)r.nif=o.nif.replace(/\D/g,'');
+ if(o.cc)r.cc=o.cc.replace(/\s/g,'');
+ if(o.utente)r.utente=o.utente.replace(/\D/g,'');
+ if(o.morada)r.morada=o.morada;
+ if(o.tel)r.tel=o.tel.replace(/\s/g,'');
+ if(o.email)r.email=(o.email.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)||[''])[0];
+ if(o.local)r.unidade=/fa[ií]scas/i.test(o.local)?'faiscas':/aveiro/i.test(o.local)?'aveiro':'';
+ return r;}
+ const q=id=>document.getElementById(id);
+ const first=ids=>ids.map(q).find(Boolean);
+ const nameEl=first(['nome','nomeF','patient']);
+ if(!nameEl)return;
+ const fire=el=>{el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};
+ const set=(el,v)=>{if(!el||!v)return false;el.value=v;fire(el);return true;};
+ const box=document.createElement('div');box.className='jmc-paste';
+ box.innerHTML='<textarea placeholder="Colar informação do paciente (iMED)" aria-label="Colar informação do paciente"></textarea><p hidden></p>';
+ const sec=nameEl.closest('section'),h2=sec&&sec.querySelector(':scope > h2');
+ if(h2)h2.after(box);else if(sec)sec.before(box);else(nameEl.closest('form')||nameEl.closest('label')||nameEl).before(box);
+ const ta=box.querySelector('textarea'),ok=box.querySelector('p');
+ ta.addEventListener('input',()=>{
+  const r=parseIMED(ta.value),done=[];
+  if(set(nameEl,r.nome))done.push('nome «'+r.nome+'»');
+  if(set(q('email'),r.email))done.push('email');
+  if(r.nasc&&q('nasc')&&set(q('nasc'),r.nasc))done.push('data de nascimento');
+  if(q('tel')&&set(q('tel'),r.tel))done.push('telemóvel');
+  if(q('nif')&&set(q('nif'),r.nif))done.push('NIF');
+  if(q('cc')&&set(q('cc'),r.cc))done.push('cartão de cidadão');
+  if(r.morada&&q('rua')){ // contrato: morada do iMED «Localidade, Concelho, rua…, Nº. X, 1234-567»
+   const cp=(r.morada.match(/\d{4}-\d{3}/)||[''])[0];
+   const parts=r.morada.replace(cp,'').split(',').map(x=>x.trim()).filter(Boolean);
+   const local=parts[0]||'',rua=parts.slice(parts.length>2?2:1).join(', ');
+   if(set(q('rua'),rua))done.push('morada');set(q('cp'),cp);if(q('loc')&&q('loc').tagName==='INPUT')set(q('loc'),local);
+  }
+  const uSel=[q('unidade'),q('local'),q('location')].find(e=>e&&e.tagName==='SELECT');
+  if(r.unidade&&uSel){const want=r.unidade==='faiscas'?'Faíscas':'Aveiro';const o=[...uSel.options].find(o=>o.value===want||o.text===want||o.value===r.unidade);if(o){uSel.value=o.value;fire(uSel);done.push('unidade');}}
+  // ortodontia: a morada vai depois da unidade (mudar a unidade repõe a morada da clínica)
+  if(r.morada&&!q('rua')&&q('address')&&set(q('address'),r.morada))done.push('morada');
+  if(!done.length)return;
+  ta.value='';ta.blur();ok.hidden=false;
+  ok.textContent='✓ Preenchido: '+done.join(', ')+(r.nome?'':' — falta o nome, escreva-o abaixo')+'. Confirme antes de assinar.';
+ });
+})();
+</script>
+</body></html>

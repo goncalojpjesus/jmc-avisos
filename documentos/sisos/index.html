@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<script>
+/* JMC — documentos migrados da app antiga (Apps Script) para o GitHub.
+   Mantém o mesmo código da página: google.script.run passa a falar com o servidor "JMC Documentos API" (código pessoal uma vez por aparelho). */
+(function(){
+ const qs=new URLSearchParams(location.search);
+ const u=(qs.get('unidade')||'').toLowerCase();
+ if(u==='aveiro'||u==='faiscas'){window.JMC_UNIDADE=u;try{localStorage.setItem('jmc_unidade',u);}catch(e){}}
+ else{try{const s=localStorage.getItem('jmc_unidade');if(s==='aveiro'||s==='faiscas')window.JMC_UNIDADE=s;}catch(e){}}
+ window.JMC_TESTE=qs.get('teste')==='1';
+ const API='https://script.google.com/macros/s/AKfycbz4r7u2KxQK2NLh-4julAkcAMj8qOmp-kKaI5vZC6HXJfTkhWyIpEVqoXt16HUmwwjFjQ/exec',TK='jmc_docs_token';
+ const tok=()=>{try{return localStorage.getItem(TK)||'';}catch(e){return '';}};
+ const post=(fn,payload,token)=>fetch(API,{method:'POST',body:JSON.stringify({fn,payload,token}),redirect:'follow'}).then(r=>{if(!r.ok)throw Error('Sem ligação ao servidor (HTTP '+r.status+').');return r.json();});
+ let wait=null;
+ function overlay(){let el=document.getElementById('jmcLogin');if(el)return el;el=document.createElement('div');el.id='jmcLogin';
+  el.style.cssText='display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(20,24,28,.55);align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif';
+  el.innerHTML='<div style="background:#fff;border-radius:16px;padding:22px 22px 18px;width:min(340px,100%);box-shadow:0 20px 50px rgba(0,0,0,.25);text-align:center"><div style="font-weight:700;font-size:17px;margin-bottom:4px">Código pessoal</div><div style="font-size:13px;color:#6b7280;margin-bottom:14px">O mesmo do fecho de caixa. Só é pedido uma vez neste aparelho.</div><input id="jmcPin" type="password" inputmode="numeric" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:22px;letter-spacing:.3em;text-align:center;padding:10px;border:1px solid #d9dbe0;border-radius:10px"><div id="jmcPinErr" style="min-height:18px;font-size:12.5px;color:#a1382b;margin:8px 0"></div><button id="jmcPinGo" type="button" style="width:100%;padding:11px;border:0;border-radius:10px;background:#1f2a2e;color:#fff;font-size:15px;font-weight:600;cursor:pointer">Entrar</button></div>';
+  document.body.appendChild(el);return el;}
+ function login(){if(wait)return wait;const el=overlay();el.style.display='flex';const pin=document.getElementById('jmcPin'),err=document.getElementById('jmcPinErr'),go=document.getElementById('jmcPinGo');pin.value='';err.textContent='';setTimeout(()=>pin.focus(),50);
+  wait=new Promise(res=>{const run=async()=>{const code=pin.value.trim();if(!code)return;go.disabled=true;err.textContent='A verificar…';
+   try{const o=await post('login',{code,aparelho:(navigator.userAgent.match(/\(([^)]+)\)/)||[])[1]||''});if(!o.ok)throw Error(o.erro);try{localStorage.setItem(TK,o.r.token);localStorage.setItem('jmc_docs_nome',o.r.nome||'');}catch(e){}
+    el.style.display='none';wait=null;res(o.r.token);}catch(e){err.textContent=e.message||String(e);}finally{go.disabled=false;}};
+   go.onclick=run;pin.onkeydown=e=>{if(e.key==='Enter')run();};});return wait;}
+ async function api(fn,payload){let t=tok();if(!t)t=await login();let o=await post(fn,payload,t);
+  if(!o.ok&&o.auth){try{localStorage.removeItem(TK);}catch(e){}t=await login();o=await post(fn,payload,t);}
+  if(!o.ok)throw Error(o.erro||'Erro no servidor.');return o.r;}
+ window.jmcApi=api;
+ const ORTHO_V='ortho-preview-2026-09-21-v17',cacheJ={};
+ const getJ=u=>cacheJ[u]||(cacheJ[u]=fetch(u,{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Não foi possível carregar o modelo ('+r.status+').');return r.json();}).catch(e=>{delete cacheJ[u];throw e;}));
+ const ORTHO_KEYS=['hyrax','ocluso','ortodontia'];
+ const LOCAL={
+  getOrthoPreview:k=>{if(!ORTHO_KEYS.includes(k))return Promise.reject(Error('Documento desconhecido.'));return getJ('modelos/preview_'+k+'.json').then(p=>Object.assign({},p,{version:ORTHO_V}));},
+  getOrthoPrintPdf:k=>{if(!ORTHO_KEYS.includes(k))return Promise.reject(Error('Documento desconhecido.'));return getJ('modelos/asset_'+k+'.json').then(a=>a.pdf);},
+  getAlimentacaoAsset:()=>getJ('modelo.json')
+ };
+ function runner(){const st={ok:null,fail:null};const p=new Proxy({},{get(_,k){
+   if(k==='withSuccessHandler')return f=>{st.ok=f;return p;};
+   if(k==='withFailureHandler')return f=>{st.fail=f;return p;};
+   if(k==='withUserObject')return ()=>p;
+   if(typeof k!=='string'||k==='then')return undefined;
+   return (arg)=>{(LOCAL[k]?Promise.resolve().then(()=>LOCAL[k](arg)):api(k,arg===undefined?{}:arg)).then(r=>{if(st.ok)st.ok(r);}).catch(e=>{if(st.fail)st.fail(e);else console.error(e);});};}});return p;}
+ window.google=window.google||{};window.google.script={get run(){return runner();},url:{getLocation:f=>f({parameter:Object.fromEntries(qs.entries()),parameters:{}})}};
+})();
+</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consentimento — Exodontia de terceiros molares</title>
+<style>
+:root{--bg:#f4f5f7;--panel:#fff;--ink:#1c1c1e;--muted:#6b7280;--line:#d9dbe0;--accent:#0f6b5c;--accent-ink:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+header h1{font-size:16px;margin:0}header small{color:var(--muted)}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
+main{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 56px)}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:16px 18px 40px;overflow:auto}
+section.card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+section.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 10px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input[type=text],input[type=date],select,textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:52px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chk{display:flex;align-items:flex-start;gap:8px;margin:7px 0;font-size:13px}.chk input{margin-top:3px}
+.hint{font-size:11px;color:var(--muted);margin-top:4px}.req{color:#c0392b}
+.teeth{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tooth{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.tooth .t{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.tooth select{margin-top:6px;font-size:12px;padding:5px 7px}
+.warn{background:#fff3b0;color:#7a5a00;border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:12px;display:none}
+.preview-wrap{padding:22px;overflow:auto;display:flex;justify-content:center}
+.paper{background:#fff;color:#111;width:210mm;min-height:297mm;padding:16mm 15mm;box-shadow:0 2px 14px rgba(0,0,0,.15);font:10.5pt/1.42 Arial,Helvetica,sans-serif;text-align:justify}
+.paper h1{text-align:center;font-size:13pt;margin:0 0 2pt}.paper .sub-t{text-align:center;font-size:10pt;margin:0 0 8pt}
+.paper h2{text-align:center;font-size:12pt;border-bottom:1px solid #000;padding-bottom:4pt;margin:0 0 10pt}
+.paper h3{font-size:10.5pt;margin:11pt 0 4pt}.paper p{margin:0 0 6pt}
+.paper .miss{background:#fff3b0;color:#7a5a00;padding:0 3px;border-radius:3px}
+.paper .box{display:inline-block;width:10pt;height:10pt;border:1px solid #000;vertical-align:-2pt;margin-right:3pt;text-align:center;line-height:9pt;font-size:8pt}
+.paper .sig{display:grid;grid-template-columns:1fr 1fr;gap:24pt;margin-top:30pt;text-align:center;font-size:9.5pt}
+.paper .sigbox{height:70pt;border:1px dashed #999;border-radius:4pt;display:flex;align-items:center;justify-content:center;margin-bottom:4pt;cursor:pointer;background:#fff}
+.paper .sigbox img{max-height:66pt;max-width:100%}.paper .sighint{color:#999;font-size:9pt}
+.paper .sigline{border-top:1px solid #000;padding-top:4pt}
+.locked aside{opacity:.55;pointer-events:none}
+body.focus aside{display:none}body.focus main{grid-template-columns:1fr}
+body.focus header{padding:6px 12px}body.focus header h1,body.focus header small,body.focus header .badge,body.focus #draftSel,body.focus #btnReset,body.focus #btnDraft,body.focus #btnPrint,body.focus #btnSave{display:none!important}
+body.focus header{justify-content:flex-end;background:transparent;border:0;position:fixed;right:0;top:0;width:auto;z-index:20}
+body.focus #btnFocus{opacity:.35}body.focus #btnFocus:hover{opacity:1}
+body.focus .preview-wrap{padding:12px}
+.badge{font-size:11px;padding:3px 8px;border-radius:999px;background:#fff3b0;color:#7a5a00;font-weight:600}.badge.ok{background:#d9f2e6;color:#0f6b5c}
+#sigModal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:60}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50}
+#modal .dlg{background:#fff;color:#111;border-radius:12px;padding:20px 22px;max-width:420px;width:90%}
+#modal .dlg p{margin:0 0 16px;white-space:pre-line}#modal .acts{display:flex;gap:8px;justify-content:flex-end}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:8px;display:none;z-index:70;max-width:90vw}
+.paper .meta{font-size:9pt;color:#444;margin-top:6pt}
+@media (max-width:980px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}.paper{width:100%;min-height:0;padding:14px}}
+@media print{body{background:#fff}header,aside,.warn{display:none!important}main{display:block}.preview-wrap{padding:0}.paper{box-shadow:none;width:auto;min-height:0;padding:0;font-size:10pt}.paper .miss{background:none;color:#000}@page{size:A4;margin:16mm 15mm}}
+</style>
+<style>.clinical-bar{padding:12px 20px;background:#edf4f3;color:#203b43;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #ccd9d8}.clinical-bar span{font-size:13px}#clinical-dialog{color:#203b43;background:white;width:min(90vw,620px);max-height:80vh;border:1px solid #ccd9d8;border-radius:12px;padding:22px}#clinical-dialog::backdrop{background:#0008}#clinical-dialog button{cursor:pointer;padding:10px 14px;margin:5px 0}#clinical-search{width:100%;padding:10px;box-sizing:border-box}#clinical-list{margin:14px 0}.clinical-row{display:block;width:100%;text-align:left;background:#f1f6f5;border:1px solid #ccd9d8;border-radius:6px}@media print{.clinical-bar,#clinical-dialog{display:none!important}}header{flex-wrap:wrap}</style><style>input[type=email]{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px}body.focus .clinical-bar{display:none}#btnFocus{min-width:42px}</style></head>
+<body data-draft-kind="sisos">
+<header>
+  <div><h1>Consentimento — Exodontia de terceiros molares (sisos)</h1><small>Cirurgia oral · caneta escreve, dedo apaga</small> <span class="badge" id="status">Em preparação</span></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button class="btn secondary" id="btnReset">Novo</button><button class="btn secondary" id="btnEdit" hidden>Editar dados</button>
+    <button class="btn secondary" id="btnPrint">Imprimir</button>
+    <button class="btn" id="btnSave" disabled title="Assine primeiro">Gerar PDF e enviar</button>
+    <button class="btn secondary" id="btnFocus" title="Modo paciente: só o documento">⛶</button>
+  </div>
+</header><section class="clinical-bar" aria-label="Rascunhos"><div><button class="btn" id="clinical-save" type="button">Guardar rascunho</button> <button class="btn secondary" id="clinical-resume" type="button">Retomar rascunho</button></div><span id="clinical-status" role="status">Prepare no computador e retome no tablet, com a mesma conta da clínica.</span></section>
+<main>
+<aside>
+  <div class="warn" id="warn"></div>
+  <section class="card">
+    <h2>Paciente e consulta</h2>
+    <label>Nome completo <span class="req">*</span></label><input type="text" id="nome" placeholder="Copiar da ficha">
+    <div class="row">
+      <div><label>Unidade clínica</label><select id="unidade"><option>Aveiro</option><option>Faíscas</option><option value="outra">Outra…</option></select><input type="text" id="unidadeOutra" placeholder="nome da unidade" style="margin-top:6px;display:none"></div>
+      <div><label>Data (esclarecimento e assinatura)</label><input type="date" id="dataAss"></div>
+    </div>
+    <label for="email">Email do paciente (opcional)</label><input type="email" id="email" placeholder="paciente@exemplo.com">
+    <label>Médico(a) responsável</label><select id="medico"><option>Dr. Gonçalo Jesus</option><option>Dra. Catarina Mar Couto</option><option>Dra. Andreia Hortênsio</option><option>Dra. Angelina Andrade</option><option>Dra. Rafaela Pais</option><option>Dra. Patrícia Martins</option><option>Dr. Carlos Alves</option></select>
+    <div class="chk" style="margin-top:8px"><input type="checkbox" id="jovem"><span>Paciente com 25 anos ou menos (inclui a frase sobre maior dificuldade e risco com a idade)</span></div>
+    <label>Exames complementares realizados (opcional)</label>
+    <div class="chk"><input type="checkbox" id="exPeri"><span>Radiografia periapical</span></div>
+    <div class="chk"><input type="checkbox" id="exOpg"><span>Ortopantomografia (raio-X panorâmico)</span></div>
+    <div class="chk"><input type="checkbox" id="exCbct"><span>CBCT / TAC 3D</span></div>
+  </section>
+
+  <section class="card">
+    <h2>1. Dentes a extrair <span class="req">*</span></h2>
+    <div class="teeth">
+      <div class="tooth"><div class="t"><input type="checkbox" id="t18"> 1.8 <small style="font-weight:400;color:var(--muted)">sup. direito</small></div><select id="s18"><option value="">não indicar</option><option value="erup">erupcionado</option><option value="semi">semi-incluso</option><option value="inc">incluso</option></select></div>
+      <div class="tooth"><div class="t"><input type="checkbox" id="t28"> 2.8 <small style="font-weight:400;color:var(--muted)">sup. esquerdo</small></div><select id="s28"><option value="">não indicar</option><option value="erup">erupcionado</option><option value="semi">semi-incluso</option><option value="inc">incluso</option></select></div>
+      <div class="tooth"><div class="t"><input type="checkbox" id="t38"> 3.8 <small style="font-weight:400;color:var(--muted)">inf. esquerdo</small></div><select id="s38"><option value="">não indicar</option><option value="erup">erupcionado</option><option value="semi">semi-incluso</option><option value="inc">incluso</option></select></div>
+      <div class="tooth"><div class="t"><input type="checkbox" id="t48"> 4.8 <small style="font-weight:400;color:var(--muted)">inf. direito</small></div><select id="s48"><option value="">não indicar</option><option value="erup">erupcionado</option><option value="semi">semi-incluso</option><option value="inc">incluso</option></select></div>
+    </div>
+    <div class="chk" style="margin-top:10px"><input type="checkbox" id="outrosOn"><span>Outros dentes / restos radiculares a extrair no mesmo ato</span></div>
+    <input type="text" id="outrosPos" placeholder="posições FDI, ex.: 17 27" style="display:none;margin-left:24px;width:calc(100% - 24px)">
+  </section>
+
+  <section class="card">
+    <h2>2. Indicação</h2>
+    <div class="chk"><input type="checkbox" id="iPeri"><span>Pericoronarite / infeções de repetição</span></div>
+    <div class="chk"><input type="checkbox" id="iCarie"><span>Cárie no siso ou no dente adjacente</span></div>
+    <div class="chk"><input type="checkbox" id="iDor"><span>Dor / desconforto</span></div>
+    <div class="chk"><input type="checkbox" id="iApinh"><span>Apinhamento / motivo ortodôntico</span></div>
+    <div class="chk"><input type="checkbox" id="iQuisto"><span>Quisto ou lesão associada</span></div>
+    <div class="chk"><input type="checkbox" id="iReab"><span>Reabsorção / lesão periodontal do dente adjacente</span></div>
+    <div class="chk"><input type="checkbox" id="iIncl"><span>Inclusão dentária com risco de pericoronarite e infeções de repetição</span></div>
+    <div class="chk"><input type="checkbox" id="iExtr"><span>Extrusão / sobre-erupção por ausência do dente antagonista</span></div>
+    <div class="chk"><input type="checkbox" id="iProf"><span>Profilática (má posição, sem função, impossível de higienizar)</span></div>
+    <div class="chk"><input type="checkbox" id="iTrauma"><span>Traumatismo da mucosa (bochecha/gengiva) por dente sobre-erupcionado ou mal posicionado</span></div>
+    <div class="chk"><input type="checkbox" id="iProt"><span>Preparação para reabilitação protética / cirurgia ortognática</span></div>
+    <div class="chk"><input type="checkbox" id="iOutraOn"><span>Outra</span></div>
+    <input type="text" id="iOutra" placeholder="descrever" style="display:none;margin-left:24px;width:calc(100% - 24px)">
+  </section>
+
+  <section class="card">
+    <h2>3. Riscos específicos deste caso</h2>
+    <div class="chk"><input type="checkbox" id="rNervo"><span>Proximidade radiográfica ao canal do nervo alveolar inferior (risco aumentado de parestesia)</span></div>
+    <div class="chk"><input type="checkbox" id="rCoron"><span>Coronectomia como alternativa proposta (raiz deixada intencionalmente)</span></div>
+    <div class="chk"><input type="checkbox" id="rSeio"><span>Proximidade ao seio maxilar (risco de comunicação oro-antral)</span></div>
+    <div class="chk"><input type="checkbox" id="rOsteo"><span>Prevista osteotomia e/ou odontosecção (dente dividido em fragmentos)</span></div>
+    <div class="chk"><input type="checkbox" id="rAntib"><span>Prescrição de antibiótico e/ou anti-inflamatório</span></div>
+    <div class="chk"><input type="checkbox" id="rReab"><span>Sutura reabsorvível (sem remoção de pontos)</span></div>
+    <label>Sedação / anestesia</label>
+    <select id="sed"><option value="">Só anestesia local</option><option value="oral">Sedação medicamentosa oral na clínica (ansiolítico)</option><option value="iv">Sedação consciente por anestesista (endovenosa)</option><option value="geral">Anestesia geral</option></select>
+  </section>
+
+  <section class="card">
+    <div class="chk"><input type="checkbox" id="addOn"><span>Informação adicional</span></div>
+    <div id="addOpts" style="display:none;margin-left:24px">
+      <label>Acrescentar em</label>
+      <select id="addSec"><option value="diag">Diagnóstico e indicação</option><option value="proc">Procedimento</option><option value="risc">Riscos</option><option value="pos">Pós-operatório</option><option value="prog">Prognóstico</option></select>
+      <label>Texto (último parágrafo da secção)</label><textarea id="addTxt"></textarea>
+    </div>
+  </section>
+
+
+</aside>
+<div id="sigModal"><div style="background:#fff;color:#111;border-radius:12px;padding:16px;width:min(96vw,900px)">
+  <div id="sigTitle" style="font-weight:600;margin-bottom:8px">Assinatura</div>
+  <canvas id="sigPad" style="width:100%;height:300px;border:1px dashed #999;border-radius:8px;touch-action:none;background:#fff"></canvas>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button class="btn secondary" id="sigClear">Limpar</button><button class="btn secondary" id="sigCancel">Cancelar</button><button class="btn" id="sigOk">Confirmar assinatura</button></div>
+</div></div>
+<div id="toast"></div>
+<div id="modal"><div class="dlg"><p id="modalMsg"></p><div class="acts"><button class="btn secondary" id="modalNo">Cancelar</button><button class="btn" id="modalYes">Continuar</button></div></div></div>
+<div class="preview-wrap"><div class="paper" id="paper"></div></div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const VER='v1.1';
+const ids=['email','nome','jovem','exPeri','exOpg','exCbct','iTrauma','iProt','iIncl','iExtr','dataAss','unidade','unidadeOutra','medico','t18','t28','t38','t48','s18','s28','s38','s48','outrosOn','outrosPos','iPeri','iCarie','iDor','iApinh','iQuisto','iReab','iProf','iOutraOn','iOutra','rNervo','rCoron','rSeio','rOsteo','rAntib','rReab','sed','addOn','addSec','addTxt'];
+const today=()=>new Date().toISOString().slice(0,10); $('dataAss').value=today();
+const SIG={pac:'',med:''}; let signed=false;let finalRequest=null;let lang='pt';
+function setSigned(on){signed=on;document.body.classList.toggle('locked',on);$('btnEdit').hidden=!on;$('btnSave').disabled=!on;$('status').textContent=on?'Assinado — pronto a gerar':'Em preparação';$('status').classList.toggle('ok',on)}
+function toast(m,ms){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',ms||3500)}
+function ask(msg){return new Promise(res=>{$('modalMsg').textContent=msg;$('modal').style.display='flex';const done=r=>{$('modal').style.display='none';res(r)};$('modalYes').onclick=()=>done(true);$('modalNo').onclick=()=>done(false)})}
+function normDate(t){t=(t||'').trim();if(!t)return '';let m=t.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return `${m[3].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[1]}`;m=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/);if(m)return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[3]}`;return null}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function fmtDate(v){if(!v)return '____/____/________';const [y,m,d]=v.split('-');return `${d}/${m}/${y}`}
+function v(id){const e=$(id);return e.type==='checkbox'?e.checked:e.value.trim()}
+function miss(l){return `<span class="miss">${l}</span>`}
+const box=on=>`<span class="box">${on?'X':''}</span>`;
+function unidade(){return $('unidade').value==='outra'?(v('unidadeOutra')||''):$('unidade').value}
+function parseFDI(txt){const out=[];for(const t of txt.replace(/[^0-9.,\s;/-]/g,' ').split(/[\s,;\/-]+/).filter(Boolean)){const d=t.replace('.','');if(/^[1-4][1-8]$/.test(d))out.push(d[0]+'.'+d[1])}return [...new Set(out)]}
+const listPT=a=>a.length<=1?a.join(''):a.slice(0,-1).join(', ')+' e '+a[a.length-1];
+const TIPO={erup:'erupcionado',semi:'semi-incluso',inc:'incluso'};
+const NOME={18:'terceiro molar superior direito',28:'terceiro molar superior esquerdo',38:'terceiro molar inferior esquerdo',48:'terceiro molar inferior direito'};
+
+function render(){
+  $('unidadeOutra').style.display=$('unidade').value==='outra'?'block':'none';
+  $('outrosPos').style.display=$('outrosOn').checked?'block':'none';
+  $('iOutra').style.display=$('iOutraOn').checked?'block':'none';
+  $('addOpts').style.display=$('addOn').checked?'block':'none';
+  const nome=v('nome')?esc(v('nome')):miss('NOME DO PACIENTE'); const medico=v('medico')||'Dr. Gonçalo Jesus';
+  const exames=[$('exPeri').checked?'radiografia periapical':'',$('exOpg').checked?'ortopantomografia':'',$('exCbct').checked?'CBCT / TAC 3D':''].filter(Boolean);
+  const exTxt=exames.length?` (${listPT(exames)})`:'';
+
+  // dentes
+  const sisos=[['18','1.8'],['28','2.8'],['38','3.8'],['48','4.8']].filter(([k])=>$('t'+k).checked).map(([k,f])=>({k,f,tipo:$('s'+k).value,mand:k[0]==='3'||k[0]==='4'}));
+  const outros=$('outrosOn').checked?parseFDI(v('outrosPos')):[];
+  const n=sisos.length;
+  const temMand=sisos.some(s=>s.mand), temMax=sisos.some(s=>!s.mand);
+  const temInc=sisos.some(s=>s.tipo==='semi'||s.tipo==='inc');
+  const dentesTxt=n?listPT(sisos.map(s=>`<b>${s.f}</b> (${NOME[s.k]}${s.tipo?`, ${TIPO[s.tipo]}`:''})`)):miss('selecionar dentes');
+  const plano = n===1?`do dente ${dentesTxt}`:`dos dentes ${dentesTxt}`;
+  const outrosTxt=outros.length?`, bem como ${outros.length===1?'do dente/resto radicular':'dos dentes/restos radiculares'} ${listPT(outros.map(x=>`<b>${x}</b>`))}`:'';
+
+  // indicação
+  const ind=[];
+  if($('iPeri').checked)ind.push('episódios de pericoronarite (inflamação/infeção da gengiva que cobre o dente) ou infeções de repetição');
+  if($('iCarie').checked)ind.push('cárie no terceiro molar ou no dente adjacente, por impossibilidade de higienização');
+  if($('iDor').checked)ind.push('dor ou desconforto associados');
+  if($('iApinh').checked)ind.push('motivo ortodôntico / apinhamento dentário');
+  if($('iQuisto').checked)ind.push('presença de quisto ou lesão associada ao dente');
+  if($('iReab').checked)ind.push('reabsorção radicular ou lesão periodontal do dente adjacente');
+  if($('iIncl').checked)ind.push('inclusão dentária, com risco de pericoronarite e infeções de repetição');
+  if($('iExtr').checked)ind.push('extrusão (sobre-erupção) do dente por ausência do dente antagonista, com trauma da mucosa e impossibilidade de higienização');
+  if($('iProf').checked)ind.push('indicação profilática, por má posição, ausência de função e impossibilidade de higienização, com risco futuro de infeção, cárie ou lesão dos dentes vizinhos');
+  if($('iTrauma').checked)ind.push('traumatismo da mucosa da bochecha ou da gengiva por dente sobre-erupcionado ou mal posicionado');
+  if($('iProt').checked)ind.push('preparação para reabilitação protética ou cirurgia ortognática');
+  if($('iOutraOn').checked&&v('iOutra'))ind.push(esc(v('iOutra')));
+  const sit=[];
+  const tipos=[...new Set(sisos.map(s=>s.tipo))].filter(t=>t&&t!=='erup').map(t=>TIPO[t]);
+  if(tipos.length)sit.push(n===1?`se encontra ${listPT(tipos)}`:`se encontram ${listPT(tipos.map(t=>t+'s'))}`);
+  if(ind.length)sit.push((tipos.length?'e apresenta':'apresenta')+(n===1?'':'m')+` ${listPT(ind)}`);
+  const sitTxt=sit.length?sit.join(' '):miss('situação clínica / indicação');
+
+  const add=k=>($('addOn').checked&&$('addSec').value===k&&v('addTxt'))?`<p>${esc(v('addTxt'))}</p>`:'';
+  let secN=0;const sec=()=>++secN;
+  const P=t=>`<p>${t}</p>`;
+
+  $('paper').innerHTML=`
+  <h1>JESUS MAR COUTO</h1><div class="sub-t">Medicina Dentária · ${esc(unidade())||miss('unidade')}</div>
+  <h2>CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE<br>Exodontia de terceiros molares (dentes do siso)</h2>
+  <p><b>Paciente:</b> ${nome}<br><b>Data do esclarecimento e da assinatura:</b> ${fmtDate(v('dataAss'))}</p>
+
+  <h3>${sec()}. Diagnóstico, indicação e tratamento proposto</h3>
+  ${P(`Após o exame clínico e a observação dos exames complementares de diagnóstico${exTxt}, fui informado(a) de que ${n===1?'o meu terceiro molar (dente do siso)':'os meus terceiros molares (dentes do siso)'} ${sitTxt}, pelo que está indicada a sua extração.`)}
+  ${P(`Serei submetido(a) à <b>exodontia (extração)</b> ${plano}${outrosTxt}.`)}
+  ${P(`A extração é-me proposta como tratamento para a minha situação, tendo-me sido explicada e justificada clinicamente e com base científica. Foram-me apresentadas as alternativas a este tratamento — nomeadamente a não extração, com vigilância clínica e radiológica periódica do dente${$('rCoron').checked?', ou a coronectomia (remoção apenas da coroa do dente, deixando intencionalmente as raízes junto ao nervo)':''} — bem como as respetivas vantagens e desvantagens e as consequências de não efetuar o tratamento proposto, como a persistência ou agravamento da dor e das infeções, cárie e reabsorção dos dentes vizinhos, ${$('iQuisto').checked?'crescimento da lesão existente':'formação de quistos'}${$('jovem').checked?' e, com o avançar da idade, maior dificuldade e maior risco na extração':''}, entre outras complicações explicadas em consulta.`)}
+  ${add('diag')}
+
+  <h3>${sec()}. Procedimento</h3>
+  ${(()=>{const sd=$('sed').value;
+    if(sd==='geral') return P(`O procedimento é realizado sob <b>anestesia geral</b>, em ambiente hospitalar ou bloco operatório adequado, por médico anestesista, que me informará dos riscos próprios da anestesia geral e recolherá o respetivo consentimento em documento próprio. Comprometo-me a cumprir o jejum e as restantes indicações pré-anestésicas que me forem dadas e a fazer-me acompanhar por um adulto no regresso a casa.`);
+    if(sd==='iv') return P(`O procedimento é realizado sob <b>anestesia local com sedação consciente</b>, administrada por via endovenosa por médico anestesista, com monitorização contínua. A sedação consciente reduz a ansiedade e a perceção do procedimento, mantendo a respiração espontânea e a capacidade de responder a estímulos, mas não elimina totalmente a consciência. Fui informado(a) dos seus riscos — sonolência prolongada, náuseas, tonturas, amnésia parcial, reações alérgicas ou paradoxais (agitação), dor ou inflamação no local da punção e, raramente, depressão respiratória ou cardiovascular que exija intervenção — e comprometo-me a cumprir o jejum indicado, a informar toda a medicação e substâncias que tomo, a não consumir álcool nas 24 horas anteriores e seguintes, a não conduzir nem operar máquinas nas 24 horas seguintes e a fazer-me acompanhar por um adulto no regresso a casa.`);
+    if(sd==='oral') return P(`O procedimento é realizado sob <b>anestesia local com sedação medicamentosa por via oral</b> (ansiolítico administrado na clínica antes da cirurgia), que reduz a ansiedade e produz sonolência e relaxamento, mantendo-me consciente e capaz de colaborar. Fui informado(a) dos seus riscos — sonolência prolongada, tonturas, náuseas, amnésia parcial do procedimento, reações alérgicas ou paradoxais (agitação), diminuição dos reflexos e, raramente, depressão respiratória, sobretudo em associação com álcool, outros sedativos ou opioides — e comprometo-me a informar toda a medicação e substâncias que tomo, a não consumir álcool nas 24 horas anteriores e seguintes, a não conduzir nem operar máquinas nas 24 horas seguintes e a fazer-me acompanhar por um adulto no regresso a casa.`);
+    return P(`O procedimento é realizado sob <b>anestesia local</b>, que não implica perda de consciência, pelo que terei de colaborar para evitar complicações intraoperatórias, como a deglutição ou aspiração de instrumentos ou de fragmentos dentários/ósseos.`);})()}
+  ${$('sed').value&&$('sed').value!=='geral'?P(`A anestesia local mantém-se como base do procedimento; a sedação não implica perda de consciência, pelo que terei de colaborar para evitar complicações intraoperatórias, como a deglutição ou aspiração de instrumentos ou de fragmentos dentários/ósseos.`):''}
+  ${P(`Compreendo que a extração de terceiros molares é um ato cirúrgico diferenciado, pelo que poderá ser necessária a realização de incisões (abrir a gengiva) para permitir um correto acesso ao dente, e a remoção de tecido ósseo ao redor do dente (osteotomia). Compreendo também que neste tipo de extrações é frequente a realização de odontossecção (divisão do dente em fragmentos para a sua remoção), e que é normal sentir, durante o ato, pressão aumentada, incluindo nos dentes vizinhos.`)}
+  ${P(`Compreendo que, no final, o alvéolo e a ferida cirúrgica são limpos e que, na maioria dos casos, é realizada uma sutura que permitirá um encerramento parcial ou total (dependendo da gengiva disponível)${$('rReab').checked?', sendo utilizada sutura reabsorvível, cujos pontos serão reabsorvidos com o tempo, sem necessidade de remoção':', sendo os pontos removidos 7 a 14 dias após a extração'}.`)}
+  ${P(`Compreendo que, durante a cirurgia, podem surgir condições não previstas — como, por exemplo, raízes curvas, fraturadas, fortemente aderidas ao osso ou mesmo anquilosadas (fundidas ao osso) — que obriguem a alterar a técnica, a prolongar a intervenção, a deixar intencionalmente parte da raiz ou do dente quando a sua remoção implicar um risco superior ao benefício, ou a interromper o procedimento e reagendá-lo. Autorizo que o médico realize os procedimentos que se revelem necessários para a boa execução do tratamento, tal como me foi explicado.`)}
+  ${add('proc')}
+
+  <h3>${sec()}. Riscos e complicações</h3>
+  ${P(`Fui informado(a) de que, apesar de a extração de terceiros molares ser um procedimento frequente e seguro, comporta riscos e complicações, algumas esperadas e outras raras. <b>Consequências normais e esperadas:</b> nos primeiros dias é normal sentir dor, inchaço (edema) e hematoma da face, dificuldade em abrir a boca (trismo), sangramento ligeiro, hematoma (nódoa negra) na face ou no pescoço, desconforto ao engolir e mau hálito. É normal existir um aumento destes sintomas até às 72 horas, altura em que a inflamação atinge o seu pico, esperando-se por isso uma melhoria progressiva nos dias seguintes, entre 5 e 10 dias.`)}
+  ${P(`<b>Complicações possíveis:</b> alveolite (inflamação dolorosa do osso do alvéolo, mais frequente em fumadores, geralmente entre o 2.º e o 5.º dia); infeção da ferida ou do osso, que pode exigir antibiótico ou drenagem; hemorragia prolongada; fratura das raízes, com eventual necessidade de deixar intencionalmente um fragmento; lesão ou fratura de dentes vizinhos ou das suas restaurações; fratura de instrumentos; deslocamento de fragmentos para os tecidos vizinhos; lesão dos tecidos moles adjacentes (língua, lábio, bochecha); dor ou disfunção da articulação temporomandibular (ATM), incluindo a possibilidade de bloqueio da articulação durante o ato cirúrgico; reações à anestesia ou aos medicamentos (incluindo alergia, tonturas, palpitações); cicatrização lenta ou deficiente; necessidade de nova intervenção.`)}
+  ${temMand?P(`<b>Terceiros molares inferiores (${listPT(sisos.filter(s=>s.mand).map(s=>s.f))}):</b> as raízes destes dentes encontram-se próximas do <b>nervo alveolar inferior</b> e do <b>nervo lingual</b>. A extração pode causar alteração da sensibilidade — como dormência, formigueiro, sensação de picadas ou dor — do lábio inferior, do queixo, da gengiva, da língua ou do paladar do lado operado. Na grande maioria dos casos esta alteração é temporária e recupera em semanas ou meses; numa pequena percentagem de casos pode ser prolongada ou permanente. ${$('rNervo').checked?`<b>No meu caso, os exames mostram proximidade das raízes com o nervo alveolar inferior, pelo que este risco é superior ao habitual, o que me foi especificamente explicado</b>${$('rCoron').checked?', tendo-me sido proposta a coronectomia como alternativa para o reduzir':''}. `:''}Existe ainda o risco raro de fratura da mandíbula, sobretudo em dentes profundamente inclusos ou em mandíbulas finas, que exigiria tratamento adicional.`):''}
+  ${temMax?P(`<b>Terceiros molares superiores (${listPT(sisos.filter(s=>!s.mand).map(s=>s.f))}):</b> as raízes destes dentes encontram-se próximas do <b>seio maxilar</b>. A sua extração pode causar uma comunicação entre a boca e o seio maxilar (comunicação oro-antral), que pode exigir encerramento cirúrgico, ou o deslocamento de uma raiz ou fragmento para o interior do seio, obrigando a nova intervenção para a sua remoção. Existe ainda o risco de fratura da tuberosidade maxilar (osso atrás do dente) e de sinusite. ${$('rSeio').checked?'<b>No meu caso, os exames mostram proximidade das raízes com o seio maxilar, pelo que este risco é superior ao habitual, o que me foi especificamente explicado.</b>':''}`):''}
+  ${P(`Fui informado(a) de que o tabaco, a má higiene oral, o incumprimento das indicações pós-operatórias e algumas doenças ou medicamentos (nomeadamente diabetes descompensada, imunossupressão, anticoagulantes, bifosfonatos e outros antirreabsortivos, e radioterapia prévia da cabeça e pescoço) aumentam significativamente o risco de complicações, incluindo infeção, alveolite e, em casos raros, osteonecrose do maxilar.`)}
+  ${add('risc')}
+
+  <h3>${sec()}. Estado de saúde</h3>
+  ${P(`Declaro ter informado o médico responsável, de forma correta e verdadeira, da minha condição de saúde atual, de toda a medicação que tomo e das minhas alergias, entre as quais a presença ou ausência de diabetes, doenças cardiovasculares, doenças ou alterações da coagulação, toma de anticoagulantes ou antiagregantes, toma atual ou passada de bifosfonatos ou de outros medicamentos antirreabsortivos, radioterapia da cabeça e do pescoço, alergias a medicamentos ou materiais, e gravidez ou amamentação. Compreendo que estas informações são determinantes para o planeamento e a segurança do meu tratamento.`)}
+
+  <h3>${sec()}. Cuidados pós-operatórios</h3>
+  ${P(`Fui informado(a) dos cuidados que devo cumprir e comprometo-me a segui-los: em caso de sangramento, morder uma compressa durante 30 a 60 minutos; nas primeiras 24 horas, não bochechar nem cuspir com força, não usar palhinha e não tocar na zona operada com a língua ou com os dedos, para evitar a perda precoce do coágulo; aplicar gelo por fora da face, de forma intermitente (cerca de 15 minutos de cada vez), sobretudo nas primeiras 48 horas; nos primeiros dias, e idealmente durante a primeira semana, preferir alimentos frios ou à temperatura ambiente, moles e fáceis de mastigar, evitando alimentos quentes, duros ou crocantes e mastigando do lado contrário ao da cirurgia; não fumar nem vapear durante, pelo menos, 72 horas; evitar exercício físico e esforços durante os primeiros 3 dias e dormir com a cabeça ligeiramente elevada; lavar normalmente os restantes dentes, sem escovar diretamente a zona operada nas primeiras 24 horas; tomar a medicação exatamente como foi prescrita (se me for prescrito antibiótico, tomá-lo até ao fim, sem interrupções); comparecer à consulta de controlo${$('rReab').checked?'':' e de remoção da sutura'}. Estes cuidados ser-me-ão também enviados por escrito após a cirurgia.`)}
+  ${P(`Comprometo-me a contactar de imediato a clínica caso surja sangramento abundante que não pare com compressão, dor que se agrave a partir do 3.º dia, febre, inchaço que aumente após o 3.º dia, dificuldade em engolir ou respirar, ou dormência que persista para além de 24 horas, para que a situação seja avaliada e tratada o mais rapidamente possível. Compreendo que a clínica deve ser imediatamente informada de qualquer sinal de alarme, de forma a poder assegurar o correto acompanhamento, e que o incumprimento destas indicações aumenta o risco de complicações e pode comprometer o resultado.`)}
+  ${add('pos')}
+
+  <h3>${sec()}. Prognóstico e resultado esperado</h3>
+  ${P(`Compreendo que o objetivo do tratamento é eliminar a causa dos sintomas e prevenir complicações futuras, e que o prognóstico é favorável na grande maioria dos casos. Compreendi que nenhum tratamento médico ou dentário é totalmente previsível, que poderão surgir fatores imprevistos que exijam outro tipo de tratamentos, e que a extração dos dentes do siso não corrige, por si só, apinhamentos dentários existentes.`)}
+  ${add('prog')}
+
+  <h3>${sec()}. Utilização de registos clínicos</h3>
+  ${P(`Autorizo que fotografias, radiografias, modelos, filmagens e outros registos do meu tratamento sejam utilizados para fins de ensino e de divulgação científica, através de publicações ou apresentações científicas, sem que a minha identidade seja revelada.`)}
+
+  <h3>${sec()}. Declaração de consentimento</h3>
+  ${P(`Declaro que fui completamente informado(a), em linguagem que compreendi, sobre a natureza da extração ${n===1?'do terceiro molar':'dos terceiros molares'}, as técnicas a utilizar, os riscos e benefícios, as alternativas disponíveis e os cuidados a ter. Tomo esta decisão de forma consciente, tive tempo para refletir e a oportunidade de fazer as minhas perguntas, que me foram esclarecidas. Sei que receberei uma cópia deste documento.`)}
+  ${P(`Certifico que li e compreendi totalmente este documento e, assim, autorizo que o tratamento descrito seja efetuado.`)}
+  <p>Local: ${esc(unidade())||miss('unidade')} &nbsp;&nbsp;&nbsp; Data: ${fmtDate(v('dataAss'))}</p>
+  <div class="sig">
+    <div><div class="sigbox" data-who="med">${SIG.med?`<img src="${SIG.med}" alt="">`:'<span class="sighint">Toque para assinar</span>'}</div><div class="sigline">${esc(medico)}<br>Médico(a) Dentista</div></div>
+    <div><div class="sigbox" data-who="pac">${SIG.pac?`<img src="${SIG.pac}" alt="">`:'<span class="sighint">Toque para assinar</span>'}</div><div class="sigline">${nome}<br>Paciente / Representante legal</div></div>
+  </div>
+  <p class="meta">Documento n.º ${sisosDocId()} · Modelo Exodontia de terceiros molares ${VER}</p>`;
+
+  const missing=[];if(!v('nome'))missing.push('nome');if(!n)missing.push('dentes a extrair');if(!ind.length)missing.push('indicação');
+  const w=$('warn');w.style.display=missing.length?'block':'none';w.textContent=missing.length?'Em falta: '+missing.join(', '):'';
+  window.__missing=missing;
+  document.querySelectorAll('.sigbox').forEach(b=>b.addEventListener('click',()=>{if(signed)return;openSig(b.dataset.who)}));
+  setSigned(!!(SIG.pac&&SIG.med));
+}
+function canvasHasInk(canvas){
+  const data=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=3;i<data.length;i+=4) if(data[i]>8) return true;
+  return false;
+}
+function attachInk(canvas,onChange,options={}){
+  const ctx=canvas.getContext('2d');
+  let active=null,last=null,erasing=false,ready=true,generation=0,lastPen=-Infinity;
+  canvas.style.touchAction='none';
+  const pos=e=>{const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};};
+  function notify(){onChange(canvasHasInk(canvas));}
+  function release(){const id=active;active=null;last=null;if(id!==null&&canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);}
+  function paint(p){
+    ctx.save();ctx.globalCompositeOperation=erasing?'destination-out':'source-over';
+    ctx.lineWidth=erasing?(options.eraserWidth||28):(options.width||2.2);
+    ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0b1d51';ctx.fillStyle='#0b1d51';
+    ctx.beginPath();
+    if(last&&((last.x!==p.x)||(last.y!==p.y))){ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();}
+    else{ctx.arc(p.x,p.y,ctx.lineWidth/2,0,Math.PI*2);ctx.fill();}
+    ctx.restore();last=p;
+  }
+  canvas.addEventListener('pointerdown',e=>{
+    if(!ready)return;
+    const pen=e.pointerType==='pen';
+    if(pen)lastPen=Date.now();
+    if(e.pointerType==='touch'&&(Date.now()-lastPen<400||e.width>35||e.height>35))return;
+    if((pen||e.pointerType==='mouse')&&e.button!==0&&e.button!==5)return;
+    if(active!==null){if(!pen||!erasing)return;release();notify();}
+    e.preventDefault();active=e.pointerId;erasing=e.pointerType==='touch'||e.button===5;last=null;
+    canvas.setPointerCapture(active);paint(pos(e));
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(e.pointerType==='pen')lastPen=Date.now();
+    if(e.pointerId!==active)return;
+    e.preventDefault();paint(pos(e));
+  });
+  function end(e){if(e.pointerId!==active)return;if(e.pointerType==='pen')lastPen=Date.now();release();notify();}
+  canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);canvas.addEventListener('lostpointercapture',end);
+  return {
+    reset(silent=false){generation++;ready=true;release();ctx.clearRect(0,0,canvas.width,canvas.height);if(!silent)notify();},
+    load(data){
+      this.reset(true);if(!data)return;
+      ready=false;const token=generation;const img=new Image();
+      img.onload=()=>{if(token!==generation)return;const r=canvas.getBoundingClientRect();ctx.drawImage(img,0,0,r.width,r.height);ready=true;notify();};
+      img.onerror=()=>{if(token===generation){ready=true;notify();}};img.src=data;
+    }
+  };
+}
+
+let sigWho='';const pad=$('sigPad');let hasInk=false;
+const signatureInk=attachInk(pad,ink=>{hasInk=ink;});
+function padResize(){const r=pad.getBoundingClientRect();const dpr=window.devicePixelRatio||1;pad.width=Math.max(1,Math.round(r.width*dpr));pad.height=Math.max(1,Math.round(r.height*dpr));pad.getContext('2d').scale(dpr,dpr);signatureInk.reset();}
+async function openSig(who){if(who==='pac'&&window.__missing.length&&!(await ask('Faltam dados essenciais: '+window.__missing.join(', ')+'.\n\nO paciente vai assinar mesmo assim?')))return;sigWho=who;$('sigTitle').textContent=who==='pac'?'Assinatura do paciente':'Assinatura do médico';$('sigModal').style.display='flex';padResize();signatureInk.load(SIG[who]);}
+$('sigClear').onclick=()=>signatureInk.reset();
+$('sigCancel').onclick=()=>{$('sigModal').style.display='none';signatureInk.reset();};
+$('sigOk').onclick=()=>{if(!canvasHasInk(pad)){toast('A assinatura está vazia. Assine com a caneta antes de confirmar.');return;}SIG[sigWho]=pad.toDataURL('image/png');$('sigModal').style.display='none';render();};
+
+
+function sisosDocId(){return window.__docId||(window.__docId='SIS-'+crypto.randomUUID());}
+function sisosPdfHtml(){
+ const copy=($('paper').querySelector('.doc-original')||$('paper')).cloneNode(true),boxes=copy.querySelectorAll('.sigbox');boxes.forEach(b=>{b.style.border='0';b.querySelector('.sighint')?.remove();});
+ return '<!doctype html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:16mm 15mm}body{font:10.5pt/1.4 Arial,sans-serif;color:#111}h1{text-align:center;font-size:13pt;margin:0 0 2pt}.sub-t{text-align:center;font-size:10pt;margin-bottom:8pt}h2{text-align:center;font-size:12pt;border-bottom:1px solid #000;padding-bottom:4pt}h3{font-size:10.5pt;margin:11pt 0 4pt;page-break-after:avoid}p{margin:0 0 6pt;text-align:justify}.sig{display:table;width:100%;margin-top:24pt;page-break-inside:avoid}.sig>div{display:table-cell;width:50%;text-align:center;padding:0 12pt;vertical-align:bottom}.sigbox{height:70pt}.sigbox img{max-height:66pt;max-width:100%}.sigline{border-top:1px solid #111;padding-top:4pt}.meta{font-size:8pt;color:#555}.miss{background:#fff3b0}</style></head><body>'+copy.innerHTML+'</body></html>';
+}
+function showSisosResult(r){let box=$('saveStatus');if(!box){box=document.createElement('div');box.id='saveStatus';box.setAttribute('role','status');box.style.cssText='padding:14px;background:white;border:1px solid #ccc;margin:12px';document.querySelector('.clinical-bar').after(box);}box.replaceChildren();box.append(document.createTextNode('PDF guardado: '+r.fileName+'. '+(r.emailSent?'Email submetido para envio por '+r.sender+', com cópia para a clínica. A entrega ao destinatário não está confirmada.':r.emailError?'Email NÃO enviado: '+r.emailError:'Sem email indicado: cópia não enviada.')+' '));const a=document.createElement('a');a.href=r.url;a.target='_blank';a.rel='noopener';a.textContent='Abrir PDF guardado / imprimir';box.append(a);}
+$('btnSave').addEventListener('click',async()=>{
+ render();if(!SIG.pac||!SIG.med){toast('São necessárias as assinaturas do paciente e do médico.');return;}
+ if(window.__missing.length&&!(await ask('Faltam dados: '+window.__missing.join(', ')+'. Guardar mesmo assim?')))return;
+ const email=v('email');if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast('Verifique o endereço de email.');return;}
+ if(!email&&!(await ask('Sem email do paciente: o PDF será guardado na Drive, sem envio de cópia. Continuar?')))return;
+ if(window.bilingualBeforeOutput&&!await window.bilingualBeforeOutput()){toast('A tradução ainda não está pronta.');return;}
+ document.body.inert=true;clinicalStatus('A gerar e guardar o PDF…');
+ try{finalRequest=finalRequest||{...clinicalDraftMeta(),unidade:(window.jmcUnidade?window.jmcUnidade():''),tipo:'sisos',html:sisosPdfHtml(),nome:v('nome'),data:v('dataAss'),email,docId:sisosDocId()};const r=await clinicalRpc('savePdf',finalRequest);showSisosResult(r);if(r.draftDeleteError)clinicalStatus(r.draftDeleteError);else clinicalDraftCompleted();$('btnSave').textContent='Guardado ✓';}
+ catch(e){clinicalStatus('Não foi possível confirmar o PDF: '+e.message+'. Pode tentar novamente.');}
+ finally{document.body.inert=false;}
+});
+
+ids.forEach(id=>{const changed=()=>{SIG.pac='';SIG.med='';finalRequest=null;render();};$(id).addEventListener('input',changed);$(id).addEventListener('change',changed)});
+$('btnPrint').addEventListener('click',async()=>{render();if(window.bilingualBeforeOutput&&!await window.bilingualBeforeOutput())return;window.print()});
+$('btnEdit').addEventListener('click',async()=>{if(!(await ask('Alterar os dados exige recolher novamente as assinaturas. Continuar?')))return;SIG.pac='';SIG.med='';finalRequest=null;window.__docId=null;render();});
+$('btnReset').addEventListener('click',async()=>{if(!(await ask('Novo documento em branco? As alterações não guardadas perdem-se.')))return;ids.forEach(id=>{const e=$(id);if(e.type==='checkbox')e.checked=false;else if(id==='medico')e.value='Dr. Gonçalo Jesus';else if(id==='dataAss')e.value=today();else e.value=e.tagName==='SELECT'?e.options[0].value:''});SIG.pac='';SIG.med='';window.__docId=null;finalRequest=null;clinicalDraftReset();$('saveStatus')?.remove();render()});
+render();
+</script>
+<dialog id="clinical-dialog" aria-labelledby="clinical-title"><h2 id="clinical-title">Retomar rascunho</h2><p>Preenchimentos guardados na Drive da clínica.</p><label for="clinical-search">Pesquisar por paciente</label><input type="search" id="clinical-search"><button type="button" id="clinical-refresh">Atualizar lista</button><div id="clinical-list" role="status"></div><button type="button" id="clinical-close">Fechar</button></dialog><script>// Estado apenas em memória; os rascunhos persistem na Drive privada da clínica.
+const clinicalKind=document.body.dataset.draftKind||(typeof A==='undefined'?'implantologia':'admissao');
+let clinicalId=null,clinicalRevision=0,clinicalPending=null,clinicalBusy=false,clinicalList=[],clinicalLoaded=false,clinicalListPromise=null;
+const clinicalClone=v=>JSON.parse(JSON.stringify(v));
+function clinicalCapture(){const fields={};for(const id of ids){const e=$(id);fields[id]=e.type==='checkbox'?e.checked:e.value;}return clinicalKind==='admissao'?{fields,F:clinicalClone(F),A:clinicalClone(A),writing:clinicalClone(writingDrafts),lines:clinicalClone(detailLineCounts)}:{fields,signatures:clinicalClone(SIG),language:lang};}
+let clinicalBaseline=JSON.stringify(clinicalCapture());
+function clinicalDirty(){return JSON.stringify(clinicalCapture())!==clinicalBaseline;}
+function draftCall(name,payload){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](payload));}
+const DRAFT_API={list:()=>draftCall('listDrafts','sisos'),save:d=>draftCall('saveDraft',d),remove:id=>draftCall('deleteDraft',id)};
+function clinicalRpc(name,payload){if(name==='listClinicalDrafts')return DRAFT_API.list();if(name==='saveClinicalDraft')return DRAFT_API.save(payload);if(name==='loadClinicalDraft')return draftCall('loadDraft',{id:payload.id});return draftCall(name,payload);}
+function clinicalStatus(t){$('clinical-status').textContent=t;}
+function clinicalReplace(target,source){Object.keys(target).forEach(k=>delete target[k]);Object.assign(target,source||{});}
+function clinicalRestore(d){for(const id of ids){const e=$(id),value=d.data.fields[id];if(e.type==='checkbox')e.checked=value===true;else e.value=typeof value==='string'?value:'';}
+ if(clinicalKind==='admissao'){clinicalReplace(F,d.data.F);clinicalReplace(A,d.data.A);clinicalReplace(writingDrafts,d.data.writing);clinicalReplace(detailLineCounts,d.data.lines);}else{clinicalReplace(SIG,d.data.signatures);lang=['pt','en','fr','es'].includes(d.data.language)?d.data.language:'pt';document.querySelectorAll('.lang').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));}
+ window.__docId=null;finalRequest=null;render();$('saveStatus')?.remove();$('btnSave').textContent='Guardar no Drive e enviar';clinicalId=d.id;clinicalRevision=d.revision;clinicalPending=null;clinicalBaseline=JSON.stringify(clinicalCapture());clinicalStatus('Rascunho retomado — '+d.patient+'. Pode alterar e voltar a guardar.');}
+function clinicalDraftMeta(){return clinicalId?{draftId:clinicalId,draftRevision:clinicalRevision}:{};}
+function clinicalDraftCompleted(){clinicalList=clinicalList.filter(d=>d.id!==clinicalId);clinicalId=null;clinicalRevision=0;clinicalPending=null;clinicalBaseline=JSON.stringify(clinicalCapture());clinicalStatus('PDF final guardado. O rascunho foi concluído.');}
+function clinicalDraftReset(){clinicalId=null;clinicalRevision=0;clinicalPending=null;setTimeout(()=>{clinicalBaseline=JSON.stringify(clinicalCapture());clinicalStatus('Novo preenchimento. Guarde um rascunho para continuar no tablet.');},0);}
+/* Depois de guardar o rascunho do consentimento de implantologia: pergunta (uma vez por rascunho) se cria já os rascunhos seguintes */
+const jmcNextAsked={};
+function jmcAskNext(id,data){if(clinicalKind!=='implantologia'||jmcNextAsked[id])return;const f=(data&&data.fields)||{};if(!String(f.nome||'').trim())return;jmcNextAsked[id]=1;
+ setTimeout(()=>{if(!confirm('Deseja criar também os rascunhos dos cuidados pós-operatórios e do guia de implantes?'))return;clinicalStatus('A criar os rascunhos seguintes…');
+  clinicalRpc('createNextDrafts',{from:'implantologia',draftId:id,nome:f.nome,email:f.email,data:f.dataAss,unidade:f.unidade,medico:f.medico,nasc:f.nasc,osso:f.osso,geng:f.geng,carga:f.carga,sinus:f.sinusOn,nImpl:f.nImpl,pos:f.pos,lang:(typeof lang==='string'?lang:'pt'),teste:!!window.JMC_TESTE})
+   .then(()=>clinicalStatus('Rascunho guardado. Criados também os rascunhos dos cuidados pós-operatórios e do guia de implantes.'))
+   .catch(e=>clinicalStatus('Rascunho guardado, mas os seguintes não foram criados: '+(e.message||e)));},60);}
+async function clinicalSave(){if(clinicalBusy)return;if(['sigModal','writingModal','modal'].some(id=>$(id)&&$(id).style.display==='flex')){toast('Confirme ou cancele o painel aberto antes de guardar.');return;}clinicalBusy=true;document.body.inert=true;clinicalStatus('A guardar rascunho na Drive…');try{const data=clinicalCapture();if(!clinicalPending||JSON.stringify(clinicalPending.data)!==JSON.stringify(data))clinicalPending={id:clinicalId||clinicalPending?.id||crypto.randomUUID(),revision:clinicalRevision,writeToken:crypto.randomUUID(),key:clinicalKind,data};const d=await clinicalRpc('saveClinicalDraft',clinicalPending);clinicalId=d.id;clinicalRevision=d.revision;clinicalPending=null;clinicalBaseline=JSON.stringify(data);clinicalList=[d,...clinicalList.filter(x=>x.id!==d.id)];clinicalStatus('Rascunho guardado na Drive às '+new Date(d.updatedAt).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+'. Pode retomar no computador ou tablet.');jmcAskNext(d.id,data);}catch(e){clinicalStatus('Não foi possível confirmar a gravação: '+e.message+'. Mantenha esta página aberta.');}finally{clinicalBusy=false;document.body.inert=false;}}
+function clinicalFetch(refresh=false){if(clinicalListPromise)return clinicalListPromise;clinicalListPromise=clinicalRpc('listClinicalDrafts',{key:clinicalKind,refresh}).then(list=>{clinicalList=list;clinicalLoaded=true;return list;}).finally(()=>clinicalListPromise=null);return clinicalListPromise;}
+function clinicalRenderList(){const out=$('clinical-list'),q=$('clinical-search').value.toLocaleLowerCase('pt-PT');out.replaceChildren();const list=clinicalList.filter(d=>d.patient.toLocaleLowerCase('pt-PT').includes(q));if(!list.length)out.textContent=q?'Nenhum rascunho corresponde à pesquisa.':'Ainda não há rascunhos guardados.';for(const d of list){const b=document.createElement('button');b.type='button';b.className='clinical-row';b.textContent=d.patient+' · '+new Date(d.updatedAt).toLocaleString('pt-PT');b.onclick=()=>clinicalResume(d.id);const row=document.createElement('div');row.style.cssText='display:flex;gap:6px;align-items:stretch';b.style.flex='1';const x=document.createElement('button');x.type='button';x.textContent='Remover';x.title='Remover rascunho';x.style.cssText='border:1px solid #e2bdb5;background:#fff;color:#a1382b;border-radius:8px;padding:0 12px;cursor:pointer;font:inherit;font-size:13px;margin-bottom:8px';x.onclick=async ev=>{ev.stopPropagation();if(!window.confirm('Deseja remover o rascunho de '+d.patient+'?'))return;x.disabled=true;try{await clinicalRpc('deleteClinicalDraft',{key:clinicalKind,id:d.id});clinicalList=clinicalList.filter(y=>y.id!==d.id);if(clinicalId===d.id)clinicalDraftReset();clinicalRenderList();}catch(err){x.disabled=false;window.alert('Não foi possível remover: '+(err.message||err));}};row.append(b,x);out.append(row);}}
+async function clinicalRefresh(force=false){$('clinical-refresh').disabled=true;try{await clinicalFetch(force);if($('clinical-dialog').open)clinicalRenderList();}catch(e){$('clinical-list').textContent='Não foi possível carregar: '+e.message;}finally{$('clinical-refresh').disabled=false;}}
+async function clinicalResume(id){if(clinicalBusy)return;if(clinicalDirty()&&!window.confirm('Existem alterações por guardar. Quer substituí-las pelo rascunho escolhido?'))return;clinicalBusy=true;document.body.inert=true;$('clinical-list').textContent='A abrir rascunho…';try{const d=await clinicalRpc('loadClinicalDraft',{key:clinicalKind,id});clinicalRestore(d);$('clinical-dialog').close();}catch(e){$('clinical-list').textContent='Não foi possível retomar: '+e.message;}finally{clinicalBusy=false;document.body.inert=false;}}
+$('clinical-save').onclick=clinicalSave;
+$('clinical-resume').onclick=()=>{if(clinicalBusy)return;$('clinical-search').value='';$('clinical-dialog').showModal();if(clinicalLoaded||clinicalList.length)clinicalRenderList();else $('clinical-list').textContent='A procurar rascunhos na Drive…';clinicalRefresh();};
+$('clinical-close').onclick=()=>$('clinical-dialog').close();$('clinical-refresh').onclick=()=>clinicalRefresh(true);$('clinical-search').oninput=clinicalRenderList;
+window.addEventListener('beforeunload',e=>{if(clinicalDirty()){e.preventDefault();e.returnValue='';}});
+setTimeout(()=>clinicalFetch().catch(()=>{}),100);
+</script><style>
+.reader-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.reader-tools button{min-height:40px;min-width:42px}.reader-tools select{padding:8px;border:1px solid #ccd9d8;border-radius:7px;background:white;color:#203b43}.reader-tools button[aria-pressed=true]{background:#0f6b5c;color:white}.reader-status{padding:9px 18px;color:#365258;background:#edf4f3;font:13px Arial,sans-serif}.reader-status:empty{display:none}.doc-translated{page-break-before:always;border-top:1px solid #bbb;margin-top:32px;padding-top:24px}.reader-language{font:600 11px Arial,sans-serif;letter-spacing:.07em;text-transform:uppercase;margin:0 0 18px;color:#526b70}
+body.focus .reader-status{position:sticky;top:58px;z-index:19}.doc-original,.doc-translated{scroll-margin-top:108px}
+body.focus aside,body.focus .clinical-bar,body.focus #saveStatus{display:none!important}body.focus main{display:block!important}body.focus header{position:sticky!important;top:0;right:auto;width:100%;background:#f4f5f7!important;display:flex;justify-content:flex-end;padding:6px 10px!important;z-index:20;border-bottom:1px solid #ddd!important}body.focus header>div:first-child{display:none!important}body.focus header button:not(.reader-button):not(.lang),body.focus header #langSel{display:none!important}body.focus header .reader-tools button,body.focus header .reader-tools select{display:inline-block!important}body.focus .preview-wrap{padding:12px}body.focus #btnFocus{opacity:1}body.reader-second .doc-original,body.reader-second .pfoot{display:none}body.reader-second .doc-translated{border:0;margin:0;padding:0}body.focus .paper{max-width:100%;box-sizing:border-box}
+@media print{.reader-tools,.reader-status,.reader-language{display:none!important}body.reader-second .doc-original,body.reader-second .doc-translated{display:block!important}.doc-translated{page-break-before:always;border:0;margin:0;padding:0}body.focus header{display:none!important}}
+</style>
+<script>
+/* Reading modes never remove either version from the exported PDF. */
+(()=>{
+ const kind=clinicalKind,native=kind==='implantologia';
+ const names={pt:'Português',en:'English',fr:'Français'};
+ let mode='',epoch=0,ready=false,pending=Promise.resolve(),timer=null,focusTranslation=false;
+ const memo=new Map(),flights=new Map();
+ const clinicalLabels={"en": {"CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE": "INFORMED AND FREELY GIVEN CONSENT", "Exodontia de terceiros molares (dentes do siso)": "Extraction of third molars (wisdom teeth)", "Data do esclarecimento e da assinatura:": "Date of information and signature:", "2. CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE PARA EXAMES DE RADIOLOGIA DENTÁRIA": "2. INFORMED AND FREELY GIVEN CONSENT FOR DENTAL RADIOLOGICAL EXAMINATIONS", "Toque para assinar": "Tap to sign", "Médico(a) Dentista": "Dentist", "Paciente / Representante legal": "Patient / Legal representative", "Representante legal": "Legal representative", "Toque para escrever num painel maior": "Tap to write by hand in a larger panel", "Limpar": "Clear", "Cancelar": "Cancel", "Confirmar escrita": "Confirm writing", "Confirmar assinatura": "Confirm signature", "+ Adicionar mais informação": "+ Add more information", "Nome completo": "Full name", "Nome do representante legal": "Name of the legal representative", "Medicação habitual": "Regular medication", "Alergias": "Allergies", "Outras informações": "Other information", "Assinatura do paciente": "Patient signature", "Assinatura do representante legal": "Legal representative signature", "Assinatura do médico": "Dentist signature", "Escreva sobre a linha. Há espaço acima e abaixo para as letras.": "Write on the line. There is room above and below for your letters.", "Caneta para escrever. Para apagar com o dedo, afaste primeiro a caneta do ecrã.": "Write with the pen. To erase with your finger, first move the pen away from the screen.", "Escreva com a caneta. Para apagar, afaste a caneta do ecrã e passe o dedo sobre o traço. No computador, use o rato para escrever.": "Write with the pen. To erase, move the pen away and rub the stroke with your finger. On a computer, write with the mouse.", "Tem ou já teve…": "Do you have or have you ever had…", ", escreva ao lado os detalhes (qual, desde quando, medicação). Esta informação é confidencial e destina-se exclusivamente à segurança do seu tratamento.": ", write the details next to it (which condition, since when, medication). This information is confidential and is used exclusively to ensure the safety of your treatment."}, "fr": {"CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE": "CONSENTEMENT INFORMÉ, ÉCLAIRÉ ET LIBRE", "Exodontia de terceiros molares (dentes do siso)": "Extraction des troisièmes molaires (dents de sagesse)", "Data do esclarecimento e da assinatura:": "Date de l’information et de la signature :", "2. CONSENTIMENTO INFORMADO, ESCLARECIDO E LIVRE PARA EXAMES DE RADIOLOGIA DENTÁRIA": "2. CONSENTEMENT INFORMÉ, ÉCLAIRÉ ET LIBRE AUX EXAMENS DE RADIOLOGIE DENTAIRE", "Toque para assinar": "Touchez pour signer", "Médico(a) Dentista": "Chirurgien-dentiste", "Paciente / Representante legal": "Patient / Représentant légal", "Representante legal": "Représentant légal", "Toque para escrever num painel maior": "Touchez pour écrire à la main dans un panneau agrandi", "Limpar": "Effacer", "Cancelar": "Annuler", "Confirmar escrita": "Confirmer le texte manuscrit", "Confirmar assinatura": "Confirmer la signature", "+ Adicionar mais informação": "+ Ajouter des informations", "Nome completo": "Nom complet", "Nome do representante legal": "Nom du représentant légal", "Medicação habitual": "Traitement habituel", "Alergias": "Allergies", "Outras informações": "Autres informations", "Assinatura do paciente": "Signature du patient", "Assinatura do representante legal": "Signature du représentant légal", "Assinatura do médico": "Signature du chirurgien-dentiste", "Escreva sobre a linha. Há espaço acima e abaixo para as letras.": "Écrivez sur la ligne. Il y a de la place au-dessus et au-dessous pour les lettres.", "Caneta para escrever. Para apagar com o dedo, afaste primeiro a caneta do ecrã.": "Écrivez avec le stylet. Pour effacer avec le doigt, éloignez d’abord le stylet de l’écran.", "Escreva com a caneta. Para apagar, afaste a caneta do ecrã e passe o dedo sobre o traço. No computador, use o rato para escrever.": "Écrivez avec le stylet. Pour effacer, éloignez le stylet et passez le doigt sur le trait. Sur ordinateur, utilisez la souris.", "Tem ou já teve…": "Avez-vous ou avez-vous déjà eu…", ", escreva ao lado os detalhes (qual, desde quando, medicação). Esta informação é confidencial e destina-se exclusivamente à segurança do seu tratamento.": ", indiquez à côté les détails (quelle affection, depuis quand, médicaments). Ces informations sont confidentielles et servent exclusivement à assurer la sécurité de votre traitement."}};
+ function translatedNode(original,text){const prefix=original.match(/^[\s,;:]*/)[0];const punct=prefix.trim();return (punct&&!text.trim().startsWith(punct)?prefix:original.match(/^\s*/)[0])+text.trim()+original.match(/\s*$/)[0];}
+ function translatedValue(text,target){return clinicalLabels[target]?.[text.trim()]??memo.get(target+"\n"+text);}
+ const header=document.querySelector('header>div:last-child');
+ document.getElementById('btnFocus')?.remove();
+ const tools=document.createElement('div');tools.className='reader-tools';
+ tools.innerHTML='<label><span class="reader-language" style="display:none">Idioma</span><select id="readerLanguage" aria-label="Língua do paciente"><option value="pt">PT · Português</option><option value="en">EN · English</option><option value="fr">FR · Français</option></select></label><button type="button" class="btn secondary reader-button" id="btnFocus" title="Ecrã inteiro: português e tradução" aria-label="Ecrã inteiro: português e tradução">⛶</button><button type="button" class="btn secondary reader-button" id="btnTranslation" title="Ecrã inteiro: só a língua do paciente" aria-label="Ecrã inteiro: só a língua do paciente">⛶<sub>2</sub></button><button type="button" class="btn secondary reader-button" id="btnReaderExit" aria-label="Voltar ao preenchimento" title="Voltar ao preenchimento" hidden>✕</button>';
+ header.append(tools);
+ const status=document.createElement('div');status.className='reader-status';status.setAttribute('role','status');document.querySelector('.clinical-bar').after(status);
+ function revealLanguage(){
+  if(!focusTranslation||!mode||!ready)return;
+  const target=$('paper').querySelector(lang==='pt'?'.doc-original':'.doc-translated');
+  if(!target)return;
+  focusTranslation=false;
+  requestAnimationFrame(()=>{if(mode&&target.isConnected)target.scrollIntoView({block:'start',behavior:'instant'});});
+ }
+ function setMode(next,gesture=false){
+  mode=next==='second'&&lang==='pt'?'all':next;
+  document.body.classList.toggle('focus',!!mode);document.body.classList.toggle('reader-second',mode==='second');
+  $('btnFocus').setAttribute('aria-pressed',String(mode==='all'));$('btnTranslation').setAttribute('aria-pressed',String(mode==='second'));$('btnReaderExit').hidden=!mode;
+  focusTranslation=!!mode;revealLanguage();
+  if(gesture&&mode&&document.documentElement.requestFullscreen&&!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});
+  if(!mode&&document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+ }
+ $('btnFocus').onclick=()=>setMode(mode==='all'?'':'all',true);
+ $('btnTranslation').onclick=()=>setMode(mode==='second'?'':'second',true);
+ $('btnReaderExit').onclick=()=>setMode('');
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]')&&!document.querySelector('#sigModal[style*="flex"],#writingModal[style*="flex"]'))setMode('');});
+ document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&mode)setMode('');});
+ function selectLanguage(next){if(!names[next])next='pt';if(next===lang)return;lang=next;ready=false;focusTranslation=!!mode;if(typeof finalRequest!=='undefined'){finalRequest=null;window.__docId=null;}document.querySelectorAll('.lang').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));if(mode)setMode(lang==='pt'?'all':mode);render();}
+ $('readerLanguage').onchange=e=>selectLanguage(e.target.value);
+ // Implantology keeps its existing reviewed translations and language buttons.
+ if(native)document.querySelectorAll('.lang').forEach(b=>{const copy=b.cloneNode(true);b.replaceWith(copy);copy.onclick=()=>selectLanguage(copy.dataset.l);});
+ function splitNative(){
+  const paper=$('paper'),pt=document.createElement('section'),tr=document.createElement('section');pt.className='doc-original';pt.lang='pt';tr.className='doc-translated';tr.lang=lang;let translated=false;
+  for(const node of Array.from(paper.childNodes)){if(node.nodeType===1&&node.classList.contains('pagebreak')){translated=true;node.remove();continue;}(translated?tr:pt).append(node);}
+  paper.append(pt);if(lang!=='pt')paper.append(tr);ready=true;status.textContent='';revealLanguage();
+ }
+ function collect(root){
+  const result=[],walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  const protectedValues=['JESUS MAR COUTO','Jesus Mar Couto',...['nome','nomeF','medico','unidade','unidadeOutra'].map(id=>$(id)?.value||'')].filter(x=>x&&x!=='outra').sort((a,b)=>b.length-a.length);
+  let node;while(node=walker.nextNode()){
+   if(!node.textContent.trim()||node.parentElement.closest('.meta,input,textarea,.box')||!/[A-Za-zÀ-ÿ]/.test(node.textContent))continue;
+   let text=node.textContent;const values=[];
+   for(const value of protectedValues)if(text.includes(value)){const token='JMCVALUE'+values.length+'END';text=text.split(value).join(token);values.push(value);}
+   if(!text.replace(/JMCVALUE\d+END/g,'').trim())continue;
+   result.push({node,text,values});
+  }return result;
+ }
+ function key(text){return lang+'\n'+text;}
+ async function request(texts,target){
+  const id=target+'\n'+JSON.stringify(texts);if(flights.has(id))return flights.get(id);
+  const task=new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).translateConsentText({language:target,texts})).then(html=>{
+   const parsed=new DOMParser().parseFromString(html,'text/html'),out=[];
+   for(let i=0;i<texts.length;i++){const matches=parsed.querySelectorAll('[id="jmc'+i+'"]');if(matches.length!==1)throw Error('A tradução recebida está incompleta.');const value=matches[0].textContent;if(!value.trim())throw Error('Falta texto na tradução.');const tokens=texts[i].match(/JMCVALUE\d+END/g)||[];for(const token of tokens)if(value.split(token).length!==texts[i].split(token).length)throw Error('Não foi possível preservar um campo na tradução.');out.push(value);}
+   out.forEach((value,i)=>memo.set(target+'\n'+texts[i],value));return out;
+  }).finally(()=>flights.delete(id));flights.set(id,task);return task;
+ }
+ function reflectInteraction(source,copy){
+  // Forward to the original controls, whose handlers remain the only data writers.
+  copy.addEventListener('click',event=>{
+   const element=event.target.closest('[data-writing],.sigbox,.opt');if(!element)return;
+   const attr=element.hasAttribute('data-writing')?'data-writing':element.hasAttribute('data-who')?'data-who':element.hasAttribute('data-q')?'data-q':element.hasAttribute('data-r')?'data-r':'data-ref';
+   const match=Array.from(source.querySelectorAll('['+attr+']')).find(e=>e.getAttribute(attr)===element.getAttribute(attr)&&e.getAttribute('data-v')===element.getAttribute('data-v'));match?.click();
+  });
+  copy.addEventListener('change',event=>{const e=event.target;if(!e.matches('select[data-f]'))return;const original=source.querySelector('select[data-f="'+e.dataset.f+'"]');if(original){original.value=e.value;original.dispatchEvent(new Event('change',{bubbles:true}));}});
+ }
+ async function translateCopy(source,copy,version,target){
+  copy.querySelectorAll('option').forEach(o=>o.setAttribute('value',o.value));
+  const items=collect(copy),missing=[...new Set(items.map(x=>x.text))].filter(text=>translatedValue(text,target)===undefined);
+  const chunks=[];let chunk=[],size=0;for(const text of missing){if(size+text.length>3500&&chunk.length){chunks.push(chunk);chunk=[];size=0;}chunk.push(text);size+=text.length;}if(chunk.length)chunks.push(chunk);
+  // At most two batches in flight; stop superseded work before starting more.
+  let cursor=0;
+  async function worker(){while(cursor<chunks.length){if(version!==epoch||target!==lang)return;const texts=chunks[cursor++];await request(texts,target);}}
+  if(chunks.length)await Promise.all(Array.from({length:Math.min(2,chunks.length)},worker));
+  if(version!==epoch||target!==lang)return;
+  for(const item of items){let text=translatedValue(item.text,target);if(typeof text!=='string')throw Error('Tradução incompleta.');item.values.forEach((value,i)=>{text=text.split('JMCVALUE'+i+'END').join(value);});item.node.textContent=translatedNode(item.text,text);}
+  copy.className='doc-translated';copy.lang=target;copy.removeAttribute('id');
+  const label=document.createElement('div');label.className='reader-language';label.textContent=names[target];copy.prepend(label);
+  reflectInteraction(source,copy);$('paper').querySelector('.doc-translated')?.remove();$('paper').append(copy);ready=true;status.textContent='Português + '+names[target]+' · Tradução automática'+(kind==='admissao'?' · Respostas manuscritas reproduzidas no original.':'.');revealLanguage();
+ }
+ const originalRender=render;
+ render=function(){
+  originalRender();const version=++epoch;clearTimeout(timer);ready=lang==='pt';$('readerLanguage').value=lang;$('btnTranslation').disabled=lang==='pt';if(lang==='pt'&&mode==='second')setMode('all');
+  if(native){splitNative();return;}
+  const paper=$('paper'),source=document.createElement('section');source.className='doc-original';source.lang='pt';while(paper.firstChild)source.append(paper.firstChild);paper.append(source);
+  if(lang==='pt'){status.textContent='';pending=Promise.resolve();revealLanguage();return;}
+  const target=lang,copy=source.cloneNode(true);status.textContent='A preparar tradução em '+names[target]+'…';
+  pending=new Promise(resolve=>{const run=()=>{translateCopy(source,copy,version,target).catch(error=>{if(version===epoch){ready=false;status.textContent='Não foi possível concluir a tradução: '+error.message+' Volte a selecionar a língua para tentar novamente.';}}).finally(resolve);};if(collect(copy).every(item=>translatedValue(item.text,target)!==undefined))run();else timer=setTimeout(run,0);});
+ };
+ async function ensure(){
+  if(native||lang==='pt')return true;
+  // Starting afresh avoids waiting for a cancelled debounce from an earlier render.
+  const copy=$('paper').querySelector('.doc-original').cloneNode(true),version=epoch;
+  try{await translateCopy($('paper').querySelector('.doc-original'),copy,version,lang);if(version!==epoch)return false;return ready;}catch(error){status.textContent='Tradução não concluída: '+error.message;return false;}
+ }
+ window.bilingualReady=()=>native||lang==='pt'||ready;
+ window.bilingualBeforeOutput=async()=>{if(native||lang==='pt')return true;return ensure();};
+ function bilingualPdf(html){
+  if(lang==='pt')return html;
+  if(!ready)throw Error('A tradução ainda não está pronta.');
+  const parsed=new DOMParser().parseFromString(html,'text/html'),copy=parsed.body.cloneNode(true);
+  for(const item of collect(copy)){let text=translatedValue(item.text,lang);if(typeof text!=='string')throw Error('Falta uma parte da tradução do PDF. Volte a selecionar a língua.');item.values.forEach((value,i)=>text=text.split('JMCVALUE'+i+'END').join(value));item.node.textContent=translatedNode(item.text,text);}
+  const original=document.createElement('section');original.lang='pt';while(parsed.body.firstChild)original.append(parsed.body.firstChild);parsed.body.append(original);
+  const translated=document.createElement('section');translated.lang=lang;translated.style.pageBreakBefore='always';translated.innerHTML=copy.innerHTML;parsed.body.append(translated);
+  return '<!doctype html>'+parsed.documentElement.outerHTML;
+ }
+ if(!native){if(kind==='sisos'){const oldPdf=sisosPdfHtml;sisosPdfHtml=()=>bilingualPdf(oldPdf());}else{const oldPdf=pdfHtml;pdfHtml=()=>bilingualPdf(oldPdf());}}
+ function localizePanel(id){
+  const root=$(id);if(!root)return;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;
+  while(node=walker.nextNode()){if(!node.textContent.trim())continue;const original=node._readerOriginal||node.textContent;node._readerOriginal=original;node.textContent=mode==='second'?(translatedValue(original,lang)||original):original;}
+ }
+ if(typeof openWriting==='function'){const oldWriting=openWriting;openWriting=function(...args){oldWriting(...args);localizePanel('writingModal');};}
+ const oldSignature=openSig;openSig=function(...args){oldSignature(...args);localizePanel('sigModal');};
+ // Remember the selected language in shared drafts, including admission drafts.
+ const oldCapture=clinicalCapture;clinicalCapture=function(){const data=oldCapture();data.language=lang;return data;};
+ const oldRestore=clinicalRestore;clinicalRestore=function(d){lang=names[d.data.language]?d.data.language:'pt';oldRestore(d);};
+ render();clinicalBaseline=JSON.stringify(clinicalCapture());
+})();
+</script>
+<script>
+/* Unidade por aparelho: ?unidade=aveiro|faiscas fixa; senão, o valor guardado neste aparelho; a lista continua editável para exceções. */
+(()=>{
+ const MAP={aveiro:'Aveiro',faiscas:'Faíscas'};
+ const fromUrl=(typeof window.JMC_UNIDADE==='string'&&window.JMC_UNIDADE)||'';
+ const stored=localStorage.getItem('jmc_unidade')||'';
+ if(fromUrl&&MAP[fromUrl]&&fromUrl!==stored){try{localStorage.setItem('jmc_unidade',fromUrl);}catch(e){}} // o link fixa a unidade deste aparelho
+ const key=fromUrl||stored;
+ window.jmcUnidade=()=>{const sel=document.getElementById('unidade')||document.getElementById('local');const txt=sel?String(sel.value||''):'';const k=txt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');return MAP[k]?k:(key||'aveiro')};
+ function apply(){const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel||!key||!MAP[key])return;
+   const opt=[...sel.options].find(o=>o.value===MAP[key]||o.text===MAP[key]);if(opt){sel.value=opt.value;sel.dispatchEvent(new Event('change'));}
+   let tag=document.getElementById('jmcUnidTag');if(!tag){tag=document.createElement('div');tag.id='jmcUnidTag';tag.style.cssText='font-size:11px;color:#6b7280;margin-top:4px';sel.insertAdjacentElement('afterend',tag);}
+   tag.innerHTML=(fromUrl?'Unidade fixa por link: ':'Este aparelho: ')+'<b>'+MAP[key]+'</b>'+(fromUrl?'':' · <a href="#" id="jmcUnidSet" style="color:#0f6b5c">definir este aparelho</a>');
+   const a=document.getElementById('jmcUnidSet');if(a)a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
+ // Sem unidade definida: oferecer definir
+ if(!key){document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel)return;const tag=document.createElement('div');tag.style.cssText='font-size:11px;color:#b7791f;margin-top:4px';tag.innerHTML='Este aparelho ainda não tem unidade definida · <a href="#" style="color:#0f6b5c">definir agora</a>';sel.insertAdjacentElement('afterend',tag);tag.querySelector('a').addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});});}
+ // Acrescenta a unidade a todos os pedidos savePdf feitos via google.script.run
+ const wrap=()=>{if(!window.google||!google.script||!google.script.run||google.script.run.__jmc)return;const run=google.script.run;const proto=Object.getPrototypeOf(run);
+   const patch=obj=>{if(typeof obj.savePdf!=='function'||obj.savePdf.__jmc)return;const orig=obj.savePdf;obj.savePdf=function(p){if(p&&typeof p==='object'&&!p.unidade)p=Object.assign({},p,{unidade:window.jmcUnidade()});return orig.call(this,p)};obj.savePdf.__jmc=true;};
+   patch(run);if(proto&&proto!==Object.prototype)patch(proto);
+   ['withSuccessHandler','withFailureHandler','withUserObject'].forEach(m=>{const o=run[m];if(typeof o!=='function'||o.__jmc)return;run[m]=function(){const r=o.apply(this,arguments);patch(r);return r};run[m].__jmc=true;});
+   run.__jmc=true;};
+ wrap();document.addEventListener('DOMContentLoaded',wrap);
+})();
+</script>
+<style>
+.jmc-paste{margin:0 0 12px}
+.jmc-paste textarea{width:100%;box-sizing:border-box;font:inherit;font-size:12px;border:1px dashed #c9b88f;background:#f5eedc;border-radius:8px;padding:7px 9px;height:36px;resize:none;color:#2f3a33}
+.jmc-paste textarea:focus{outline:none;border-style:solid;height:90px}
+.jmc-paste p{font-size:11px;color:#3d6b4f;margin:4px 0 0}
+</style>
+<script>
+/* Colar a ficha do paciente copiada do iMED: preenche automaticamente os campos que existirem nesta página */
+(()=>{
+ if(document.getElementById('paste'))return; // os cuidados pós-operatórios já têm o seu próprio campo
+ function parseIMED(t){
+ // Rótulos tolerantes a cópias mal feitas («ome:», «ata nasc.:», «Esdo:»): compara com os rótulos conhecidos por semelhança
+ const K={nome:'nome',datanasc:'nasc',profissao:'prof',local:'local',estado:'estado',nif:'nif',cartaodecidadao:'cc',nutente:'utente',utente:'utente',entidade:'entidade',nbenef:'benef',morada:'morada',telemovel:'tel',telefone:'tel',email:'email'};
+ const norm=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,'');
+ const lev=(a,b)=>{const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const q=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=q;}}return d[b.length];};
+ const key=l=>{const n=norm(l);if(n.length<2)return '';let best='',bd=9;
+  for(const k in K){const dd=k===n?0:(k.endsWith(n)||k.startsWith(n))&&n.length>=3?1:lev(n,k);if(dd<bd){bd=dd;best=K[k];}}
+  return bd<=Math.max(1,Math.floor(norm(l).length/3))?best:'';};
+ const o={}, lines=t.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
+ lines.forEach((ln,i)=>{
+  // separa rótulos na mesma linha («… Profissão: …», «… Cartão de Cidadão: …»)
+  const parts=ln.split(/\s+(?=(?:Profiss\S*|Cart\S* de Cidad\S*)\s*:)/);
+  parts.forEach(pt=>{const c=pt.indexOf(':');if(c<0||c>25){if(i===0&&!o.nome&&!o._first)o._first=pt;return;}
+   const k=key(pt.slice(0,c)),v=pt.slice(c+1).replace(/\s+/g,' ').trim();
+   if(k&&!o[k])o[k]=v;else if(i===0&&!o._first)o._first=v;});});
+ if(!o.nome&&o._first&&/^[A-Za-zÀ-ÿ'’. -]{3,}$/.test(o._first)&&o._first.split(' ').length>=2)o.nome=o._first;
+ if(!o.email){const e=t.match(/[^\s@:]+@[^\s@]+\.[a-z]{2,}/i);if(e)o.email=e[0];}
+ if(!o.local){const u=t.match(/Jesus Mar Couto\s*-\s*(Aveiro|Fa[ií]scas)/i);if(u)o.local=u[0];}
+ const r={};
+ if(o.nome)r.nome=o.nome;
+ if(o.nasc)r.nasc=(o.nasc.match(/\d{4}-\d{2}-\d{2}/)||[''])[0];
+ if(o.nif)r.nif=o.nif.replace(/\D/g,'');
+ if(o.cc)r.cc=o.cc.replace(/\s/g,'');
+ if(o.utente)r.utente=o.utente.replace(/\D/g,'');
+ if(o.morada)r.morada=o.morada;
+ if(o.tel)r.tel=o.tel.replace(/\s/g,'');
+ if(o.email)r.email=(o.email.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)||[''])[0];
+ if(o.local)r.unidade=/fa[ií]scas/i.test(o.local)?'faiscas':/aveiro/i.test(o.local)?'aveiro':'';
+ return r;}
+ const q=id=>document.getElementById(id);
+ const first=ids=>ids.map(q).find(Boolean);
+ const nameEl=first(['nome','nomeF','patient']);
+ if(!nameEl)return;
+ const fire=el=>{el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};
+ const set=(el,v)=>{if(!el||!v)return false;el.value=v;fire(el);return true;};
+ const box=document.createElement('div');box.className='jmc-paste';
+ box.innerHTML='<textarea placeholder="Colar informação do paciente (iMED)" aria-label="Colar informação do paciente"></textarea><p hidden></p>';
+ const sec=nameEl.closest('section'),h2=sec&&sec.querySelector(':scope > h2');
+ if(h2)h2.after(box);else if(sec)sec.before(box);else(nameEl.closest('form')||nameEl.closest('label')||nameEl).before(box);
+ const ta=box.querySelector('textarea'),ok=box.querySelector('p');
+ ta.addEventListener('input',()=>{
+  const r=parseIMED(ta.value),done=[];
+  if(set(nameEl,r.nome))done.push('nome «'+r.nome+'»');
+  if(set(q('email'),r.email))done.push('email');
+  if(r.nasc&&q('nasc')&&set(q('nasc'),r.nasc))done.push('data de nascimento');
+  if(q('tel')&&set(q('tel'),r.tel))done.push('telemóvel');
+  if(q('nif')&&set(q('nif'),r.nif))done.push('NIF');
+  if(q('cc')&&set(q('cc'),r.cc))done.push('cartão de cidadão');
+  if(r.morada&&q('rua')){ // contrato: morada do iMED «Localidade, Concelho, rua…, Nº. X, 1234-567»
+   const cp=(r.morada.match(/\d{4}-\d{3}/)||[''])[0];
+   const parts=r.morada.replace(cp,'').split(',').map(x=>x.trim()).filter(Boolean);
+   const local=parts[0]||'',rua=parts.slice(parts.length>2?2:1).join(', ');
+   if(set(q('rua'),rua))done.push('morada');set(q('cp'),cp);if(q('loc')&&q('loc').tagName==='INPUT')set(q('loc'),local);
+  }
+  const uSel=[q('unidade'),q('local'),q('location')].find(e=>e&&e.tagName==='SELECT');
+  if(r.unidade&&uSel){const want=r.unidade==='faiscas'?'Faíscas':'Aveiro';const o=[...uSel.options].find(o=>o.value===want||o.text===want||o.value===r.unidade);if(o){uSel.value=o.value;fire(uSel);done.push('unidade');}}
+  // ortodontia: a morada vai depois da unidade (mudar a unidade repõe a morada da clínica)
+  if(r.morada&&!q('rua')&&q('address')&&set(q('address'),r.morada))done.push('morada');
+  if(!done.length)return;
+  ta.value='';ta.blur();ok.hidden=false;
+  ok.textContent='✓ Preenchido: '+done.join(', ')+(r.nome?'':' — falta o nome, escreva-o abaixo')+'. Confirme antes de assinar.';
+ });
+})();
+</script>
+</body></html>

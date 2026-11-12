@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<script>
+/* JMC — documentos migrados da app antiga (Apps Script) para o GitHub.
+   Mantém o mesmo código da página: google.script.run passa a falar com o servidor "JMC Documentos API" (código pessoal uma vez por aparelho). */
+(function(){
+ const qs=new URLSearchParams(location.search);
+ const u=(qs.get('unidade')||'').toLowerCase();
+ if(u==='aveiro'||u==='faiscas'){window.JMC_UNIDADE=u;try{localStorage.setItem('jmc_unidade',u);}catch(e){}}
+ else{try{const s=localStorage.getItem('jmc_unidade');if(s==='aveiro'||s==='faiscas')window.JMC_UNIDADE=s;}catch(e){}}
+ window.JMC_TESTE=qs.get('teste')==='1';
+ const API='https://script.google.com/macros/s/AKfycbz4r7u2KxQK2NLh-4julAkcAMj8qOmp-kKaI5vZC6HXJfTkhWyIpEVqoXt16HUmwwjFjQ/exec',TK='jmc_docs_token';
+ const tok=()=>{try{return localStorage.getItem(TK)||'';}catch(e){return '';}};
+ const post=(fn,payload,token)=>fetch(API,{method:'POST',body:JSON.stringify({fn,payload,token}),redirect:'follow'}).then(r=>{if(!r.ok)throw Error('Sem ligação ao servidor (HTTP '+r.status+').');return r.json();});
+ let wait=null;
+ function overlay(){let el=document.getElementById('jmcLogin');if(el)return el;el=document.createElement('div');el.id='jmcLogin';
+  el.style.cssText='display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(20,24,28,.55);align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif';
+  el.innerHTML='<div style="background:#fff;border-radius:16px;padding:22px 22px 18px;width:min(340px,100%);box-shadow:0 20px 50px rgba(0,0,0,.25);text-align:center"><div style="font-weight:700;font-size:17px;margin-bottom:4px">Código pessoal</div><div style="font-size:13px;color:#6b7280;margin-bottom:14px">O mesmo do fecho de caixa. Só é pedido uma vez neste aparelho.</div><input id="jmcPin" type="password" inputmode="numeric" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:22px;letter-spacing:.3em;text-align:center;padding:10px;border:1px solid #d9dbe0;border-radius:10px"><div id="jmcPinErr" style="min-height:18px;font-size:12.5px;color:#a1382b;margin:8px 0"></div><button id="jmcPinGo" type="button" style="width:100%;padding:11px;border:0;border-radius:10px;background:#1f2a2e;color:#fff;font-size:15px;font-weight:600;cursor:pointer">Entrar</button></div>';
+  document.body.appendChild(el);return el;}
+ function login(){if(wait)return wait;const el=overlay();el.style.display='flex';const pin=document.getElementById('jmcPin'),err=document.getElementById('jmcPinErr'),go=document.getElementById('jmcPinGo');pin.value='';err.textContent='';setTimeout(()=>pin.focus(),50);
+  wait=new Promise(res=>{const run=async()=>{const code=pin.value.trim();if(!code)return;go.disabled=true;err.textContent='A verificar…';
+   try{const o=await post('login',{code,aparelho:(navigator.userAgent.match(/\(([^)]+)\)/)||[])[1]||''});if(!o.ok)throw Error(o.erro);try{localStorage.setItem(TK,o.r.token);localStorage.setItem('jmc_docs_nome',o.r.nome||'');}catch(e){}
+    el.style.display='none';wait=null;res(o.r.token);}catch(e){err.textContent=e.message||String(e);}finally{go.disabled=false;}};
+   go.onclick=run;pin.onkeydown=e=>{if(e.key==='Enter')run();};});return wait;}
+ async function api(fn,payload){let t=tok();if(!t)t=await login();let o=await post(fn,payload,t);
+  if(!o.ok&&o.auth){try{localStorage.removeItem(TK);}catch(e){}t=await login();o=await post(fn,payload,t);}
+  if(!o.ok)throw Error(o.erro||'Erro no servidor.');return o.r;}
+ window.jmcApi=api;
+ const ORTHO_V='ortho-preview-2026-09-21-v17',cacheJ={};
+ const getJ=u=>cacheJ[u]||(cacheJ[u]=fetch(u,{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Não foi possível carregar o modelo ('+r.status+').');return r.json();}).catch(e=>{delete cacheJ[u];throw e;}));
+ const ORTHO_KEYS=['hyrax','ocluso','ortodontia'];
+ const LOCAL={
+  getOrthoPreview:k=>{if(!ORTHO_KEYS.includes(k))return Promise.reject(Error('Documento desconhecido.'));return getJ('modelos/preview_'+k+'.json').then(p=>Object.assign({},p,{version:ORTHO_V}));},
+  getOrthoPrintPdf:k=>{if(!ORTHO_KEYS.includes(k))return Promise.reject(Error('Documento desconhecido.'));return getJ('modelos/asset_'+k+'.json').then(a=>a.pdf);},
+  getAlimentacaoAsset:()=>getJ('modelo.json')
+ };
+ function runner(){const st={ok:null,fail:null};const p=new Proxy({},{get(_,k){
+   if(k==='withSuccessHandler')return f=>{st.ok=f;return p;};
+   if(k==='withFailureHandler')return f=>{st.fail=f;return p;};
+   if(k==='withUserObject')return ()=>p;
+   if(typeof k!=='string'||k==='then')return undefined;
+   return (arg)=>{(LOCAL[k]?Promise.resolve().then(()=>LOCAL[k](arg)):api(k,arg===undefined?{}:arg)).then(r=>{if(st.ok)st.ok(r);}).catch(e=>{if(st.fail)st.fail(e);else console.error(e);});};}});return p;}
+ window.google=window.google||{};window.google.script={get run(){return runner();},url:{getLocation:f=>f({parameter:Object.fromEntries(qs.entries()),parameters:{}})}};
+})();
+</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alimentação pós-operatória</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&family=Montserrat:wght@300;500&family=Source+Sans+3:wght@400;500;600&display=swap">
+<style>
+:root{--desk:#e7e5de;--ink:#2f3a33;--green:#253e35;--gold:#ad8d4b;--gold-soft:#f5eedc;--line:#d9dad1;--muted:#7c8277;--warn:#96552a;--warn-soft:#f8ebe1;--ok:#2f6a48;--err:#a1382b;
+--serif:"Cormorant Garamond",Georgia,serif;--sans:"Source Sans 3","Segoe UI",Roboto,Arial,sans-serif}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--sans);font-size:15px}
+.bar{background:var(--warn-soft);color:var(--warn);text-align:center;font-size:12px;font-weight:600;letter-spacing:.5px;padding:6px 12px}
+.wrap{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:20px;padding:18px 16px 40px;max-width:1300px;margin:0 auto;align-items:start}
+.panel{background:#fff;border-radius:10px;padding:16px 18px;box-shadow:0 2px 14px #26362b12}
+.panel h2{font-family:var(--serif);font-size:24px;color:var(--green);margin:0}
+.panel h3{font-size:12px;letter-spacing:1px;color:var(--gold);margin:18px 0 6px;text-transform:uppercase}
+.ptitle{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 10px;flex-wrap:wrap}
+.ptitle .tools{display:flex;gap:6px}
+label.f{display:block;font-size:12px;color:#646b60;margin:10px 0 3px}
+input[type=text],input[type=date],input[type=email],input[type=tel]{width:100%;font:inherit;font-size:15px;border:0;border-bottom:1px solid #b8bcae;padding:6px 2px;background:transparent;min-height:38px;color:var(--ink)}
+input:focus{outline:none;border-bottom:2px solid var(--gold)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button,.chip{font:inherit;font-size:13px;border:1px solid #cfd3c7;background:#fff;border-radius:20px;padding:7px 12px;cursor:pointer;color:#4a5646;min-height:36px}
+.seg button[aria-pressed=true],.chip[aria-pressed=true]{background:var(--green);border-color:var(--green);color:#fff}
+.seg.need button{border-color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.hint{font-size:11.5px;color:var(--muted);margin:6px 0 0;line-height:1.45}
+.draftb{background:var(--gold-soft);border:1px solid #e4d6ad;color:#6f5724;border-radius:8px;padding:8px 10px;font-size:12.5px;margin:0 0 10px;line-height:1.5}
+.btn{font:inherit;font-size:13px;font-weight:600;border:1px solid #cfd3c7;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;color:var(--green);min-height:38px}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+.btn.small{min-height:30px;padding:4px 10px;font-size:12px}
+a.btn{text-decoration:none;display:inline-flex;align-items:center}
+.btn:disabled{opacity:.5;cursor:default}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+/* Odontograma (numeração FDI, vista do operador) */
+.odonto{overflow-x:auto;padding:4px 0 2px}
+.sides{display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);min-width:340px;margin-bottom:4px}
+.arch{display:grid;grid-template-columns:repeat(8,minmax(18px,1fr)) 6px repeat(8,minmax(18px,1fr));gap:3px;min-width:340px}
+.arch+.arch{margin-top:5px;padding-top:5px;border-top:1px dashed var(--line)}
+.tooth{font:inherit;font-size:11px;font-variant-numeric:tabular-nums;height:30px;border:1px solid #cfd3c7;border-radius:6px 6px 8px 8px;background:#fff;color:var(--ink);cursor:pointer;padding:0}
+.tooth[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:600}
+.tooth:disabled{opacity:.35;cursor:default}
+.mid{border-left:1px solid var(--line)}
+/* Coluna da direita */
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:#fff;border-radius:10px;padding:16px 18px;box-shadow:0 2px 14px #26362b12}
+.card h3{font-size:12px;letter-spacing:1px;color:var(--gold);margin:0 0 10px;text-transform:uppercase}
+.dec{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--gold);margin-top:7px;flex-shrink:0}
+.dot.off{background:transparent;border:1px solid var(--muted)}
+.dec b{display:block;font-size:14px;color:var(--green)}
+.dec span{font-size:13px;color:var(--muted)}
+.quote{background:var(--gold-soft);border-radius:8px;padding:10px 12px;font-family:var(--serif);font-size:18px;line-height:1.3;margin:0 0 12px;color:var(--ink)}
+.when{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:8px 0;border-top:1px solid var(--line)}
+.when .k{color:var(--muted)}.when .v{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.wa{background:#f3f4ef;border-radius:12px 12px 12px 4px;padding:12px 14px;font-size:13.5px;line-height:1.5;white-space:pre-wrap}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.actions{display:grid;gap:6px;margin-top:16px}.actions .btn{width:100%}
+.msg{font-size:13px;line-height:1.45;margin-top:10px}.msg.ok{color:var(--ok)}.msg.err{color:var(--err)}.msg a{color:var(--green);font-weight:600;margin-left:4px}
+.pdfbox{background:#fff;border-radius:10px;box-shadow:0 2px 14px #26362b12;overflow:hidden}
+.pdfbox header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+.pdfbox iframe{width:100%;height:78vh;border:0;display:block;background:#f3f4ef}
+.modal{position:fixed;inset:0;background:#1d2a2266;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modalbox{background:#fff;border-radius:12px;max-width:520px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 10px 40px #0003}
+.modalbox header{padding:14px 16px;border-bottom:1px solid var(--line)}.modalbox header b{font-family:var(--serif);font-size:20px;color:var(--green)}.modalbox header span{display:block;font-size:12px;color:var(--muted)}
+.modalbox footer{padding:10px 16px;border-top:1px solid var(--line);text-align:right}
+.list{display:grid;gap:6px;padding:12px 16px;overflow:auto;font-size:14px}
+.item{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff}
+.item.click{cursor:pointer}.item.click:hover{border-color:var(--gold)}
+.item small{color:var(--muted);display:block}.item .err{color:var(--err)}
+.item .acts{display:flex;gap:6px;flex-shrink:0}
+@media (max-width:900px){.wrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="bar" id="testBar" hidden>MODO DE TESTE · os documentos ficam na pasta de teste e o email leva [TESTE]</div>
+<div class="wrap">
+  <aside class="panel" aria-label="Preenchimento">
+    <div class="ptitle"><h2>Alimentação pós-operatória</h2>
+      <div class="tools"><button type="button" class="btn small act" id="btnDrafts">Rascunhos</button><button type="button" class="btn small act" id="btnQueue">Agendados</button></div></div>
+    <div class="draftb" id="draftBanner" hidden></div>
+
+    <label class="f">Nome do paciente<input type="text" id="nome" autocomplete="off"></label>
+    <label class="f">Tratamento</label>
+    <div class="seg" id="trat" role="group" aria-label="Tratamento">
+      <button type="button" data-v="Sr." aria-pressed="false">Sr.</button><button type="button" data-v="Sra." aria-pressed="false">Sra.</button>
+      <button type="button" data-v="Dr." aria-pressed="false">Dr.</button><button type="button" data-v="Dra." aria-pressed="false">Dra.</button>
+      <button type="button" data-v="Eng." aria-pressed="false">Eng.</button><button type="button" data-v="Eng.ª" aria-pressed="false">Eng.ª</button>
+    </div>
+    <div class="two">
+      <div><label class="f" for="email">Email</label><input type="email" id="email" inputmode="email" autocomplete="off"></div>
+      <div><label class="f" for="tel">Telemóvel</label><input type="tel" id="tel" inputmode="tel" autocomplete="off"></div>
+    </div>
+
+    <h3>Cirurgia</h3>
+    <div class="chips" id="tipos" role="group" aria-label="Tipo de cirurgia">
+      <button type="button" class="chip" data-v="implante" aria-pressed="true">Implante(s)</button>
+      <button type="button" class="chip" data-v="extracao" aria-pressed="false">Extração / sisos</button>
+      <button type="button" class="chip" data-v="enxerto" aria-pressed="false">Enxerto ósseo</button>
+      <button type="button" class="chip" data-v="seio" aria-pressed="false">Elevação do seio</button>
+      <button type="button" class="chip" data-v="gengival" aria-pressed="false">Enxerto gengival</button>
+      <button type="button" class="chip" data-v="total" aria-pressed="false">Reabilitação total</button>
+    </div>
+    <div class="two">
+      <div><label class="f" for="dataCir">Data da cirurgia</label><input type="date" id="dataCir"></div>
+      <div><label class="f" for="dataEnv">Enviar ao paciente em</label><input type="date" id="dataEnv"></div>
+    </div>
+    <p class="hint">A data de envio fica 7 dias depois da cirurgia. Pode alterá-la.</p>
+
+    <h3>Posições operadas</h3>
+    <div class="odonto">
+      <div class="sides"><span>Direita do paciente</span><span>Esquerda do paciente</span></div>
+      <div class="arch" id="sup"></div>
+      <div class="arch" id="inf"></div>
+    </div>
+    <p class="hint" id="posHint">Toque nos dentes operados. Na reabilitação total não é preciso.</p>
+
+    <h3>Unidade</h3>
+    <div class="seg" id="uni"><button type="button" data-u="aveiro" aria-pressed="true">Aveiro</button><button type="button" data-u="faiscas" aria-pressed="false">Faíscas</button></div>
+
+    <div class="actions">
+      <button type="button" class="btn act" id="btnSave">Guardar rascunho</button>
+      <button type="button" class="btn act" id="btnPdf">Ver PDF</button>
+      <button type="button" class="btn primary act" id="btnSend">Agendar envio</button>
+      <button type="button" class="btn act" id="btnNow" hidden>Enviar já por email</button>
+    </div>
+    <div class="msg" id="msg" role="status"></div>
+  </aside>
+
+  <div class="side">
+    <div class="card" aria-live="polite">
+      <h3>O que entra no PDF</h3>
+      <div class="dec"><span class="dot"></span><div><b>Saudação</b><span id="oSaud"></span></div></div>
+      <div class="dec"><span class="dot"></span><div><b>Mastigação</b><span id="oWhy"></span></div></div>
+      <p class="quote" id="oMast"></p>
+      <div class="dec"><span class="dot" id="oEnxDot"></span><div><b>Nota do enxerto</b><span id="oEnx"></span></div></div>
+      <div class="when"><span class="k">Envio</span><span class="v" id="oData"></span></div>
+      <div class="when"><span class="k">Por</span><span class="v" id="oVia"></span></div>
+    </div>
+    <div class="card">
+      <h3>Mensagem de WhatsApp</h3>
+      <div class="wa" id="oWa"></div>
+      <div class="row"><button type="button" class="btn small act" id="btnCopy">Copiar mensagem</button><a class="btn small" id="waLink" target="_blank" rel="noopener" hidden>Abrir no WhatsApp</a></div>
+      <p class="hint">O WhatsApp ainda não envia sozinho: copie a mensagem e anexe o PDF, ou use o botão para abrir a conversa com o texto já escrito.</p>
+    </div>
+    <div class="pdfbox" id="pdfBox" hidden>
+      <header><span>Pré-visualização do PDF</span><span><a id="pdfOpen" class="btn small" target="_blank" rel="noopener">Abrir noutro separador</a> <button type="button" class="btn small act" id="pdfClose">Fechar</button></span></header>
+      <iframe id="pdfFrame" title="Pré-visualização do PDF"></iframe>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <header><b id="modalTitle"></b><span id="modalSub"></span></header>
+    <div class="list" id="modalList"></div>
+    <footer><button type="button" class="btn act" id="modalClose">Fechar</button></footer>
+  </div>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const UNI={aveiro:{nome:'Aveiro',tel:'960 393 000'},faiscas:{nome:'Faíscas',tel:'910 086 007'}};
+const S={trat:'',uni:'aveiro',tipos:new Set(['implante']),dentes:new Set()};
+
+/* ---------- Odontograma ---------- */
+const SUP=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28], INF=[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+function buildArch(el,list){list.forEach((n,i)=>{if(i===8){const m=document.createElement('span');m.className='mid';el.appendChild(m);}
+ const b=document.createElement('button');b.type='button';b.className='tooth';b.textContent=n;b.dataset.n=n;b.setAttribute('aria-pressed','false');b.setAttribute('aria-label','Dente '+n);
+ b.onclick=()=>{S.dentes.has(n)?S.dentes.delete(n):S.dentes.add(n);render();};el.appendChild(b);});}
+buildArch($('sup'),SUP);buildArch($('inf'),INF);
+
+function segInit(id,key,attr){$(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S[key]=b.dataset[attr];render();});}
+segInit('trat','trat','v');$('trat').addEventListener('click',()=>{S.tratAuto=false;});segInit('uni','uni','u');
+$('tipos').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;const v=b.dataset.v;S.tipos.has(v)?S.tipos.delete(v):S.tipos.add(v);render();});
+
+/* ---------- Regras ---------- */
+const GERAL='Mastigar devagar e com cuidado, sem forçar as zonas operadas';
+function mastigacao(){
+ if(S.tipos.has('total'))return[GERAL,'Reabilitação total: a frase não indica lado.'];
+ const d=[...S.dentes];if(!d.length)return[GERAL,'Sem posições marcadas: fica a frase geral.'];
+ const q=n=>Math.floor(n/10),p=n=>n%10,post=d.filter(n=>p(n)>=4).sort(),ant=d.filter(n=>p(n)<=3).sort();
+ const dir=post.some(n=>q(n)===1||q(n)===4),esq=post.some(n=>q(n)===2||q(n)===3);
+ if(dir&&esq)return[GERAL,'Zonas de trás dos dois lados: fica a frase geral.'];
+ if(!post.length)return['Mastigar devagar com os dentes de trás, sem morder com os da frente','Só dentes da frente ('+ant.join(', ')+').'];
+ const lado=dir?'esquerdo':'direito';
+ return['Mastigar devagar, do lado '+lado+' (oposto à cirurgia)'+(ant.length?', sem morder com os dentes da frente':''),
+  'Dentes de trás só do lado '+(dir?'direito':'esquerdo')+' ('+post.join(', ')+')'+(ant.length?' e dentes da frente':'')+'.'];
+}
+const enxerto=()=>S.tipos.has('enxerto')||S.tipos.has('seio');
+const NOTA_FORTE='Como fez enxerto ósseo ou elevação do seio maxilar,';
+const NOTA_RESTO=' siga as indicações específicas do seu médico: poderá ter de manter a alimentação mole durante mais tempo. Em caso de dúvida, contacte-nos.';
+// No documento: só o primeiro e o último nome («João Pedro Ferreira da Silva» → «João Silva»)
+function nomeCurto(){const p=$('nome').value.trim().split(/\s+/).filter(Boolean);return p.length>1?p[0]+' '+p[p.length-1]:(p[0]||'');}
+const FEM=t=>['Sra.','Dra.','Eng.ª'].includes(t);
+function saudacao(){const nome=nomeCurto();if(!nome||!S.trat)return '';return (FEM(S.trat)?'Cara ':'Caro ')+S.trat+' '+nome;}
+// Sr./Sra. automático pelo primeiro nome (pode trocar-se para Dr./Dra./Eng./Eng.ª; depois de escolher à mão, deixa de mudar sozinho)
+const F_EXC=new Set('ines isabel raquel beatriz carmen lurdes conceicao rosario luz ruth rute ester esther irene alice denise leonor matilde clotilde ivone iris lis liz doris dolores mercedes socorro assuncao piedade natividade encarnacao ascensao purificacao graciete odete berenice beatris consuelo noemi noemia rachel rebeca miriam yasmin jasmim carmo cristiane aline adele adelaide sol salome ingrid evelyn evelin elisabete elizabete elisabeth lucinda'.split(' '));
+const M_EXC=new Set('luca joshua nicola andrea elia jonas seneca'.split(' '));
+function generoNome(){const f=($('nome').value.trim().split(/\s+/)[0]||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();if(f.length<2)return '';
+ if(M_EXC.has(f))return 'm';if(F_EXC.has(f)||/a$/.test(f))return 'f';return 'm';}
+function autoTrat(){if(S.trat&&!S.tratAuto)return;const g=generoNome();if(!g)return;S.trat=g==='f'?'Sra.':'Sr.';S.tratAuto=true;}
+const hoje=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const mais7=iso=>{const[y,m,d]=iso.split('-').map(Number);const t=new Date(y,m-1,d+7);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');};
+const fmt=iso=>{if(!iso)return '—';const[y,m,d]=iso.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'});};
+const dia=iso=>iso?iso.split('-').reverse().join('/'):'';
+const cumprimento=()=>{const h=new Date().getHours();return h<13?'bom dia':h<20?'boa tarde':'boa noite';};
+function waMsg(quem,link){
+ return `Olá ${quem}, ${cumprimento()}! 😊\nJá passou uma semana desde a sua cirurgia e esperamos que esteja a recuperar bem.\n\nA partir de agora já pode comer alimentos à temperatura ambiente (ainda nada morno ou quente). Preparámos algumas sugestões de refeições macias e nutritivas, com receitas, para se alimentar bem e com conforto.\n\n`+
+  (link?`👉 Veja aqui o seu guia: ${link}`:`Envio-lhe o guia em anexo.`)+`\n\nQualquer dúvida, estamos por aqui.\nA equipa Jesus Mar Couto`;
+}
+let lastLink='';
+function waText(){const nome=$('nome').value.trim().split(/\s+/)[0]||'…';return waMsg((S.trat||'Sr(a).')+' '+nome,lastLink);}
+const waUrl=(num,text)=>'https://wa.me/'+num+'?text='+encodeURIComponent(text);
+function waNum(v){let n=String(v||'').replace(/\D/g,'');if(n.startsWith('00'))n=n.slice(2);if(/^9\d{8}$/.test(n))n='351'+n;return /^\d{11,15}$/.test(n)?n:'';}
+function waNumber(){return waNum($('tel').value);}
+
+function render(){
+ autoTrat();
+ [...$('trat').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.trat));
+ [...$('uni').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.u===S.uni));
+ [...$('tipos').children].forEach(b=>b.setAttribute('aria-pressed',S.tipos.has(b.dataset.v)));
+ const total=S.tipos.has('total');
+ document.querySelectorAll('.tooth').forEach(b=>{b.disabled=total;b.setAttribute('aria-pressed',S.dentes.has(+b.dataset.n));});
+ $('posHint').textContent=total?'Reabilitação total: as posições não são usadas.':'Toque nos dentes operados. Na reabilitação total não é preciso.';
+ const s=saudacao();$('oSaud').textContent=s?s+','+(S.tratAuto?' (Sr./Sra. pelo nome; pode mudar)':''):(S.trat?'Escreva o nome do paciente.':'Escolha Sr., Sra., Dr., Dra., Eng. ou Eng.ª');
+ $('trat').classList.toggle('need',!S.trat);
+ const[frase,why]=mastigacao();$('oMast').textContent=frase;$('oWhy').textContent=why;
+ const e=enxerto();$('oEnx').textContent=e?'Incluída (enxerto ósseo ou elevação do seio).':'Não incluída.';$('oEnxDot').className='dot'+(e?'':' off');
+ const env=$('dataEnv').value,futuro=env&&env>hoje();
+ $('oData').textContent=env?fmt(env)+(futuro?'':' (envio imediato)'):'—';
+ $('oVia').textContent='Email '+UNI[S.uni].nome+' · WhatsApp com link do guia';
+ $('btnSend').textContent=futuro?'Agendar envio para '+dia(env):'Enviar ao paciente e guardar na Drive';
+ $('btnNow').hidden=!futuro;
+ $('oWa').textContent=waText();
+ const n=waNumber();$('waLink').hidden=!n;if(n)$('waLink').href=waUrl(n,waText());
+}
+$('dataCir').addEventListener('change',()=>{if($('dataCir').value)$('dataEnv').value=mais7($('dataCir').value);render();});
+['nome','email','tel','dataEnv'].forEach(id=>$(id).addEventListener('input',()=>{if(id==='nome'||id==='tel')lastLink='';render();}));
+// Ao colar a ficha do iMED, apanha também o telemóvel para o WhatsApp (mesmo que venha sem rótulo)
+document.addEventListener('input',e=>{const ta=e.target.closest&&e.target.closest('.jmc-paste textarea');if(!ta)return;
+ const t=String(ta.value),re=/(?:\+|00)?(?:351[\s.-]?)?(9[1236](?:[\s.-]?\d){7})(?!\d)/g,c=[];let m;
+ while((m=re.exec(t))){const antes=t.slice(Math.max(0,m.index-22),m.index).split(/[\n\r;|·]/).pop().toLowerCase();if(/(nif|contribuinte|utente|benef|cart|cc\b)/.test(antes))continue;c.push({n:m[1].replace(/\D/g,''),tel:/tel|móvel|movel|contacto/.test(antes)});}
+ const best=c.find(x=>x.tel)||c[0];if(best)$('tel').value=best.n.slice(0,3)+' '+best.n.slice(3,6)+' '+best.n.slice(6);
+ setTimeout(render,0);},true);
+$('waLink').addEventListener('click',()=>{const n=waNumber();if(n)$('waLink').href=waUrl(n,waText());});
+$('btnCopy').onclick=async()=>{const t=waText();try{await navigator.clipboard.writeText(t);msg('Mensagem copiada.','ok');}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');msg('Mensagem copiada.','ok');}catch(_){msg('Selecione o texto da mensagem e copie-o.','err');}ta.remove();}};
+
+/* ---------- Integração na app ---------- */
+const U0=(typeof window.JMC_UNIDADE==='string'&&window.JMC_UNIDADE)||(()=>{try{return localStorage.getItem('jmc_unidade')||''}catch(e){return ''}})();
+if(UNI[U0])S.uni=U0;
+if(window.JMC_TESTE)$('testBar').hidden=false;
+const DKEY=()=>window.JMC_TESTE?'alimentacao_teste':'alimentacao';
+const uuid=()=>(crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g,()=>(Math.random()*16|0).toString(16)));
+function rpc(name,p){return new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(rej)[name](p));}
+const pack=v=>Array.isArray(v)?v.reduce((o,x,i)=>(o[i]=pack(x),o),{_a:true}):(v&&typeof v==='object')?Object.fromEntries(Object.entries(v).filter(([,x])=>x!==undefined).map(([k,x])=>[k,pack(x)])):v;
+const unpack=v=>(v&&typeof v==='object')?(v._a?Object.keys(v).filter(k=>k!=='_a').sort((a,b)=>a-b).map(k=>unpack(v[k])):Object.fromEntries(Object.entries(v).map(([k,x])=>[k,unpack(x)]))):v;
+const fmtDT=s=>{try{const d=new Date(s);return d.toLocaleDateString('pt-PT')+' '+d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});}catch(e){return ''}};
+function msg(t,cls){const m=$('msg');m.textContent=t;m.className='msg '+(cls||'');}
+let draftId=null,draftRev=0,opId=null,busy=false;
+document.addEventListener('input',()=>{opId=null;});
+document.addEventListener('click',e=>{if(e.target.closest('.panel button:not(.act)'))opId=null;},true);
+
+function snapshot(){return{fields:{nome:$('nome').value,email:$('email').value,tel:$('tel').value,trat:S.trat,dataCir:$('dataCir').value,dataEnv:$('dataEnv').value,unidade:S.uni},
+ tipos:pack([...S.tipos]),dentes:pack([...S.dentes])};}
+async function save(quiet){
+ if(busy)return false;busy=true;if(!quiet)msg('A guardar o rascunho na Drive…');
+ try{if(!draftId){draftId=uuid();draftRev=0;}
+  const r=await rpc('saveClinicalDraft',{key:DKEY(),id:draftId,writeToken:uuid(),revision:draftRev,data:snapshot()});
+  draftRev=r.revision;if(!quiet)msg('Rascunho guardado na Drive da clínica.','ok');return true;
+ }catch(e){msg('Não foi possível guardar o rascunho: '+(e.message||e),'err');return false;}finally{busy=false;}
+}
+function restore(d){
+ const f=d.data.fields||{};
+ $('nome').value=f.nome||'';$('email').value=f.email||'';$('tel').value=f.tel||'';$('dataCir').value=f.dataCir||'';$('dataEnv').value=f.dataEnv||'';
+ S.trat=['Sr.','Sra.','Dr.','Dra.','Eng.','Eng.ª'].includes(f.trat)?f.trat:'';S.tratAuto=!S.trat;lastLink='';if(UNI[f.unidade])S.uni=f.unidade;
+ const t=unpack(d.data.tipos);S.tipos=new Set(Array.isArray(t)?t:['implante']);
+ const dd=unpack(d.data.dentes);S.dentes=new Set(Array.isArray(dd)?dd.map(Number).filter(n=>n>10&&n<49):[]);
+ draftId=d.id;draftRev=d.revision;opId=null;closePdf();render();
+ msg((f.origem?f.origem+'. ':'Rascunho retomado. ')+'Confirme o tratamento (Sr./Sra.), as posições e a data de envio.','ok');
+}
+function modal(title,sub,html){$('modalTitle').textContent=title;$('modalSub').textContent=sub||'';$('modalList').innerHTML=html;$('modal').hidden=false;}
+$('modalClose').onclick=()=>{$('modal').hidden=true;};
+async function openDrafts(){
+ modal('Rascunhos','Toque num paciente para continuar.','A carregar…');
+ try{const list=await rpc('listClinicalDrafts',{key:DKEY(),refresh:true});
+  $('modalList').innerHTML=list.length?list.map(d=>`<div class="item click" data-id="${esc(d.id)}"><span>${esc(d.patient||'Sem nome')}<small>${esc(fmtDT(d.updatedAt))}</small></span><span class="acts"><button type="button" class="btn small act" data-del="${esc(d.id)}" data-name="${esc(d.patient||'Sem nome')}">Remover</button></span></div>`).join(''):'Não há rascunhos por concluir.';
+ }catch(e){$('modalList').textContent='Não foi possível carregar: '+(e.message||e);}
+}
+async function openQueue(){
+ modal('Envios agendados','O PDF já está na Drive; o email segue no dia indicado, às 10h.','A carregar…');
+ try{const list=await rpc('listAlimentacaoAgendados',{teste:!!window.JMC_TESTE});
+  window.__fila=list;$('modalList').innerHTML=list.length?list.map(q=>`<div class="item"><span>${esc(q.nome)}<small>${esc(fmt(q.dataEnv))} · ${esc(q.email)} · ${esc(q.unidade)}</small>${q.erro?`<small class="err">Última tentativa falhou: ${esc(q.erro)}</small>`:''}</span><span class="acts"><a class="btn small" href="${esc(q.url)}" target="_blank" rel="noopener">PDF</a>${waNum(q.tel)?`<button type="button" class="btn small act" data-wa="${esc(q.op)}">WhatsApp</button>`:''}<button type="button" class="btn small act" data-now="${esc(q.op)}">Enviar já</button><button type="button" class="btn small act" data-cancel="${esc(q.op)}" data-name="${esc(q.nome)}">Cancelar</button></span></div>`).join(''):'Não há envios agendados.';
+ }catch(e){$('modalList').textContent='Não foi possível carregar: '+(e.message||e);}
+}
+$('modalList').addEventListener('click',async e=>{
+ const wa=e.target.closest('[data-wa]');if(wa){const q=(window.__fila||[]).find(x=>x.op===wa.dataset.wa);if(q)window.open(waUrl(waNum(q.tel),waMsg(q.waNome||q.nome.split(' ')[0],q.link||q.url)),'_blank','noopener');return;}
+ const del=e.target.closest('[data-del]'),now=e.target.closest('[data-now]'),can=e.target.closest('[data-cancel]'),it=e.target.closest('.item.click');
+ try{
+  if(del){if(!confirm('Remover o rascunho de '+del.dataset.name+'?'))return;del.disabled=true;await rpc('deleteClinicalDraft',{key:DKEY(),id:del.dataset.del});if(draftId===del.dataset.del){draftId=null;draftRev=0;}return openDrafts();}
+  if(now){now.disabled=true;const r=await rpc('enviarAlimentacaoJa',{op:now.dataset.now});msg('Enviado para '+r.to+'.','ok');return openQueue();}
+  if(can){if(!confirm('Cancelar o envio para '+can.dataset.name+'? O PDF continua na Drive.'))return;can.disabled=true;await rpc('cancelarAlimentacaoAgendada',{op:can.dataset.cancel});return openQueue();}
+  if(it){$('modalList').textContent='A abrir…';restore(await rpc('loadClinicalDraft',{key:DKEY(),id:it.dataset.id}));$('modal').hidden=true;$('draftBanner').hidden=true;}
+ }catch(err){msg(String(err.message||err),'err');$('modal').hidden=true;}
+});
+$('btnDrafts').onclick=openDrafts;$('btnQueue').onclick=openQueue;$('btnSave').onclick=()=>save(false);
+
+/* ---------- PDF: modelo aprovado + texto deste paciente ---------- */
+let asset=null,fontsOk=true;
+async function getAsset(){if(!asset)asset=await rpc('getAlimentacaoAsset');return asset;}
+const b64ToBytes=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));
+const PX=5; // píxeis por ponto no texto desenhado (≈ 360 ppp)
+function wrap(ctx,runs,maxW){ // runs: [{text,font,color}] → linhas de runs
+ const words=[];runs.forEach(r=>r.text.split(/(\s+)/).filter(Boolean).forEach(w=>words.push({text:w,font:r.font,color:r.color})));
+ const lines=[[]];let w=0;
+ for(const t of words){ctx.font=t.font;const tw=ctx.measureText(t.text).width;const sp=/^\s+$/.test(t.text);
+  if(!sp&&w+tw>maxW&&lines[lines.length-1].length){lines.push([]);w=0;}
+  if(sp&&!lines[lines.length-1].length)continue;lines[lines.length-1].push(t);w+=tw;}
+ return lines.map(l=>{while(l.length&&/^\s+$/.test(l[l.length-1].text))l.pop();return l;});
+}
+async function textPng(pdf,runs,slot,lineH){
+ const c=document.createElement('canvas'),ctx=c.getContext('2d'),maxW=(slot.w||520)*PX;
+ const lines=wrap(ctx,runs,maxW),size=slot.size*PX,asc=size*1.1,desc=size*0.45,lead=(lineH||slot.size*1.5)*PX;
+ let width=0;lines.forEach(l=>{let x=0;l.forEach(t=>{ctx.font=t.font;x+=ctx.measureText(t.text).width;});width=Math.max(width,x);});
+ c.width=Math.ceil(width+size);c.height=Math.ceil(asc+desc+lead*(lines.length-1));
+ lines.forEach((l,i)=>{let x=0;const y=asc+lead*i;l.forEach(t=>{ctx.font=t.font;ctx.fillStyle=t.color;ctx.fillText(t.text,x,y);x+=ctx.measureText(t.text).width;});});
+ const img=await pdf.embedPng(c.toDataURL('image/png'));
+ return {img,x:slot.x,y:slot.baseline-(c.height-asc)/PX,width:c.width/PX,height:c.height/PX};
+}
+async function buildPdf(){
+ if(!window.PDFLib)throw Error('O gerador de PDF não carregou. Verifique a ligação e recarregue a página.');
+ const a=await getAsset(),s=a.slots;
+ const F=[`italic 400 ${s.greet.size*PX}px "Cormorant Garamond"`,`300 ${s.mast.size*PX}px Montserrat`,`500 ${s.note.size*PX}px Montserrat`];
+ await Promise.all(F.map(f=>document.fonts.load(f).catch(()=>null)));
+ fontsOk=F.every(f=>{try{return document.fonts.check(f);}catch(e){return false;}});
+ const pdf=await PDFLib.PDFDocument.load(b64ToBytes(a.pdf)),page=pdf.getPage(0),INK='#3B3D39',SOFT='#6E706A';
+ const parts=[await textPng(pdf,[{text:saudacao()+',',font:`italic 400 ${s.greet.size*PX}px "Cormorant Garamond"`,color:INK}],s.greet),
+  await textPng(pdf,[{text:mastigacao()[0],font:`300 ${s.mast.size*PX}px Montserrat`,color:INK}],s.mast,s.mast.lead)];
+ if(enxerto())parts.push(await textPng(pdf,[{text:NOTA_FORTE,font:`500 ${s.note.size*PX}px Montserrat`,color:INK},{text:NOTA_RESTO,font:`300 ${s.note.size*PX}px Montserrat`,color:SOFT}],s.note,s.note.lead));
+ parts.forEach(p=>page.drawImage(p.img,{x:p.x,y:p.y,width:p.width,height:p.height}));
+ pdf.setTitle('Alimentação pós-operatória — '+$('nome').value.trim());pdf.setAuthor('Jesus Mar Couto');
+ return pdf;
+}
+let pdfUrl=null;
+function closePdf(){$('pdfBox').hidden=true;if(pdfUrl){URL.revokeObjectURL(pdfUrl);pdfUrl=null;}$('pdfFrame').removeAttribute('src');}
+$('pdfClose').onclick=closePdf;
+function check(send){
+ if(!$('nome').value.trim())return 'Escreva o nome do paciente.';
+ if(!S.trat)return 'Escolha Sr., Sra., Dr. ou Dra. para a saudação.';
+ if(!send)return '';
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test($('email').value.trim()))return 'Escreva um email válido do paciente.';
+ if(!$('dataCir').value||!$('dataEnv').value)return 'Preencha a data da cirurgia e a data de envio.';
+ return '';
+}
+$('btnPdf').onclick=async()=>{const err=check(false);if(err)return msg(err,'err');
+ msg('A preparar o PDF…');try{const pdf=await buildPdf(),bytes=await pdf.save();closePdf();
+  pdfUrl=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));$('pdfFrame').src=pdfUrl;$('pdfOpen').href=pdfUrl;$('pdfBox').hidden=false;msg(fontsOk?'':'Atenção: as letras da marca não carregaram; o PDF saiu com letra de recurso. Recarregue a página antes de enviar.',fontsOk?'':'err');
+  $('pdfBox').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){msg('Não foi possível gerar o PDF: '+(e.message||e),'err');}};
+
+let armed=null,armTimer=null;
+function arm(btn,label,fn){if(armed===btn){clearTimeout(armTimer);armed=null;btn.textContent=btn.dataset.l;fn();return;}
+ if(armed)armed.textContent=armed.dataset.l;armed=btn;btn.dataset.l=btn.textContent;btn.textContent=label;clearTimeout(armTimer);armTimer=setTimeout(()=>{btn.textContent=btn.dataset.l;armed=null;},5000);}
+async function finalize(agora){
+ if(busy)return;const err=check(true);if(err)return msg(err,'err');
+ msg('A preparar o PDF e a guardar na Drive…');
+ try{if(!(await save(true)))return;busy=true;
+  const pdf=await buildPdf();if(!fontsOk)throw Error('as letras da marca não carregaram. Recarregue a página e tente de novo');const b64=await pdf.saveAsBase64();const suf=agora?'-a':'-g';opId=(opId&&opId.endsWith(suf))?opId:uuid()+suf;
+  const r=await rpc('saveAlimentacaoDoc',{teste:!!window.JMC_TESTE,unidade:S.uni,nome:$('nome').value.trim(),saud:saudacao(),dataCir:$('dataCir').value,dataEnv:$('dataEnv').value,
+   email:$('email').value.trim(),tel:waNumber(),waNome:(S.trat+' '+($('nome').value.trim().split(/\s+/)[0]||'')),pdfB64:b64,tipos:[...S.tipos],dentes:[...S.dentes].sort(),draftId,operation:opId,agora:!!agora});
+  draftId=null;draftRev=0;opId=null;if(r.link){lastLink=r.link;render();}
+  const m=$('msg');m.className='msg '+(!r.scheduled&&!r.emailSent?'err':'ok');
+  m.innerHTML=(r.scheduled?`Agendado: o email segue para ${esc(r.to)} em ${esc(dia(r.sendDate))}, às 10h, a partir de ${esc(r.sender)}.`+' '
+   :r.emailSent?`Enviado a ${esc(r.to)} a partir de ${esc(r.sender)}, com cópia para a clínica. `:`O PDF foi guardado, mas o email não foi enviado: ${esc(r.emailError)} `)+`<a href="${esc(r.url)}" target="_blank" rel="noopener">Abrir PDF</a>`+(r.link?` · A mensagem de WhatsApp ao lado já leva o link do guia${r.scheduled?' (no dia do envio a clínica recebe também um email com o botão de WhatsApp)':''}.`:'');
+ }catch(e){msg('Não foi possível concluir: '+(e.message||e),'err');}finally{busy=false;}
+}
+$('btnSend').onclick=e=>{const err=check(true);if(err)return msg(err,'err');const fut=$('dataEnv').value>hoje();
+ arm(e.currentTarget,fut?'Confirmar agendamento para '+$('email').value.trim():'Confirmar envio para '+$('email').value.trim(),()=>finalize(false));};
+$('btnNow').onclick=e=>{const err=check(true);if(err)return msg(err,'err');arm(e.currentTarget,'Confirmar envio já para '+$('email').value.trim(),()=>finalize(true));};
+
+// Rascunhos à espera (criados a partir do consentimento, da ficha pré-operatória ou dos cuidados pós-operatórios)
+if(window.google&&google.script)rpc('listClinicalDrafts',{key:DKEY(),refresh:true}).then(list=>{
+ if(!list.length)return;const b=$('draftBanner');b.hidden=false;
+ b.innerHTML=`Há ${list.length} rascunho${list.length>1?'s':''} por concluir${list[0].patient?' (o mais recente: '+esc(list[0].patient)+')':''}. <button class="btn small act" type="button" id="bannerOpen">Abrir</button>`;
+ $('bannerOpen').onclick=openDrafts;}).catch(()=>{});
+// Começa a carregar o modelo do PDF em segundo plano
+if(window.google&&google.script)getAsset().catch(()=>{});
+render();
+})();
+</script>
+<script>
+/* Unidade por aparelho: ?unidade=aveiro|faiscas fixa; senão, o valor guardado neste aparelho; a lista continua editável para exceções. */
+(()=>{
+ const MAP={aveiro:'Aveiro',faiscas:'Faíscas'};
+ const fromUrl=(typeof window.JMC_UNIDADE==='string'&&window.JMC_UNIDADE)||'';
+ const stored=localStorage.getItem('jmc_unidade')||'';
+ if(fromUrl&&MAP[fromUrl]&&fromUrl!==stored){try{localStorage.setItem('jmc_unidade',fromUrl);}catch(e){}} // o link fixa a unidade deste aparelho
+ const key=fromUrl||stored;
+ window.jmcUnidade=()=>{const sel=document.getElementById('unidade')||document.getElementById('local');const txt=sel?String(sel.value||''):'';const k=txt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');return MAP[k]?k:(key||'aveiro')};
+ function apply(){const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel||!key||!MAP[key])return;
+   const opt=[...sel.options].find(o=>o.value===MAP[key]||o.text===MAP[key]);if(opt){sel.value=opt.value;sel.dispatchEvent(new Event('change'));}
+   let tag=document.getElementById('jmcUnidTag');if(!tag){tag=document.createElement('div');tag.id='jmcUnidTag';tag.style.cssText='font-size:11px;color:#6b7280;margin-top:4px';sel.insertAdjacentElement('afterend',tag);}
+   tag.innerHTML=(fromUrl?'Unidade fixa por link: ':'Este aparelho: ')+'<b>'+MAP[key]+'</b>'+(fromUrl?'':' · <a href="#" id="jmcUnidSet" style="color:#0f6b5c">definir este aparelho</a>');
+   const a=document.getElementById('jmcUnidSet');if(a)a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
+ // Sem unidade definida: oferecer definir
+ if(!key){document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('unidade')||document.getElementById('local');if(!sel)return;const tag=document.createElement('div');tag.style.cssText='font-size:11px;color:#b7791f;margin-top:4px';tag.innerHTML='Este aparelho ainda não tem unidade definida · <a href="#" style="color:#0f6b5c">definir agora</a>';sel.insertAdjacentElement('afterend',tag);tag.querySelector('a').addEventListener('click',e=>{e.preventDefault();localStorage.setItem('jmc_unidade',window.jmcUnidade());tag.innerHTML='Este aparelho: <b>'+MAP[window.jmcUnidade()]+'</b>';});});}
+ // Acrescenta a unidade a todos os pedidos savePdf feitos via google.script.run
+ const wrap=()=>{if(!window.google||!google.script||!google.script.run||google.script.run.__jmc)return;const run=google.script.run;const proto=Object.getPrototypeOf(run);
+   const patch=obj=>{if(typeof obj.savePdf!=='function'||obj.savePdf.__jmc)return;const orig=obj.savePdf;obj.savePdf=function(p){if(p&&typeof p==='object'&&!p.unidade)p=Object.assign({},p,{unidade:window.jmcUnidade()});return orig.call(this,p)};obj.savePdf.__jmc=true;};
+   patch(run);if(proto&&proto!==Object.prototype)patch(proto);
+   ['withSuccessHandler','withFailureHandler','withUserObject'].forEach(m=>{const o=run[m];if(typeof o!=='function'||o.__jmc)return;run[m]=function(){const r=o.apply(this,arguments);patch(r);return r};run[m].__jmc=true;});
+   run.__jmc=true;};
+ wrap();document.addEventListener('DOMContentLoaded',wrap);
+})();
+</script>
+<style>
+.jmc-paste{margin:0 0 12px}
+.jmc-paste textarea{width:100%;box-sizing:border-box;font:inherit;font-size:12px;border:1px dashed #c9b88f;background:#f5eedc;border-radius:8px;padding:7px 9px;height:36px;resize:none;color:#2f3a33}
+.jmc-paste textarea:focus{outline:none;border-style:solid;height:90px}
+.jmc-paste p{font-size:11px;color:#3d6b4f;margin:4px 0 0}
+</style>
+<script>
+/* Colar a ficha do paciente copiada do iMED: preenche automaticamente os campos que existirem nesta página */
+(()=>{
+ if(document.getElementById('paste'))return; // os cuidados pós-operatórios já têm o seu próprio campo
+ function parseIMED(t){
+ // Rótulos tolerantes a cópias mal feitas («ome:», «ata nasc.:», «Esdo:»): compara com os rótulos conhecidos por semelhança
+ const K={nome:'nome',datanasc:'nasc',profissao:'prof',local:'local',estado:'estado',nif:'nif',cartaodecidadao:'cc',nutente:'utente',utente:'utente',entidade:'entidade',nbenef:'benef',morada:'morada',telemovel:'tel',telefone:'tel',email:'email'};
+ const norm=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,'');
+ const lev=(a,b)=>{const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const q=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=q;}}return d[b.length];};
+ const key=l=>{const n=norm(l);if(n.length<2)return '';let best='',bd=9;
+  for(const k in K){const dd=k===n?0:(k.endsWith(n)||k.startsWith(n))&&n.length>=3?1:lev(n,k);if(dd<bd){bd=dd;best=K[k];}}
+  return bd<=Math.max(1,Math.floor(norm(l).length/3))?best:'';};
+ const o={}, lines=t.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
+ lines.forEach((ln,i)=>{
+  // separa rótulos na mesma linha («… Profissão: …», «… Cartão de Cidadão: …»)
+  const parts=ln.split(/\s+(?=(?:Profiss\S*|Cart\S* de Cidad\S*)\s*:)/);
+  parts.forEach(pt=>{const c=pt.indexOf(':');if(c<0||c>25){if(i===0&&!o.nome&&!o._first)o._first=pt;return;}
+   const k=key(pt.slice(0,c)),v=pt.slice(c+1).replace(/\s+/g,' ').trim();
+   if(k&&!o[k])o[k]=v;else if(i===0&&!o._first)o._first=v;});});
+ if(!o.nome&&o._first&&/^[A-Za-zÀ-ÿ'’. -]{3,}$/.test(o._first)&&o._first.split(' ').length>=2)o.nome=o._first;
+ if(!o.email){const e=t.match(/[^\s@:]+@[^\s@]+\.[a-z]{2,}/i);if(e)o.email=e[0];}
+ if(!o.local){const u=t.match(/Jesus Mar Couto\s*-\s*(Aveiro|Fa[ií]scas)/i);if(u)o.local=u[0];}
+ const r={};
+ if(o.nome)r.nome=o.nome;
+ if(o.nasc)r.nasc=(o.nasc.match(/\d{4}-\d{2}-\d{2}/)||[''])[0];
+ if(o.nif)r.nif=o.nif.replace(/\D/g,'');
+ if(o.cc)r.cc=o.cc.replace(/\s/g,'');
+ if(o.utente)r.utente=o.utente.replace(/\D/g,'');
+ if(o.morada)r.morada=o.morada;
+ if(o.tel)r.tel=o.tel.replace(/\s/g,'');
+ if(o.email)r.email=(o.email.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)||[''])[0];
+ if(o.local)r.unidade=/fa[ií]scas/i.test(o.local)?'faiscas':/aveiro/i.test(o.local)?'aveiro':'';
+ return r;}
+ const q=id=>document.getElementById(id);
+ const first=ids=>ids.map(q).find(Boolean);
+ const nameEl=first(['nome','nomeF','patient']);
+ if(!nameEl)return;
+ const fire=el=>{el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};
+ const set=(el,v)=>{if(!el||!v)return false;el.value=v;fire(el);return true;};
+ const box=document.createElement('div');box.className='jmc-paste';
+ box.innerHTML='<textarea placeholder="Colar informação do paciente (iMED)" aria-label="Colar informação do paciente"></textarea><p hidden></p>';
+ const sec=nameEl.closest('section'),h2=sec&&sec.querySelector(':scope > h2');
+ if(h2)h2.after(box);else if(sec)sec.before(box);else(nameEl.closest('form')||nameEl.closest('label')||nameEl).before(box);
+ const ta=box.querySelector('textarea'),ok=box.querySelector('p');
+ ta.addEventListener('input',()=>{
+  const r=parseIMED(ta.value),done=[];
+  if(set(nameEl,r.nome))done.push('nome «'+r.nome+'»');
+  if(set(q('email'),r.email))done.push('email');
+  if(r.nasc&&q('nasc')&&set(q('nasc'),r.nasc))done.push('data de nascimento');
+  if(q('tel')&&set(q('tel'),r.tel))done.push('telemóvel');
+  if(q('nif')&&set(q('nif'),r.nif))done.push('NIF');
+  if(q('cc')&&set(q('cc'),r.cc))done.push('cartão de cidadão');
+  if(r.morada&&q('rua')){ // contrato: morada do iMED «Localidade, Concelho, rua…, Nº. X, 1234-567»
+   const cp=(r.morada.match(/\d{4}-\d{3}/)||[''])[0];
+   const parts=r.morada.replace(cp,'').split(',').map(x=>x.trim()).filter(Boolean);
+   const local=parts[0]||'',rua=parts.slice(parts.length>2?2:1).join(', ');
+   if(set(q('rua'),rua))done.push('morada');set(q('cp'),cp);if(q('loc')&&q('loc').tagName==='INPUT')set(q('loc'),local);
+  }
+  const uSel=[q('unidade'),q('local'),q('location')].find(e=>e&&e.tagName==='SELECT');
+  if(r.unidade&&uSel){const want=r.unidade==='faiscas'?'Faíscas':'Aveiro';const o=[...uSel.options].find(o=>o.value===want||o.text===want||o.value===r.unidade);if(o){uSel.value=o.value;fire(uSel);done.push('unidade');}}
+  // ortodontia: a morada vai depois da unidade (mudar a unidade repõe a morada da clínica)
+  if(r.morada&&!q('rua')&&q('address')&&set(q('address'),r.morada))done.push('morada');
+  if(!done.length)return;
+  ta.value='';ta.blur();ok.hidden=false;
+  ok.textContent='✓ Preenchido: '+done.join(', ')+(r.nome?'':' — falta o nome, escreva-o abaixo')+'. Confirme antes de assinar.';
+ });
+})();
+</script>
+</body></html>

@@ -348,7 +348,7 @@ function build(){
   <h3>Cláusula 10ª</h3><p>O presente contrato tem início no dia <b>${dLong(v('data'))}</b> e o seu términus em <b>${P.ultima?dLong(P.ultima.toISOString().slice(0,10)):miss('data')}</b>, salvo se ${O3?'o 2º e/ou o 3º Outorgante':'o 2º Outorgante'} lhe puser fim, em data anterior, com liquidação total e efetiva do montante em dívida.</p>
   <p>${v('local')}, ${dLong(v('data'))}</p>
   <div class="sig"><div>O primeiro Outorgante<br><span style="font-size:8.5pt">${esc(v('empresa'))} — ${REPR().nome}</span></div><div>O segundo Outorgante<br><span style="font-size:8.5pt">${nome}</span></div>${$('o3On').checked?`<div style="grid-column:1/3;width:50%;margin:16pt auto 0">O terceiro Outorgante<br><span style="font-size:8.5pt">${esc(v('o3Nome'))}</span></div>`:''}</div>
-  </div>`+($('orcModo').value==='tabela'?`<div class="paper quote">
+  </div>`+(typeof jmcResumoAnexo==='function'?jmcResumoAnexo(num,ano):'')+($('orcModo').value==='tabela'?`<div class="paper quote">
   <div class="qhead"><h2>ANEXO I — ORÇAMENTO</h2><div class="ref">FIN JMC ${num}/${ano} · ${dLong(v('data'))} · válido por 30 dias</div></div>
   <div class="qmeta"><div class="qbox"><b>Paciente</b>${nome}<br>NIF ${esc(v('nif'))||miss('NIF')} · ${$('estr').checked?esc($('docTipo').value):'C.C.'} ${esc(v('cc'))||miss('doc.')}<br>${esc(v('rua'))||miss('morada')}, ${esc(v('cp'))||''} ${esc(v('loc'))||''}</div>
   <div class="qbox"><b>Clínica</b>Jesus Mar Couto — ${esc(v('local'))}<br>${UNID_ADDR()}</div></div>
@@ -358,7 +358,7 @@ function build(){
     return `<table class="orc">${th}${rows}</table><div class="totals">${D?`<div><span>Subtotal</span><span>${eur(orcBruto())}</span></div><div><span>Descontos</span><span>− ${eur(descValor())}</span></div>`:''}<div class="grand"><span>Total do orçamento</span><span>${eur(orcTotal())}</span></div></div>`})()}
   <p class="qnote">Orçamento válido por 30 dias. Atos de medicina dentária isentos de IVA nos termos do artigo 9.º do CIVA. O plano de tratamento pode ser ajustado por razões clínicas, mediante novo orçamento.${ORC.some(l=>/Dentes fixos/.test(l.d||''))?' Os valores de dentes fixos correspondem ao tratamento de um dos maxilares com 4 implantes dentários convencionais; em casos de atrofia óssea severa poderão ser necessários implantes extra-maxilares (zigomáticos), sujeitos a avaliação e orçamentação própria.':''}</p>
   <div class="qsig"><div>${esc(v('empresa'))} — ${REPR().nome}</div><div>${nome}<br>Aceito o orçamento</div></div>
-  <div class="qfoot">${esc(v('empresa'))} · NIPC ${esc(v('nipc'))} · ${esc(v('sede'))}<br>${UNID_CONTACT()}</div></div>`:`<div class="paper anexo1-ph"><p style="margin-top:24pt;text-align:center"><b>ANEXO I</b><br>Orçamento${v('nOrc')>1?'s':''} ${v('nOrc')>1?'I a '+['I','II','III','IV','V'][v('nOrc')-1]:'I'}${v('orcDesc')?` — ${esc(v('orcDesc'))}`:''}<br><span style="font-size:8.5pt;color:#555">(${(typeof ORC_PDFS!=='undefined'&&ORC_PDFS.length)?(ORC_PDFS.length>1?'ficheiros anexos: ':'ficheiro anexo: ')+esc(ORC_PDFS.map(x=>x.name).join(', ')):'documento anexo'})</span></p></div>`);
+  <div class="qfoot">${esc(v('empresa'))} · NIPC ${esc(v('nipc'))} · ${esc(v('sede'))}<br>${UNID_CONTACT()}</div></div>`+(typeof ORC_PDFS!=='undefined'&&ORC_PDFS.length?jmcPhAnexo():''):`<div class="paper anexo1-ph"><p style="margin-top:24pt;text-align:center"><b>ANEXO I</b><br>Orçamento${v('nOrc')>1?'s':''} ${v('nOrc')>1?'I a '+['I','II','III','IV','V'][v('nOrc')-1]:'I'}${v('orcDesc')?` — ${esc(v('orcDesc'))}`:''}<br><span style="font-size:8.5pt;color:#555">(${(typeof ORC_PDFS!=='undefined'&&ORC_PDFS.length)?(ORC_PDFS.length>1?'ficheiros anexos: ':'ficheiro anexo: ')+esc(ORC_PDFS.map(x=>x.name).join(', ')):'documento anexo'})</span></p></div>`);
   const total=P.fin+P.dd*P.n+P.adm;
   const c2=`<div class="paper"><h1>ANEXO II</h1>
   <table class="plan"><tr><th colspan="2">Tratamento e despesas de financiamento</th></tr>
@@ -399,7 +399,7 @@ function renderOrc(){$('orcLinhas').innerHTML=ORC.map((l,i)=>l.head?`<div class=
     if(i.dataset.k==='pu')i.addEventListener('blur',()=>{i.value=i.value.trim()?fmtEur(i.value):''});
     if(i.dataset.k==='descE')i.addEventListener('blur',()=>{i.value=i.value.trim()?fmtEur(i.value):''});});
   $('orcLinhas').querySelectorAll('[data-odel]').forEach(b=>b.addEventListener('click',()=>{const l=ORC[+b.dataset.odel];if(l.head){for(let j=ORC.length-1;j>=0;j--)if(ORC[j].g===l.g)ORC.splice(j,1)}else ORC.splice(+b.dataset.odel,1);renderOrc();orcSync()}));orcSync()}
-function orcSync(){const t=orcTotal(),b=orcBruto(),d=descValor();$('orcTot').innerHTML=d?`Subtotal ${eur(b)} · descontos −${eur(d)} · <b>Total ${eur(t)}</b>`:`Total do orçamento: <b>${eur(t)}</b>`;if($('orcModo').value==='tabela'){$('valor').value=t?t.toFixed(2):'';}render()}
+function orcSync(){const t=orcTotal(),b=orcBruto(),d=descValor();$('orcTot').innerHTML=d?`Subtotal ${eur(b)} · descontos −${eur(d)} · <b>Total ${eur(t)}</b>`:`Total do orçamento: <b>${eur(t)}</b>`;if($('orcModo').value==='tabela'){const g=t+(typeof jmcPdfTot==='function'?jmcPdfTot():0);$('valor').value=g?g.toFixed(2):'';if(typeof jmcOrcN==='function')jmcOrcN();}render()}
 const PACK={df1:['dfProf','dfCons','dfCir','dfScan','dfP1'],df2:['dfProf','dfCons','dfCir','dfScan','dfP2'],df3:['dfProf','dfCons','dfCir','dfScan','dfP3']};
 const PACK_TITLE={df1:'Dentes fixos em um dia',df2:'Dentes fixos em um dia',df3:'Dentes fixos em um dia'};
 $('orcTipo').addEventListener('change',()=>{const df=$('orcTipo').value==='df';$('dfBox').style.display=df?'block':'none';$('outroBox').style.display=df?'none':'block';if(df&&!ORC.some(l=>l.g==='df'))dfBuild()});
@@ -415,7 +415,7 @@ $('dfAdd').addEventListener('click',()=>{for(let j=ORC.length-1;j>=0;j--)if(ORC[
 ['dfArc','dfOp1','dfOp2'].forEach(id=>$(id).addEventListener('change',()=>{$('dfOp2').style.display=$('dfArc').value==='2'?'':'none';dfBuild()}));
 $('orcOutro').addEventListener('click',()=>{ORC.push({d:'',q:1,pu:''});renderOrc()});
 
-$('orcModo').addEventListener('change',()=>{const tab=$('orcModo').value==='tabela';$('orcTabela').style.display=tab?'block':'none';$('orcAnexo').style.display=tab?'none':'block';$('valor').readOnly=tab;if(tab){if($('orcTipo').value==='df'&&!ORC.some(l=>l.g==='df'))dfBuild();else orcSync()}else render()});
+$('orcModo').addEventListener('change',()=>{const tab=$('orcModo').value==='tabela';$('orcTabela').style.display=tab?'block':'none';$('orcAnexo').style.display='block';$('valor').readOnly=tab;if(tab){if($('orcTipo').value==='df'&&!ORC.some(l=>l.g==='df'))dfBuild();else orcSync()}else render()});
 const TESTE=window.JMC_TESTE===true||new URLSearchParams(location.search).get('teste')==='1';
 if(TESTE){document.addEventListener('DOMContentLoaded',()=>{const b=document.createElement('div');b.textContent='MODO DE TESTE — os contratos emitidos aqui vão para "Contratos (teste)" e a numeração é fictícia (900+).';b.style.cssText='background:#b00020;color:#fff;text-align:center;padding:6px;font-weight:600;font-size:13px';document.body.prepend(b)})}
 function rpc(name,arg){if(name==='getSepaBlank')return fetch('sepa.b64').then(r=>{if(!r.ok)throw Error('Sem o formulário SEPA');return r.text()}).then(s=>s.replace(/\s+/g,''));if(name==='renderContratoPdf')arg={html:arg};return jmcApi(name,arg==null?{}:arg)}
@@ -703,7 +703,7 @@ $('btnSave').addEventListener('click',async()=>{if(!EDITING)render();
     const P=plano(),ib=ibanInfo();const pag=$('pagOn').checked;const dev={nome:pag?v('pagNome'):v('nome'),rua:pag?v('pagRua'):v('rua'),cp:pag?v('pagCp'):v('cp'),loc:pag?v('pagLoc'):v('loc'),nif:pag?v('pagNif'):v('nif')};
     const dt=v('data')?new Date(v('data')):new Date();const dataDDMMAA=String(dt.getDate()).padStart(2,'0')+String(dt.getMonth()+1).padStart(2,'0')+String(dt.getFullYear()).slice(2);
     const allPages=[...$('pages').querySelectorAll('.paper')].filter(p=>!p.classList.contains('sepa-preview')&&!p.classList.contains('anexo1-img'));
-    const phI=ORC_PDF&&$('orcModo').value==='anexo'?allPages.findIndex(p=>p.classList.contains('anexo1-ph')):-1;
+    const phI=ORC_PDF?allPages.findIndex(p=>p.classList.contains('anexo1-ph')):-1;
     const htmlDe=ps=>`<!DOCTYPE html><html><head><meta charset="utf-8">${PDF_CSS}</head><body>${ps.map(p=>p.outerHTML).join('')}</body></html>`;
     const html=htmlDe(phI>=0?allPages.slice(0,phI):allPages), htmlB=phI>=0&&allPages.slice(phI+1).length?htmlDe(allPages.slice(phI+1)):'';
     const a3={ref,nome:dev.nome,rua:dev.rua,cp:dev.cp,loc:dev.loc,pais:$('estr').checked&&v('docPais')?v('docPais'):'PORTUGAL',iban:ib.clean,bic:v('bic')||ib.bic,credor:v('empresa').replace(/[,.]/g,''),credorId:v('sepaId'),credorRua:'RUA DA CABELEIREIRA N37',credorCp:'3140-033',credorLoc:'FAISCAS-ARAZEDE',local:$('local').value,dataDDMMAA,repNome:pag?v('nome'):'',repNif:pag?v('nif'):''};
@@ -735,23 +735,82 @@ let ORC_PDF=null, ORC_IMGS=[], ORC_PDFS=[];
 function jmcPdfjs(){return window.pdfjsLib?Promise.resolve(pdfjsLib):new Promise((ok,ko)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';ok(pdfjsLib)};s.onerror=()=>ko(new Error('Não carregou o leitor de PDF'));document.head.appendChild(s)})}
 async function jmcOrcImagens(){ORC_IMGS=[];if(!ORC_PDF)return;try{const lib=await jmcPdfjs();const bytes=Uint8Array.from(atob(ORC_PDF.b64),c=>c.charCodeAt(0));const doc=await lib.getDocument({data:bytes}).promise;
   for(let i=1;i<=doc.numPages;i++){const pg=await doc.getPage(i);const vp=pg.getViewport({scale:1.6});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;ORC_IMGS.push(c.toDataURL('image/jpeg',0.85))}}catch(e){toast('Não foi possível mostrar o PDF do orçamento: '+(e.message||e))}}
-function jmcAnexo1Preview(){const ph=$('pages').querySelector('.anexo1-ph');if(!ph||!ORC_PDF||$('orcModo').value!=='anexo')return;
+function jmcAnexo1Preview(){const ph=$('pages').querySelector('.anexo1-ph');if(!ph||!ORC_PDF)return;
   if(!ORC_IMGS.length)return;ph.style.display='none';
   ph.insertAdjacentHTML('afterend',ORC_IMGS.map((src,i)=>`<div class="paper anexo1-img" style="padding:0;overflow:hidden;position:relative">${i?'':'<div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);font:600 11px sans-serif;letter-spacing:.12em;color:#9a7b2d;background:rgba(255,255,255,.9);padding:3px 10px;border-radius:20px">ANEXO I · ORÇAMENTO</div>'}<img src="${src}" style="width:100%;display:block"></div>`).join(''));}
 function jmcLerFicheiro(f){return new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=()=>ko(r.error);r.readAsDataURL(f)})}
 async function jmcOrcJuntar(){ORC_IMGS=[];if(!ORC_PDFS.length){ORC_PDF=null}else if(ORC_PDFS.length===1){ORC_PDF={name:ORC_PDFS[0].name,b64:ORC_PDFS[0].b64}}else{ORC_PDF={name:ORC_PDFS.map(x=>x.name).join(' + '),b64:await mergePdfs(ORC_PDFS.map(x=>x.b64))}}
-  if(ORC_PDF){$('orcFileHint').textContent='A preparar a pré-visualização…';await jmcOrcImagens()}jmcOrcDesenhar();render()}
+  if(ORC_PDF){$('orcFileHint').textContent='A preparar a pré-visualização…';await jmcOrcImagens()}jmcOrcDesenhar();jmcGlobal();render()}
 function jmcOrcDesenhar(){const L=$('orcLista');if(!L)return;
-  L.innerHTML=ORC_PDFS.map((x,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;margin-top:4px;background:#fff"><b style="color:var(--gold);min-width:26px">${['I','II','III','IV','V','VI','VII','VIII'][i]||i+1}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.name)}</span>${i?`<button type="button" class="btn secondary" data-orcsob="${i}" title="Subir" style="padding:3px 8px">↑</button>`:''}<button type="button" class="btn secondary" data-orctira="${i}" style="padding:3px 8px">Retirar</button></div>`).join('');
+  const OFF=$('orcModo').value==='tabela'?1:0;L.innerHTML=ORC_PDFS.map((x,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;margin-top:4px;background:#fff"><b style="color:var(--gold);min-width:26px">${['I','II','III','IV','V','VI','VII','VIII','IX'][i+OFF]||i+1+OFF}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.name)}</span>${i?`<button type="button" class="btn secondary" data-orcsob="${i}" title="Subir" style="padding:3px 8px">↑</button>`:''}<button type="button" class="btn secondary" data-orctira="${i}" style="padding:3px 8px">Retirar</button></div>${jmcOrcDetHtml(x,i)}`).join('');jmcOrcDetLigar(L);
   L.querySelectorAll('[data-orctira]').forEach(b=>b.onclick=async()=>{ORC_PDFS.splice(+b.dataset.orctira,1);jmcOrcN();await jmcOrcJuntar();jmcSujo()});
   L.querySelectorAll('[data-orcsob]').forEach(b=>b.onclick=async()=>{const i=+b.dataset.orcsob;[ORC_PDFS[i-1],ORC_PDFS[i]]=[ORC_PDFS[i],ORC_PDFS[i-1]];await jmcOrcJuntar();jmcSujo()});
   $('orcFileHint').textContent=ORC_PDFS.length?`Anexo I: ${ORC_PDFS.length} orçamento${ORC_PDFS.length>1?'s':''} · ${ORC_IMGS.length} página${ORC_IMGS.length===1?'':'s'} — aparece${ORC_PDFS.length>1?'m':''} no documento e ${ORC_PDFS.length>1?'são juntos':'é junto'} ao PDF do contrato. Pode acrescentar mais.`:'Pode escolher um ou vários PDFs (um por orçamento). São anexados como Anexo I, pela ordem da lista, e aparecem aqui no documento.'}
-function jmcOrcN(){if(ORC_PDFS.length>=1){$('nOrc').value=String(ORC_PDFS.length)}}
+function jmcOrcN(){const n=($('orcModo').value==='tabela'?1:0)+ORC_PDFS.length;if(n>=1){$('nOrc').value=String(n)}jmcGlobal()}
 $('orcFile').addEventListener('change',async()=>{const fs=[...($('orcFile').files||[])];$('orcFile').value='';if(!fs.length)return;
   for(const f of fs){if(f.size>8*1024*1024){alert('O PDF '+f.name+' tem mais de 8 MB e não foi anexado.');continue}
     if(ORC_PDFS.length>=8){alert('No máximo 8 orçamentos.');break}
-    ORC_PDFS.push({name:f.name,b64:await jmcLerFicheiro(f)})}
+    const it={name:f.name,b64:await jmcLerFicheiro(f)};try{Object.assign(it,await jmcLerOrcPdf(it.b64))}catch(e){}ORC_PDFS.push(it)}
   jmcOrcN();try{await jmcOrcJuntar()}catch(e){alert('Não foi possível juntar os PDFs: '+(e.message||e))}jmcSujo();});
+
+
+/* ===== Vários orçamentos (tabela + PDFs do iMED/app): detalhe, total global e resumo no Anexo I ===== */
+const ROMN=['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+function jmcR2(x){return Math.round((+x||0)*100)/100}
+function jmcNumPt(t){t=String(t||'').trim().replace(/\s|€/g,'');if(!t)return NaN;if(/,\d{1,2}$/.test(t))t=t.replace(/\./g,'').replace(',','.');else if(/^\d{1,3}(\.\d{3})+$/.test(t))t=t.replace(/\./g,'');return parseFloat(t)}
+function jmcPdfTot(){return jmcR2(ORC_PDFS.reduce((a,x)=>a+(+x.tot||0),0))}
+function jmcGlobal(){const tab=$('orcModo').value==='tabela';const g=jmcR2((tab?orcTotal():0)+jmcPdfTot());
+  if(tab||ORC_PDFS.some(x=>+x.tot>0)){if(g>0)$('valor').value=g.toFixed(2)}
+  const T=$('orcGlobal');if(T){const n=(tab?1:0)+ORC_PDFS.length;T.innerHTML=n>1?`Valor total dos ${n} orçamentos: <b>${eur(g)}</b> — entra automaticamente no «Valor total tratamento».`:''}}
+function jmcOrcDetHtml(x,i){const it=x.itens||[];const tot=x.tot!=null&&x.tot!==''?x.tot:'';
+  return `<div class="hint" style="margin:2px 0 6px 34px;padding:6px 8px;border-left:2px solid var(--line)">
+  <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px"><span style="min-width:62px">Referência</span><input type="text" data-dref="${i}" value="${esc(x.ref||'')}" placeholder="ex.: Orçamento OR JMC/2404" style="flex:1;padding:4px 6px"></div>
+  ${it.map((l,k)=>`<div style="display:flex;gap:6px;align-items:center;margin-top:3px"><input type="text" data-dd="${i}:${k}" value="${esc(l.d||'')}" placeholder="tratamento" style="flex:1;padding:4px 6px"><input type="text" inputmode="decimal" data-dv="${i}:${k}" value="${l.v!=null&&l.v!==''?fmtEur(l.v):''}" placeholder="€" style="width:96px;padding:4px 6px;text-align:right"><button type="button" class="btn secondary" data-ddel="${i}:${k}" style="padding:2px 7px">×</button></div>`).join('')}
+  <div style="display:flex;gap:6px;align-items:center;margin-top:5px"><button type="button" class="btn secondary" data-dadd="${i}" style="padding:3px 8px">+ tratamento</button><span style="flex:1"></span><span>Total deste orçamento</span><input type="text" inputmode="decimal" data-dtot="${i}" value="${tot!==''?fmtEur(tot):''}" placeholder="€" style="width:110px;padding:4px 6px;text-align:right;font-weight:600"${it.length?' readonly title="Soma dos tratamentos"':''}></div>
+  ${x.lido===false?'<div style="color:#a1382b;margin-top:3px">Não consegui ler os valores deste PDF: escreva os tratamentos e o total.</div>':''}</div>`}
+function jmcOrcDetLigar(L){const re=()=>{jmcOrcDesenhar();jmcGlobal();render();jmcSujo()};
+  const soma=x=>{if((x.itens||[]).length)x.tot=jmcR2(x.itens.reduce((a,l)=>a+(+l.v||0),0))};
+  L.querySelectorAll('[data-dref]').forEach(e=>e.onchange=()=>{ORC_PDFS[+e.dataset.dref].ref=e.value;render();jmcSujo()});
+  L.querySelectorAll('[data-dd]').forEach(e=>e.onchange=()=>{const [i,k]=e.dataset.dd.split(':').map(Number);ORC_PDFS[i].itens[k].d=e.value;render();jmcSujo()});
+  L.querySelectorAll('[data-dv]').forEach(e=>e.onchange=()=>{const [i,k]=e.dataset.dv.split(':').map(Number);const n=jmcNumPt(e.value);ORC_PDFS[i].itens[k].v=isNaN(n)?0:n;soma(ORC_PDFS[i]);re()});
+  L.querySelectorAll('[data-ddel]').forEach(e=>e.onclick=()=>{const [i,k]=e.dataset.ddel.split(':').map(Number);ORC_PDFS[i].itens.splice(k,1);soma(ORC_PDFS[i]);re()});
+  L.querySelectorAll('[data-dadd]').forEach(e=>e.onclick=()=>{const x=ORC_PDFS[+e.dataset.dadd];(x.itens=x.itens||[]).push({d:'',v:0});re()});
+  L.querySelectorAll('[data-dtot]').forEach(e=>e.onchange=()=>{const n=jmcNumPt(e.value);ORC_PDFS[+e.dataset.dtot].tot=isNaN(n)?null:n;re()});}
+/* lê um orçamento em PDF com texto (ex.: iMED): n.º, tratamentos, valores e total */
+async function jmcLerOrcPdf(b64){const lib=await jmcPdfjs();const doc=await lib.getDocument({data:Uint8Array.from(atob(b64),c=>c.charCodeAt(0))}).promise;
+  const linhas=[];for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p);const tc=await pg.getTextContent();const L={};
+    tc.items.forEach(t=>{const s=String(t.str||'');if(!s.trim())return;const y=Math.round(t.transform[5]/3)*3;(L[p*10000-y]=L[p*10000-y]||[]).push({x:t.transform[4],s:s.trim()})});
+    Object.keys(L).map(Number).sort((a,b)=>a-b).forEach(k=>linhas.push(L[k].sort((a,b)=>a.x-b.x)))}
+  const txt=l=>l.map(t=>t.s).join(' ');const all=linhas.map(txt);const R={lido:false,itens:[]};
+  const mNum=all.join('\n').match(/Or[çc]amento\s*N[ºo°.]*\s*:?\s*([A-Z0-9][A-Z0-9 \/.-]{2,30}?\d+)\b/i);if(mNum)R.ref='Orçamento '+mNum[1].replace(/\s+/g,' ').trim();
+  const NUM=/^-?\d{1,3}(\.\d{3})*,\d{2}$|^-?\d+,\d{2}$/;
+  const hI=linhas.findIndex(l=>/Descri/i.test(txt(l))&&/Total/i.test(txt(l))&&/(Quant|Qtd|Pre[çc]o)/i.test(txt(l)));
+  if(hI>=0){const H=linhas[hI];const xOf=re=>{const t=H.find(t=>re.test(t.s));return t?t.x:null};const xD=xOf(/Descri/i),xQ=xOf(/Quant|Qtd/i)||xOf(/Uni/i)||xOf(/Pre/i);let cur=null;
+    for(let j=hI+1;j<linhas.length;j++){const l=linhas[j],s=txt(l);if(/Quadro Resumo|Mercadoria|Total\s*\(|Subtotal|Incid[eê]ncia/i.test(s))break;
+      const nums=l.filter(t=>NUM.test(t.s));const desc=l.filter(t=>!NUM.test(t.s)&&(xD==null||t.x>=xD-4)&&(xQ==null||t.x<xQ-4)&&!/^(UN|UNI|%|un)$/i.test(t.s)).map(t=>t.s).join(' ').trim();
+      if(nums.length>=2){cur={d:desc,v:jmcNumPt(nums[nums.length-1].s)};R.itens.push(cur)}else if(cur&&desc){cur.d=(cur.d+' '+desc).replace(/\s+-\s+$/,' - ').trim()}}}
+  R.itens.forEach(l=>{l.d=l.d.replace(/\s+/g,' ').replace(/-\s+(?=[a-záéíóúç])/g,'-').trim()});
+  const tl=all.filter(s=>/Total\s*\(\s*EUR\s*\)|^Total\b|Total a pagar|Total do or[çc]amento/i.test(s)).pop();const tn=tl&&tl.split(/\s+/).filter(t=>NUM.test(t)).pop();
+  if(tn)R.tot=jmcNumPt(tn);else if(R.itens.length)R.tot=jmcR2(R.itens.reduce((a,l)=>a+l.v,0));
+  R.lido=R.tot!=null;return R}
+/* detalhe de um orçamento feito na app (pasta de orçamentos) */
+async function jmcDetPasta(id){const r=await rpc('loadOrcamento',{id});const D=(r&&r.data)||{};const LS=(D.LS||[]).filter(l=>!l.pf||!D.pf||l.code===D.pf);
+  const itens=LS.map(l=>({d:l.d+(l.pos?' ('+l.pos+')':''),v:jmcR2((+l.q||1)*(+l.u||0)*(1-(+l.disc||0)/100))}));let tot=jmcR2(itens.reduce((a,l)=>a+l.v,0));
+  const dg=+String(D.dgVal||0).replace(',','.')||0;if(dg>0){const dv=D.dgTipo==='p'?jmcR2(tot*dg/100):dg;itens.push({d:'Desconto'+(D.dgMot?' — '+D.dgMot:''),v:-dv});tot=jmcR2(tot-dv)}
+  try{const L=await rpc('listOrcamentos',{teste:TESTE});const o=((L&&L.lista)||[]).find(o=>String(o.id)===String(id));if(o&&+o.total>0&&Math.abs(+o.total-tot)>0.01){tot=jmcR2(+o.total)}}catch(e){}
+  return {itens,tot,lido:true}}
+/* página de resumo no Anexo I quando há mais do que um orçamento */
+function jmcResumoAnexo(num,ano){const tab=$('orcModo').value==='tabela';const n=(tab?1:0)+ORC_PDFS.length;if(n<2)return '';
+  const B=[];if(tab){const it=ORC.filter(l=>!l.head).map(l=>({d:l.d,v:lineTotal(l)}));B.push({ref:`Orçamento FIN JMC ${num}/${ano} (tabela anexa)`,itens:it,tot:orcTotal()})}
+  ORC_PDFS.forEach(x=>B.push({ref:x.ref||x.name,itens:x.itens||[],tot:+x.tot||0}));
+  const g=jmcR2(B.reduce((a,b)=>a+b.tot,0));
+  const rows=B.map((b,k)=>`<tr class="head"><td colspan="2">Orçamento ${ROMN[k]} — ${esc(b.ref||'')}</td></tr>`+b.itens.map(l=>`<tr><td style="padding-left:18pt">${esc(l.d)||'—'}</td><td class="r">${l.v<0?'− '+eur(-l.v):eur(l.v)}</td></tr>`).join('')+`<tr><td style="padding-left:18pt"><b>Total do orçamento ${ROMN[k]}</b></td><td class="r"><b>${b.tot?eur(b.tot):miss('total')}</b></td></tr>`).join('');
+  return `<div class="paper quote"><div class="qhead"><h2>ANEXO I — ORÇAMENTOS</h2><div class="ref">FIN JMC ${num}/${ano} · resumo dos ${n} orçamentos</div></div>
+  <table class="orc"><tr><th>Tratamento</th><th class="r">Valor</th></tr>${rows}</table>
+  <div class="totals"><div class="grand"><span>Valor total dos orçamentos</span><span>${eur(g)}</span></div></div>
+  <p class="qnote">Os orçamentos acima identificados seguem anexos a este contrato, pela ordem indicada, e fazem parte integrante do mesmo.</p></div>`}
+function jmcPhAnexo(){const off=$('orcModo').value==='tabela'?1:0;return `<div class="paper anexo1-ph"><p style="margin-top:24pt;text-align:center"><b>ANEXO I</b><br>Orçamento${ORC_PDFS.length>1?'s':''} ${ORC_PDFS.length>1?ROMN[off]+' a '+ROMN[off+ORC_PDFS.length-1]:ROMN[off]}<br><span style="font-size:8.5pt;color:#555">(${ORC_PDFS.length>1?'ficheiros anexos: ':'ficheiro anexo: '}${esc(ORC_PDFS.map(x=>x.ref||x.name).join(', '))})</span></p></div>`}
+(function(){const h=$('orcFileHint');if(h&&!$('orcGlobal'))h.insertAdjacentHTML('afterend','<div class="hint" id="orcGlobal" style="color:var(--ink,#222)"></div>')})();
 
 /* ===== Anexar orçamentos guardados na pasta de orçamentos (PDF na Drive) ===== */
 async function jmcOrcDaPasta(id,silencioso){
@@ -759,7 +818,7 @@ async function jmcOrcDaPasta(id,silencioso){
   if(ORC_PDFS.length>=8){alert('No máximo 8 orçamentos.');return}
   $('orcFileHint').textContent='A buscar o PDF do orçamento…';
   const r=await rpc('getOrcamentoPdf',{id,teste:TESTE});
-  ORC_PDFS.push({name:'Orçamento '+r.numero+(r.paciente?' · '+r.paciente:''),b64:r.b64,orcId:String(r.id)});jmcOrcN();await jmcOrcJuntar();jmcSujo();
+  const it={name:'Orçamento '+r.numero+(r.paciente?' · '+r.paciente:''),b64:r.b64,orcId:String(r.id),ref:'Orçamento n.º '+r.numero};try{Object.assign(it,await jmcDetPasta(r.id))}catch(e){}ORC_PDFS.push(it);jmcOrcN();await jmcOrcJuntar();jmcSujo();
   if(!v('orcDesc'))$('orcDesc').value='Orçamento n.º '+r.numero;
   if(!silencioso)toast('Orçamento '+r.numero+' anexado.');}
 async function jmcOrcPasta(){
